@@ -236,16 +236,19 @@ async function main() {
       log(`Repository ${FULL_REPO} already exists.`);
     }
 
-    log(`Ensuring local git repo is committed to '${DEFAULT_BRANCH}'...`);
-    try {
-      execSync('git rev-parse --is-inside-work-tree', { stdio: 'pipe' });
-    } catch {
-      execSync('git init -b main');
+    log(`Verifying local git state on '${DEFAULT_BRANCH}'...`);
+    const currentBranch = execSync('git branch --show-current', { encoding: 'utf-8' }).trim();
+    if (currentBranch !== DEFAULT_BRANCH) {
+      throw new Error(`CRITICAL: setup-github.js must be executed from '${DEFAULT_BRANCH}', but current branch is '${currentBranch}'!`);
+    }
+    const statusOutput = execSync('git status --porcelain', { encoding: 'utf-8' }).trim();
+    if (statusOutput) {
+      throw new Error(`CRITICAL: Working tree has uncommitted changes! Please clean or commit your working tree before running setup-github.js.`);
     }
     runGh(`git remote remove origin 2>/dev/null || true`);
     runGh(`git remote add origin https://github.com/${FULL_REPO}.git`);
-    log(`Pushing main branch to origin...`);
-    runGh(`git push -u origin main`);
+    log(`Pushing main branch to origin (explicit refspec main:main, no backup branches)...`);
+    runGh(`git push origin main:main`);
   }
   log('Step 1 complete.\n');
 
