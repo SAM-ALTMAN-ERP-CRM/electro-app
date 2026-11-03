@@ -1,0 +1,54 @@
+name: Change Request
+description: Propose a change to scope, a shared table, or an API contract (PMO Change-Control Process)
+title: "[CR] <One-line summary of proposed change>"
+labels: ["change-request", "needs-pmo-review"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ### PMO Change Control Process
+        Any change to project scope, a shared database table, or a cross-team API contract requires formal submission and PMO sign-off.
+        1. Requesting team lead submits this change request (What, Why, Who is affected).
+        2. PMO reviews and answers within 8 hours.
+        3. Documentation is updated and decisions are logged in the project decision log.
+  - type: dropdown
+    id: requesting_team
+    attributes:
+      label: Requesting Team
+      options:
+        - crm1
+        - crm2
+        - crm3
+        - crm4
+        - crm5
+        - erp1
+        - erp2
+        - erp3
+        - erp4
+        - erp5
+        - erp6
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What is the proposed change?
+      description: Describe the exact change to the table, schema, API endpoint, or payload.
+      placeholder: "Describe schema alterations, field renames, new endpoints, or payload structure changes..."
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Why is this change necessary?
+      description: Explain the business justification, technical limitation, or defect necessitating this change.
+    validations:
+      required: true
+  - type: textarea
+    id: affected_teams
+    attributes:
+      label: Who is affected?
+      description: Which other teams, endpoints, or data models will need to adapt if this is approved?
+      placeholder: "e.g. ERP-1, CRM-3, and ERP-4 depend on this field."
+    validations:
+      required: true

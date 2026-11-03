@@ -1,0 +1,62 @@
+name: Bug Report
+description: Report a bug, broken contract, or regression in a merged service or page
+title: "[BUG] <Short description>"
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please provide detailed steps to reproduce the bug. If this involves a cross-team integration failure, specify the caller and provider teams.
+  - type: dropdown
+    id: team
+    attributes:
+      label: Affected Team / Service
+      description: Which team service or module contains the bug?
+      options:
+        - crm1
+        - crm2
+        - crm3
+        - crm4
+        - crm5
+        - erp1
+        - erp2
+        - erp3
+        - erp4
+        - erp5
+        - erp6
+        - shared / app shell
+    validations:
+      required: true
+  - type: input
+    id: issue_key
+    attributes:
+      label: Related Issue Key
+      description: Associated issue key if known (e.g. CRM1-A1, ERP4-C3)
+      placeholder: "e.g. ERP4-C3"
+    validations:
+      required: false
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to Reproduce
+      description: How do you trigger the issue?
+      placeholder: |
+        1. Start all services via `npm run dev`
+        2. Execute POST /api/...
+        3. Observe response
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: What should happen according to the contract or issue specification?
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual Behavior
+      description: What actually happens? Include error messages, logs, or stack traces.
+    validations:
+      required: true

@@ -1,0 +1,51 @@
+name: Blocker Escalation
+description: Escalate an urgent blocker or stalled dependency to PMO (open within 4 hours; PMO answers same day)
+title: "[BLOCKER] <Team> blocked on <External Dependency / Team>"
+labels: ["blocker", "blocked", "needs-pmo-review"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        > [!IMPORTANT]
+        > **PMO Escalation SLA**: Blockers must be raised to your team lead and opened within 4 hours of stalling. PMO answers blocker issues the same day.
+  - type: dropdown
+    id: reporting_team
+    attributes:
+      label: Blocked Team
+      options:
+        - crm1
+        - crm2
+        - crm3
+        - crm4
+        - crm5
+        - erp1
+        - erp2
+        - erp3
+        - erp4
+        - erp5
+        - erp6
+    validations:
+      required: true
+  - type: input
+    id: issue_key
+    attributes:
+      label: Blocked Issue Key
+      description: Which issue is blocked? (e.g. CRM1-B3, ERP4-C1)
+      placeholder: "e.g. CRM1-B3"
+    validations:
+      required: true
+  - type: input
+    id: blocking_party
+    attributes:
+      label: Blocking Team / Prerequisite Issue
+      description: Who or what is blocking your progress? (e.g. Waiting for CRM3-A1 endpoint merge)
+      placeholder: "e.g. Team CRM-3 / Issue CRM3-A1"
+    validations:
+      required: true
+  - type: textarea
+    id: details
+    attributes:
+      label: Blocker Details & Impact
+      description: Explain what is missing or failing, whether a mock can be used, and how long you have been blocked.
+    validations:
+      required: true

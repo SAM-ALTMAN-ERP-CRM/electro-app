@@ -1,0 +1,69 @@
+{
+  "pmo1": "username-pmo-1",
+  "crm1": {
+    "member-a": "username-crm1-a",
+    "member-b": "username-crm1-b",
+    "member-c": "username-crm1-c",
+    "member-d": "username-crm1-d"
+  },
+  "crm2": {
+    "member-a": "username-crm2-a",
+    "member-b": "username-crm2-b",
+    "member-c": "username-crm2-c",
+    "member-d": "username-crm2-d"
+  },
+  "crm3": {
+    "member-a": "username-crm3-a",
+    "member-b": "username-crm3-b",
+    "member-c": "username-crm3-c",
+    "member-d": "username-crm3-d"
+  },
+  "crm4": {
+    "member-a": "username-crm4-a",
+    "member-b": "username-crm4-b",
+    "member-c": "username-crm4-c",
+    "member-d": "username-crm4-d"
+  },
+  "crm5": {
+    "member-a": "username-crm5-a",
+    "member-b": "username-crm5-b",
+    "member-c": "username-crm5-c",
+    "member-d": "username-crm5-d"
+  },
+  "erp1": {
+    "member-a": "username-erp1-a",
+    "member-b": "username-erp1-b",
+    "member-c": "username-erp1-c",
+    "member-d": "username-erp1-d"
+  },
+  "erp2": {
+    "member-a": "username-erp2-a",
+    "member-b": "username-erp2-b",
+    "member-c": "username-erp2-c",
+    "member-d": "username-erp2-d"
+  },
+  "erp3": {
+    "member-a": "username-erp3-a",
+    "member-b": "username-erp3-b",
+    "member-c": "username-erp3-c",
+    "member-d": "username-erp3-d"
+  },
+  "erp4": {
+    "member-a": "username-erp4-a",
+    "member-b": "username-erp4-b",
+    "member-c": "username-erp4-c",
+    "member-d": "username-erp4-d"
+  },
+  "erp5": {
+    "member-a": "username-erp5-a",
+    "member-b": "username-erp5-b",
+    "member-c": "username-erp5-c",
+    "member-d": "username-erp5-d"
+  },
+  "erp6": {
+    "member-a": "username-erp6-a",
+    "member-b": "username-erp6-b",
+    "member-c": "username-erp6-c",
+    "member-d": "username-erp6-d"
+  }
+}

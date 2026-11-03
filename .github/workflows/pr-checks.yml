@@ -1,0 +1,273 @@
+name: PR Checks
+
+on:
+  pull_request:
+    branches: [ main ]
+    types: [ opened, synchronize, reopened, edited ]
+
+permissions:
+  contents: read
+  pull-requests: read
+  issues: read
+
+concurrency:
+  group: pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  branch-name:
+    name: branch-name
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate Branch Name
+        run: |
+          BRANCH="${{ github.head_ref }}"
+          echo "Checking branch: $BRANCH"
+
+          PATTERN_TEAM='^(crm[1-5]|erp[1-6])/([a-d][1-5]|r[1-4])-[a-z0-9-]+$'
+          PATTERN_SPECIAL='^(pmo|integrator)/[a-z0-9-]+$'
+
+          if [[ "$BRANCH" =~ $PATTERN_TEAM || "$BRANCH" =~ $PATTERN_SPECIAL ]]; then
+            echo "Branch name conforms to project naming rules."
+          else
+            echo "::error::Invalid branch name: '$BRANCH'."
+            echo "Expected branch naming pattern:"
+            echo "  Team branches: ^(crm[1-5]|erp[1-6])/([a-d][1-5]|r[1-4])-[a-z0-9-]+$"
+            echo "    Examples: crm1/a1-leads-api, crm1/r1-readme, erp5/c4-start-everything"
+            echo "  Special branches: ^(pmo|integrator)/[a-z0-9-]+$"
+            echo "    Examples: integrator/c3-login-shell, pmo/update-ruleset"
+            exit 1
+          fi
+
+  folder-check:
+    name: folder-check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify Changed Folders and Author Permissions
+        env:
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+          HEAD_BRANCH: ${{ github.head_ref }}
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          echo "Branch: $HEAD_BRANCH"
+          echo "Author: $PR_AUTHOR"
+
+          # 1. PMO branches are exempt
+          if [[ "$HEAD_BRANCH" =~ ^pmo/ ]]; then
+            echo "Branches starting with 'pmo/' are exempt from folder checks."
+            exit 0
+          fi
+
+          # 2. Integrator branches check author in .github/integrators.txt
+          if [[ "$HEAD_BRANCH" =~ ^integrator/ ]]; then
+            echo "Checking author authorization for integrator/ branch..."
+            if [ ! -f .github/integrators.txt ]; then
+              echo "::error::.github/integrators.txt not found!"
+              exit 1
+            fi
+
+            AUTHORIZED=false
+            while IFS= read -r line || [ -n "$line" ]; do
+              clean_user="$(echo "$line" | sed 's/#.*//' | tr -d '[:space:]')"
+              if [ -n "$clean_user" ] && [ "$clean_user" = "$PR_AUTHOR" ]; then
+                AUTHORIZED=true
+                break
+              fi
+            done < .github/integrators.txt
+
+            if [ "$AUTHORIZED" = true ]; then
+              echo "Author '$PR_AUTHOR' is authorized in .github/integrators.txt."
+              exit 0
+            else
+              echo "::error::User '$PR_AUTHOR' is not authorized to open PRs from integrator/ branches!"
+              echo "Only usernames listed in .github/integrators.txt may submit integrator PRs."
+              exit 1
+            fi
+          fi
+
+          # 3. Team branch folder boundaries
+          TEAM=$(echo "$HEAD_BRANCH" | cut -d'/' -f1)
+          echo "Validating file changes for team: $TEAM"
+
+          CHANGED_FILES=$(git diff --name-only "origin/${BASE_REF}...HEAD")
+          echo "Changed files in PR:"
+          echo "$CHANGED_FILES"
+
+          FAILED=0
+          while IFS= read -r file; do
+            [ -z "$file" ] && continue
+            if [[ "$file" =~ ^\.github/ ]]; then
+              echo "::error::Disallowed file '$file': Team branches must never edit .github/ files!"
+              FAILED=1
+            elif [[ "$file" =~ ^services/$TEAM/ || "$file" =~ ^frontend/src/modules/$TEAM/ || "$file" =~ ^docs/$TEAM/ ]]; then
+              # Allowed path for this team
+              continue
+            else
+              echo "::error::Disallowed file '$file': For branch '$HEAD_BRANCH', changes must be strictly within services/$TEAM/, frontend/src/modules/$TEAM/, or docs/$TEAM/."
+              FAILED=1
+            fi
+          done <<< "$CHANGED_FILES"
+
+          if [ "$FAILED" -ne 0 ]; then
+            echo "Folder check failed. PR contains modifications outside the team's designated directories."
+            exit 1
+          fi
+          echo "All changed files comply with folder boundaries."
+
+  build:
+    name: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: ${{ hashFiles('package-lock.json') != '' && 'npm' || '' }}
+
+      - name: Install dependencies & Build
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci
+          elif [ -f package.json ]; then
+            npm install
+          else
+            echo "No package.json found at root yet; skipping npm ci."
+          fi
+
+          if [ -f package.json ]; then
+            npm run lint --if-present
+            npm run build --if-present
+            npm run smoke --if-present
+          fi
+
+  no-secrets:
+    name: no-secrets
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Scan for committed secrets and .env files
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          echo "Checking for added .env files..."
+          ADDED_FILES=$(git diff --name-only --diff-filter=A "origin/${BASE_REF}...HEAD")
+          while IFS= read -r file; do
+            [ -z "$file" ] && continue
+            fname=$(basename "$file")
+            if [ "$fname" = ".env" ]; then
+              echo "::error::Committed secret file detected: '$file'. .env files must never be committed!"
+              exit 1
+            fi
+          done <<< "$ADDED_FILES"
+
+          echo "Scanning diff for non-placeholder JWT_SECRET..."
+          # Look for newly added lines with JWT_SECRET=
+          FAILED=0
+          while IFS= read -r line; do
+            if [[ "$line" =~ ^\+[[:space:]]*JWT_SECRET= ]]; then
+              val=$(echo "$line" | sed 's/^\+[[:space:]]*JWT_SECRET=//' | tr -d '\"'\'' ')
+              case "$val" in
+                "dev_secret_key_change_in_production"|"placeholder"|"change-me"|"change_me"|"your-secret-key-placeholder"|"your_jwt_secret"|"supersecret-change-me"|"")
+                  echo "Found allowed placeholder: $val"
+                  ;;
+                *)
+                  echo "::error::Disallowed non-placeholder JWT_SECRET found in diff: '$line'!"
+                  FAILED=1
+                  ;;
+              esac
+            fi
+          done < <(git diff -U0 "origin/${BASE_REF}...HEAD")
+
+          if [ "$FAILED" -ne 0 ]; then
+            echo "Secret check failed. Please remove the secret and use the shared development placeholder."
+            exit 1
+          fi
+          echo "No secrets detected."
+
+  pr-format:
+    name: pr-format
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate PR Title, Body, and Matching Issue
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+          HEAD_BRANCH: ${{ github.head_ref }}
+          REPO: ${{ github.repository }}
+        run: |
+          echo "Validating PR title and body format..."
+          echo "PR Title: $PR_TITLE"
+          echo "Branch: $HEAD_BRANCH"
+
+          # 1. PR body must match (?i)(closes|fixes|resolves)\s+#\d+
+          CLOSING_ISSUE=$(echo "$PR_BODY" | grep -Ei -m 1 '(closes|fixes|resolves)[[:space:]]+#[0-9]+' || true)
+          if [ -z "$CLOSING_ISSUE" ]; then
+            echo "::error::PR body must match format 'Closes #<issue number>' (or Fixes/Resolves #<issue number>)."
+            echo "Expected: 'Closes #123'"
+            exit 1
+          fi
+
+          ISSUE_NUM=$(echo "$CLOSING_ISSUE" | grep -Eoi '#[0-9]+' | tr -d '#')
+          echo "Identified closing issue: #$ISSUE_NUM"
+
+          # 2. PR title must match ^\[[A-Z]{3}[0-9]-(?:[A-D][1-5]|R[1-4])\]
+          PR_KEY_MATCH=$(echo "$PR_TITLE" | grep -Eo '^\[[A-Z]{3}[0-9]-(?:[A-D][1-5]|R[1-4])\]' || true)
+          if [ -z "$PR_KEY_MATCH" ]; then
+            echo "::error::PR title must start with an issue key in square brackets, matching format ^\[[A-Z]{3}[0-9]-(?:[A-D][1-5]|R[1-4])\]."
+            echo "Examples:"
+            echo "  [CRM1-A1] Leads table and API"
+            echo "  [ERP5-C4] Start-everything script"
+            echo "  [CRM1-R1] Team Lead: README and demo script"
+            exit 1
+          fi
+
+          PR_KEY=$(echo "$PR_KEY_MATCH" | tr -d '[]')
+          echo "Extracted PR Key: $PR_KEY"
+
+          # 3. Fetch issue from GitHub API and verify title begins with [PR_KEY]
+          echo "Fetching issue #$ISSUE_NUM from GitHub API..."
+          ISSUE_TITLE=$(gh api "repos/${REPO}/issues/${ISSUE_NUM}" --jq .title 2>/dev/null || true)
+
+          if [ -z "$ISSUE_TITLE" ]; then
+            echo "::warning::Could not fetch issue #$ISSUE_NUM via GitHub API (check token scope or issue existence)."
+          else
+            echo "Fetched issue title: $ISSUE_TITLE"
+            if [[ ! "$ISSUE_TITLE" =~ ^\[$PR_KEY\] ]]; then
+              echo "::error::Issue #$ISSUE_NUM title ('$ISSUE_TITLE') does not begin with key '[$PR_KEY]' found in PR title '$PR_TITLE'!"
+              exit 1
+            fi
+            echo "Issue title matches PR key successfully."
+          fi
+
+          # 4. For team branches, verify branch matches the key
+          if [[ "$HEAD_BRANCH" =~ ^(integrator|pmo)/ ]]; then
+            echo "Skipping branch-key match for special branch '$HEAD_BRANCH'."
+          else
+            # Key e.g. CRM1-A1 -> crm1/a1-
+            TEAM_KEY=$(echo "$PR_KEY" | cut -d'-' -f1 | tr '[:upper:]' '[:lower:]')
+            ITEM_KEY=$(echo "$PR_KEY" | cut -d'-' -f2 | tr '[:upper:]' '[:lower:]')
+            EXPECTED_PREFIX="${TEAM_KEY}/${ITEM_KEY}-"
+            echo "Expected branch prefix: $EXPECTED_PREFIX"
+
+            if [[ ! "$HEAD_BRANCH" =~ ^$EXPECTED_PREFIX ]]; then
+              echo "::error::Branch name '$HEAD_BRANCH' does not match issue key '$PR_KEY'! Expected branch name to begin with '$EXPECTED_PREFIX'."
+              echo "Example: ${EXPECTED_PREFIX}feature-name"
+              exit 1
+            fi
+            echo "Branch name matches PR key successfully."
+          fi
+
+          echo "PR format check passed completely."

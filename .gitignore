@@ -1,0 +1,23 @@
+# Dependencies
+node_modules/
+
+# Environment variables & local secrets
+.env
+*.env.local
+scripts/pmo/members.json
+
+# Build outputs
+dist/
+build/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# Test coverage
+coverage/
+
+# OS metadata
+.DS_Store
+Thumbs.db
