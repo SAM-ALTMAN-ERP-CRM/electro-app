@@ -18,6 +18,8 @@ npm-debug.log*
 # Test coverage
 coverage/
 
-# OS metadata
+# OS metadata & IDE configs
 .DS_Store
 Thumbs.db
+.vscode/
+.idea/
