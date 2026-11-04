@@ -354,16 +354,19 @@ async function main() {
 
   // LIVE EXECUTION
   console.log('Fetching existing issues from GitHub...');
-  let existingIssuesMap = new Map(); // key -> issue number
+  let existingIssuesMap = new Map(); // key -> { number, title, body, milestone }
   try {
-    const rawExisting = runGh(`gh issue list --repo ${FULL_REPO} --limit 500 --json number,title --jq '.[] | "\\(.number)|\t\\(.title)"'`, true) || '';
-    rawExisting.split('\n').filter(Boolean).forEach(line => {
-      const parts = line.split('|\t');
-      const num = parts[0];
-      const title = parts[1] || '';
-      const m = title.match(/^\[([A-Z0-9]+-[A-Z0-9]+)\]/);
+    const rawExisting = runGh(`gh issue list --repo ${FULL_REPO} --limit 500 --json number,title,milestone,body`, true) || '[]';
+    const parsed = JSON.parse(rawExisting);
+    parsed.forEach(item => {
+      const m = item.title.match(/^\[([A-Z0-9]+-[A-Z0-9]+)\]/);
       if (m) {
-        existingIssuesMap.set(m[1], num);
+        existingIssuesMap.set(m[1], {
+          number: item.number,
+          title: item.title,
+          body: item.body || '',
+          milestone: item.milestone ? item.milestone.title : ''
+        });
       }
     });
     console.log(`Found ${existingIssuesMap.size} existing tracked issues in ${FULL_REPO}.`);
@@ -377,7 +380,8 @@ async function main() {
 
   for (let i = 0; i < issues.length; i++) {
     const iss = issues[i];
-    const existingNum = existingIssuesMap.get(iss.key);
+    const existing = existingIssuesMap.get(iss.key);
+    const existingNum = existing ? existing.number : null;
 
     if (existingNum && !updateExisting) {
       console.log(`[SKIP ${i+1}/${issues.length}] [${iss.key}] already exists as #${existingNum} (use --update-existing to update).`);
@@ -390,6 +394,17 @@ async function main() {
     const ms = getMilestone(iss);
     const labels = getLabels(iss);
     const assignee = getAssignee(iss, members);
+
+    if (existing && updateExisting) {
+      const isBodyIdentical = existing.body.trim() === body.trim();
+      const isTitleIdentical = existing.title.trim() === title.trim();
+      const isMsIdentical = existing.milestone === ms;
+      if (isBodyIdentical && isTitleIdentical && isMsIdentical) {
+        console.log(`[UP-TO-DATE ${i+1}/${issues.length}] [${iss.key}] (#${existingNum}) is already up to date. Skipping edit.`);
+        skippedCount++;
+        continue;
+      }
+    }
 
     const tmpBodyPath = path.join('/tmp', `issue-${iss.key}-${Date.now()}.md`);
     fs.writeFileSync(tmpBodyPath, body, 'utf-8');
