@@ -602,8 +602,7 @@ Done when: CRUD works; 5 seed campaigns in different statuses.
 [CRM4-A2] Campaign screens
 Build: Page /campaigns (table, status badges, create/edit form). Dropdowns: segment from api('crm3', '/
 api/segments'), template from this team's api('crm4', '/api/templates').
-Depends on: CRM4-A1 (WAIT). CRM3-C1 (MOCK: hard-code 4 segments until merged). CRM4-C1 (MOCK: hard-
-code 4 templates until merged).
+Depends on: CRM4-A1 (WAIT). CRM3-C1 (MOCK: hard-code 4 segments until merged). CRM4-C1 (MOCK: hard-code 4 templates until merged).
 Done when: you can create and edit a campaign choosing a segment and a template.
 [CRM4-A3] Send simulation
 Build: POST /api/campaigns/:id/send: fetch the segment's customers from CRM-3 GET /api/segments/:id/
@@ -623,8 +622,7 @@ members, GET /api/audiences/:id/members. 3 seed audiences with members from CUST
 Depends on: nothing.
 Done when: all endpoints work; 3 seed audiences with members.
 [CRM4-B2] Audience screens
-Build: Page /audiences (list with member counts, create form). Page /audiences/:id (members table, add-
-member form, remove button).
+Build: Page /audiences (list with member counts, create form). Page /audiences/:id (members table, add-member form, remove button).
 Depends on: CRM4-B1 (WAIT).
 Done when: members can be added and removed and the counts update.
 [CRM4-B3] Import from segment and opt-out
@@ -831,8 +829,7 @@ Depends on: ERP1-A1 (WAIT).
 Needed by: ERP3-C3 (serials/bulk), CRM2-B1 and ERP4 seeds (same serial numbers).
 Done when: generating 10 serials creates 10 unique rows; filters work; seeded serials exist.
 [ERP1-C2] Serial screens
-Build: Page /serials: generate form (SKU, batch no, count, prefix), table with status filter and a serial-
-number search box, and a batches list.
+Build: Page /serials: generate form (SKU, batch no, count, prefix), table with status filter and a serial-number search box, and a batches list.
 Depends on: ERP1-C1 (WAIT).
 Done when: generating and searching work from the browser.
 [ERP1-C3] Status rules and allocation
@@ -983,8 +980,7 @@ Build: GET /api/boms/:id/requirements?qty= returns each component with qty_per_u
 component call ERP-1 GET /api/stock/check?sku=&qty= ( mock: 'stock-check': available for all except one
 component). "Check materials" button on the BOM page shows a green tick or red cross per component and
 the shortfall. New: a "Request purchase" button on every red row posts {sku, product_name, quantity:
-shortfall, requested_by:'ERP-3 production', reason:'Work order shortage'} to ERP-2 POST /api/purchase-
-requests (mock: log it) and shows "Purchase requested". This is how a production shortage reaches
+shortfall, requested_by:'ERP-3 production', reason:'Work order shortage'} to ERP-2 POST /api/purchase-requests (mock: log it) and shows "Purchase requested". This is how a production shortage reaches
 Purchasing.
 Depends on: ERP3-A1, ERP3-A2 (WAIT). ERP1-B3 (MOCK: mock stock check). ERP2-B1 (MOCK: log the
 request).
@@ -1016,8 +1012,7 @@ Member C · Material issue and finished goods
 [ERP3-C1] Material issue API
 Build: Table material_issues (id, wo_id, component_sku, qty, issued_at). POST /api/work-orders/:id/issue
 {component_sku, qty} adds to issued_qty (cannot exceed required_qty, else 400), logs the issue and calls
-ERP-1 POST /api/stock/adjust with a negative delta ( warehouse_id:'WH-01', reason = WO id; mock: 'stock-
-adjust'). GET /api/work-orders/:id/issues.
+ERP-1 POST /api/stock/adjust with a negative delta ( warehouse_id:'WH-01', reason = WO id; mock: 'stock-adjust'). GET /api/work-orders/:id/issues.
 Depends on: ERP3-B1, ERP3-B3 (WAIT). ERP1-B1 (MOCK: log it).
 Done when: issuing more than required is refused; issued_qty and history update; ERP-1 stock goes down (or
 the mock log appears).
@@ -1413,8 +1408,7 @@ payroll/:id is a printable salary slip with earnings and deductions side by side
 Depends on: ERP6-C1 (WAIT).
 Done when: generating shows the slips; the slip prints on one page.
 [ERP6-C3] Payroll safeguards and ledger posting
-Build: Generating a month twice returns 409 "Already generated" unless ?force=true. PATCH /api/salary-
-slips/:id/paid marks a slip paid. Card with total payroll cost for the month. When a month is generated, POST
+Build: Generating a month twice returns 409 "Already generated" unless ?force=true. PATCH /api/salary-slips/:id/paid marks a slip paid. Card with total payroll cost for the month. When a month is generated, POST
 ERP-5 /api/ledger/auto {type:'salary', reference: month, amount: total} (side effect, mock: 'ledger').
 Depends on: ERP6-C1, ERP6-C2 (WAIT). ERP5-D1 (MOCK: log it).
 Done when: duplicate generation is blocked; the total card is correct; the ledger gets a salary entry (or the

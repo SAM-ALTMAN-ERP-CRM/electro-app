@@ -57,7 +57,7 @@
 
 ### [ERP6-C3] Payroll safeguards and ledger posting
 
-- **Build**: Generating a month twice returns 409 "Already generated" unless ?force=true. PATCH /api/salary- slips/:id/paid marks a slip paid. Card with total payroll cost for the month. When a month is generated, POST ERP-5 /api/ledger/auto {type:'salary', reference: month, amount: total} (side effect, mock: 'ledger').
+- **Build**: Generating a month twice returns 409 "Already generated" unless ?force=true. PATCH /api/salary-slips/:id/paid marks a slip paid. Card with total payroll cost for the month. When a month is generated, POST ERP-5 /api/ledger/auto {type:'salary', reference: month, amount: total} (side effect, mock: 'ledger').
 - **Depends on**: ERP6-C1, ERP6-C2 (WAIT). ERP5-D1 (MOCK: log it).
 - **Done when**: duplicate generation is blocked; the total card is correct; the ledger gets a salary entry (or the mock log appears).
 

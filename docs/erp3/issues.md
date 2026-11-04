@@ -20,7 +20,7 @@
 
 ### [ERP3-A3] Material requirement, availability and purchase request
 
-- **Build**: GET /api/boms/:id/requirements?qty= returns each component with qty_per_unit times qty. For each component call ERP-1 GET /api/stock/check?sku=&qty= ( mock: 'stock-check': available for all except one component). "Check materials" button on the BOM page shows a green tick or red cross per component and the shortfall. New: a "Request purchase" button on every red row posts {sku, product_name, quantity: shortfall, requested_by:'ERP-3 production', reason:'Work order shortage'} to ERP-2 POST /api/purchase- requests (mock: log it) and shows "Purchase requested". This is how a production shortage reaches Purchasing.
+- **Build**: GET /api/boms/:id/requirements?qty= returns each component with qty_per_unit times qty. For each component call ERP-1 GET /api/stock/check?sku=&qty= ( mock: 'stock-check': available for all except one component). "Check materials" button on the BOM page shows a green tick or red cross per component and the shortfall. New: a "Request purchase" button on every red row posts {sku, product_name, quantity: shortfall, requested_by:'ERP-3 production', reason:'Work order shortage'} to ERP-2 POST /api/purchase-requests (mock: log it) and shows "Purchase requested". This is how a production shortage reaches Purchasing.
 - **Depends on**: ERP3-A1 (WAIT). ERP3-A2 (MOCK: requirements endpoint and purchase trigger testable via API before BOM UI is merged). ERP1-B3 (MOCK: mock stock check). ERP2-B1 (MOCK: log the request).
 - **Done when**: requirements scale with quantity; with real ERP-1 data a 20-TV requirement shows SKU-0102 in red; pressing "Request purchase" creates a pending request in ERP-2 (or logs the mock).
 
@@ -46,7 +46,7 @@
 
 ### [ERP3-C1] Material issue API
 
-- **Build**: Table material_issues (id, wo_id, component_sku, qty, issued_at). POST /api/work-orders/:id/issue {component_sku, qty} adds to issued_qty (cannot exceed required_qty, else 400), logs the issue and calls ERP-1 POST /api/stock/adjust with a negative delta ( warehouse_id:'WH-01', reason = WO id; mock: 'stock- adjust'). GET /api/work-orders/:id/issues.
+- **Build**: Table material_issues (id, wo_id, component_sku, qty, issued_at). POST /api/work-orders/:id/issue {component_sku, qty} adds to issued_qty (cannot exceed required_qty, else 400), logs the issue and calls ERP-1 POST /api/stock/adjust with a negative delta ( warehouse_id:'WH-01', reason = WO id; mock: 'stock-adjust'). GET /api/work-orders/:id/issues.
 - **Depends on**: ERP3-B1 (WAIT). ERP3-B3 (MOCK: treat materials as available until B3 is merged in G3). ERP1-B1 (MOCK: log it).
 - **Done when**: issuing more than required is refused; issued_qty and history update; ERP-1 stock goes down (or the mock log appears).
 

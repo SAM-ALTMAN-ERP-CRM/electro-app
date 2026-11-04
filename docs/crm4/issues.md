@@ -15,7 +15,7 @@
 ### [CRM4-A2] Campaign screens
 
 - **Build**: Page /campaigns (table, status badges, create/edit form). Dropdowns: segment from api('crm3', '/api/segments'), template from this team's api('crm4', '/api/templates').
-- **Depends on**: CRM4-A1 (WAIT). CRM3-C1 (MOCK: hard-code 4 segments until merged). CRM4-C1 (MOCK: hard- code 4 templates until merged).
+- **Depends on**: CRM4-A1 (WAIT). CRM3-C1 (MOCK: hard-code 4 segments until merged). CRM4-C1 (MOCK: hard-code 4 templates until merged).
 - **Done when**: you can create and edit a campaign choosing a segment and a template.
 
 ### [CRM4-A3] Send simulation
@@ -32,7 +32,7 @@
 
 ### [CRM4-B2] Audience screens
 
-- **Build**: Page /audiences (list with member counts, create form). Page /audiences/:id (members table, add- member form, remove button).
+- **Build**: Page /audiences (list with member counts, create form). Page /audiences/:id (members table, add-member form, remove button).
 - **Depends on**: CRM4-B1 (WAIT).
 - **Done when**: members can be added and removed and the counts update.
 

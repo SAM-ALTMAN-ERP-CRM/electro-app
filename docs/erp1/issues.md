@@ -53,7 +53,7 @@
 
 ### [ERP1-C2] Serial screens
 
-- **Build**: Page /serials: generate form (SKU, batch no, count, prefix), table with status filter and a serial- number search box, and a batches list.
+- **Build**: Page /serials: generate form (SKU, batch no, count, prefix), table with status filter and a serial-number search box, and a batches list.
 - **Depends on**: ERP1-C1 (WAIT).
 - **Done when**: generating and searching work from the browser.
 
