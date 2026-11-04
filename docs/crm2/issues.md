@@ -14,13 +14,13 @@
 
 ### [CRM2-A2] Ticket screens
 
-- **Build**: Page /tickets (table, status and priority filters, "New ticket" form) and /tickets/:id (details, status dropdown that saves). The "assigned to" field is a dropdown from ERP-6: api('erp6', '/api/employees? role_title=Service Engineer').
+- **Build**: Page /tickets (table, status and priority filters, "New ticket" form) and /tickets/:id (details, status dropdown that saves). The "assigned to" field is a dropdown from ERP-6: api('erp6', '/api/employees?role_title=Service Engineer').
 - **Depends on**: CRM2-A1 (WAIT). ERP6-A1 (MOCK: hard-code EMP-0005 to EMP-0007 until merged).
 - **Done when**: you can create a ticket, filter the list and change status from the browser.
 
 ### [CRM2-A3] SLA timer and comments
 
-- **Build**: On create set due_at = created_at + 4 hours (high), 24 hours (medium), 72 hours (low). GET /api/ tickets/overdue (past due and not resolved). In the UI show a red "Overdue" badge or "x h left". Table ticket_comments (id, ticket_id, author, text, created_at) with POST and GET /api/tickets/:id/comments, shown on the ticket page; the author is the logged-in user's name.
+- **Build**: On create set due_at = created_at + 4 hours (high), 24 hours (medium), 72 hours (low). GET /api/tickets/overdue (past due and not resolved). In the UI show a red "Overdue" badge or "x h left". Table ticket_comments (id, ticket_id, author, text, created_at) with POST and GET /api/tickets/:id/comments, shown on the ticket page; the author is the logged-in user's name.
 - **Depends on**: CRM2-A1 (WAIT), CRM2-A2 (WAIT, for the ticket page).
 - **Done when**: due_at is set automatically; overdue tickets show a red badge; comments can be added and listed.
 
@@ -58,7 +58,7 @@
 
 ### [CRM2-C3] Warranty rule and return handoff
 
-- **Build**: An RMA can only be requested if the serial is in warranty (call this service's GET /api/warranty/:serial; expired returns 400 "Out of warranty"). When an RMA is approved with an outcome, POST to ERP-4 /api/ returns/from-rma with {rma_id, serial_number, reason, outcome} (ERP-4 owns returns; ERP-4 then calls ERP-1 and ERP-5). Also post a timeline event to CRM-3 (type ticket, source_team CRM-2). Both are side effects: log failures. Status timeline (requested, approved, received, closed) on the detail page.
+- **Build**: An RMA can only be requested if the serial is in warranty (call this service's GET /api/warranty/:serial; expired returns 400 "Out of warranty"). When an RMA is approved with an outcome, POST to ERP-4 /api/returns/from-rma with {rma_id, serial_number, reason, outcome} (ERP-4 owns returns; ERP-4 then calls ERP-1 and ERP-5). Also post a timeline event to CRM-3 POST /api/interactions/from-event (type ticket, source_team CRM-2). Both are side effects: log failures. Status timeline (requested, approved, received, closed) on the detail page.
 - **Depends on**: CRM2-C1 (WAIT), CRM2-B1 (WAIT). ERP4-D1 (MOCK: log the payload until /api/returns/from-rma exists). CRM3-B3 (MOCK: log).
 - **Needed by**: ERP4-D1.
 - **Done when**: an expired serial is refused; approving creates an ERP-4 return (or logs the mock); the timeline highlights the current step.
@@ -71,7 +71,7 @@
 
 ### [CRM2-D2] Assign screen
 
-- **Build**: Page /centres to manage centres. Page /assign lists unassigned tickets (from this service's GET /api/ tickets, minus assigned ones) with a centre dropdown and an Assign button.
+- **Build**: Page /centres to manage centres. Page /assign lists unassigned tickets (from this service's GET /api/tickets, minus assigned ones) with a centre dropdown and an Assign button.
 - **Depends on**: CRM2-D1 (WAIT), CRM2-A1 (WAIT).
 - **Done when**: assigning from the page removes the ticket from the unassigned list.
 
@@ -85,7 +85,7 @@
 
 ### [CRM2-R1] Team Lead: README and demo script
 
-- **Build**: Keep docs/crm2/README.md (what the module does, how to run it, endpoint list, which other teams you call and who calls you). Write docs/crm2/demo.md: a 5-step demo script of your module, with the exact customer, SKU and rep IDs from Section 5. Run a 10-minute check every Friday: every merged PR of the team follows the folder rules, index.jsx lists every page, nothing outside your own folders was changed. Chase teams you are waiting for using the Depends on lines.
+- **Build**: Keep docs/crm2/README.md (what the module does, how to run it, endpoint list, which other teams you call and who calls you). Write docs/crm2/demo.md: a 5-step demo script of your module, with the exact customer, SKU and rep IDs from Section 5. Run a daily 10-minute check during morning standup: every merged PR of the team follows the folder rules, index.jsx lists every page, nothing outside your own folders was changed. Chase teams you are waiting for using the Depends on lines.
 - **Depends on**: Start now. Final demo script waits for all 12 build issues of your team (WAIT).
 - **Done when**: README and demo script in main; demo script can be followed by someone outside the team.
 
@@ -106,4 +106,3 @@
 - **Build**: Write test cases (a table: id, issue key, steps, expected result, actual, pass/fail), at least 3 per build issue, in docs/crm2/tests.md. Write the API spec docs/crm2/api.md (every endpoint: method, path, request body, response, error codes) and a Postman collection. Run your team's rows of the cross-team table (Section 7) with USE_MOCKS=false and file a bug issue for any failure. Which cross-team rows (Section 7) this team must verify: 4, 5, 6, 7, 10, 12.
 - **Depends on**: Test cases wait for each build issue to be merged (WAIT per issue). ERP5-C5 (end-to-end test) is the final check.
 - **Done when**: Test cases all run with results; API spec matches the code; bug issues are filed and closed.
-

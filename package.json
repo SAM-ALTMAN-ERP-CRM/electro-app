@@ -1,0 +1,21 @@
+{
+  "name": "electro-app",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Electro App - Shared Monorepo for CRM + ERP",
+  "workspaces": [
+    "services/*",
+    "frontend"
+  ],
+  "scripts": {
+    "dev": "node ./node_modules/concurrently/dist/bin/concurrently.js --kill-others --prefix \"[{name}]\" --names \"shell,crm1,crm2,crm3,crm4,crm5,erp1,erp2,erp3,erp4,erp5,erp6\" -c \"cyan,blue,blueBright,magenta,magentaBright,green,yellow,red,redBright,blue,yellowBright,greenBright\" \"npm --workspace=frontend run dev\" \"npm --workspace=services/crm1 run dev\" \"npm --workspace=services/crm2 run dev\" \"npm --workspace=services/crm3 run dev\" \"npm --workspace=services/crm4 run dev\" \"npm --workspace=services/crm5 run dev\" \"npm --workspace=services/erp1 run dev\" \"npm --workspace=services/erp2 run dev\" \"npm --workspace=services/erp3 run dev\" \"npm --workspace=services/erp4 run dev\" \"npm --workspace=services/erp5 run dev\" \"npm --workspace=services/erp6 run dev\"",
+    "build": "npm --workspace=frontend run build",
+    "smoke": "node scripts/smoke.js",
+    "db:setup": "node scripts/db-setup.js",
+    "reset": "node scripts/db-setup.js --reset",
+    "e2e": "node scripts/e2e.js"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

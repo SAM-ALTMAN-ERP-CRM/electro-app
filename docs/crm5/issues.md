@@ -7,7 +7,7 @@
 
 ### [CRM5-A1] Portal overview API
 
-- **Build**: Table portal_visits (id, customer_id, visited_at). GET /api/portal/:customer_id/overview returns the customer (CRM-3 /api/customers/:id), their orders (ERP-4 /api/sales-orders?customer_id=), tickets (CRM-2 / api/tickets?customer_id=) and invoices (ERP-5 /api/invoices?customer_id=), each with its own mock file. Each part is fetched independently: if one team is down, return that part as [] with "unavailable": true, but with USE_MOCKS=false the response must say which team failed. Every call logs a row in portal_visits.
+- **Build**: Table portal_visits (id, customer_id, visited_at). GET /api/portal/:customer_id/overview returns the customer (CRM-3 /api/customers/:id), their orders (ERP-4 /api/sales-orders?customer_id=), tickets (CRM-2 /api/tickets?customer_id=) and invoices (ERP-5 /api/invoices?customer_id=), each with its own mock file. Each part is fetched independently: if one team is down, return that part as [] with "unavailable": true, but with USE_MOCKS=false the response must say which team failed. Every call logs a row in portal_visits.
 - **Depends on**: CRM3-A1, ERP4-A1, CRM2-A1, ERP5-A1 (all MOCK: one mock file each).
 - **Done when**: the overview returns all four parts (mock data is fine at first); visits are logged; with real services running, CUST-0001 shows SO-0001, its invoice and its tickets.
 
@@ -81,7 +81,7 @@
 
 ### [CRM5-R1] Team Lead: README and demo script
 
-- **Build**: Keep docs/crm5/README.md (what the module does, how to run it, endpoint list, which other teams you call and who calls you). Write docs/crm5/demo.md: a 5-step demo script of your module, with the exact customer, SKU and rep IDs from Section 5. Run a 10-minute check every Friday: every merged PR of the team follows the folder rules, index.jsx lists every page, nothing outside your own folders was changed. Chase teams you are waiting for using the Depends on lines.
+- **Build**: Keep docs/crm5/README.md (what the module does, how to run it, endpoint list, which other teams you call and who calls you). Write docs/crm5/demo.md: a 5-step demo script of your module, with the exact customer, SKU and rep IDs from Section 5. Run a daily 10-minute check during morning standup: every merged PR of the team follows the folder rules, index.jsx lists every page, nothing outside your own folders was changed. Chase teams you are waiting for using the Depends on lines.
 - **Depends on**: Start now. Final demo script waits for all 12 build issues of your team (WAIT).
 - **Done when**: README and demo script in main; demo script can be followed by someone outside the team.
 
@@ -102,4 +102,3 @@
 - **Build**: Write test cases (a table: id, issue key, steps, expected result, actual, pass/fail), at least 3 per build issue, in docs/crm5/tests.md. Write the API spec docs/crm5/api.md (every endpoint: method, path, request body, response, error codes) and a Postman collection. Run your team's rows of the cross-team table (Section 7) with USE_MOCKS=false and file a bug issue for any failure. Which cross-team rows (Section 7) this team must verify: 10, 11, 12.
 - **Depends on**: Test cases wait for each build issue to be merged (WAIT per issue). ERP5-C5 (end-to-end test) is the final check.
 - **Done when**: Test cases all run with results; API spec matches the code; bug issues are filed and closed.
-

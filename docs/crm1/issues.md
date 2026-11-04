@@ -20,7 +20,7 @@
 
 ### [CRM1-A3] Lead scoring and Hot leads
 
-- **Build**: On create and update calculate score: source dealer +30, web +20, walk-in +10; email present +10; phone present +10; product_interest filled +10 (maximum 100). Recalculate on every PUT. Add GET /api/leads/ hot (score 60 or more); define this route before /:id. Show a "Hot" badge in the table.
+- **Build**: On create and update calculate score: source dealer +30, web +20, walk-in +10; email present +10; phone present +10; product_interest filled +10 (maximum 100). Recalculate on every PUT. Add GET /api/leads/hot (score 60 or more); define this route before /:id. Show a "Hot" badge in the table.
 - **Depends on**: CRM1-A1 (WAIT), CRM1-A2 (WAIT, for the badge).
 - **Done when**: new leads get a score automatically; editing a lead updates it; /api/leads/hot returns only 60+ leads; the badge shows in the UI.
 
@@ -39,13 +39,13 @@
 
 ### [CRM1-B3] Stage rules and summary
 
-- **Build**: A stage can only move one step forward (or to lost). Moving to won is allowed only if an accepted quote exists: query GET /api/quotes?opportunity_id=...&status=accepted from this same service (use callService('crm1', ...) with mock: 'quotes-accepted' until C1 is merged). Add GET /api/opportunities/ summary (count and total value per stage) and show it above the board.
+- **Build**: A stage can only move one step forward (or to lost). Moving to won is allowed only if an accepted quote exists: query GET /api/quotes?opportunity_id=...&status=accepted from this same service (use callService('crm1', ...) with mock: 'quotes-accepted' until C1 is merged). Add GET /api/opportunities/summary (count and total value per stage) and show it above the board.
 - **Depends on**: CRM1-B1 (WAIT). CRM1-C1 (MOCK: use the mock file until the quotes API is merged).
 - **Done when**: skipping stages returns 400 with a clear message; won without an accepted quote is blocked; summary numbers match the board.
 
 ### [CRM1-C1] Quotes tables and API
 
-- **Build**: Tables quotes (id QUO-0001, opportunity_id, customer_id, dealer_id nullable (a DLR id), sales_rep_id, status = draft/sent/accepted/rejected default draft, discount_percent default 0, needs_approval boolean default false, approved boolean default false, rejection_reason text nullable, created_at) and quote_items (id, quote_id, sku, product_name, quantity, unit_price). POST /api/quotes accepts items in the same request (one transaction). GET /api/quotes/:id returns items plus subtotal, discount amount, GST 18% and total. GET /api/ quotes supports ?opportunity_id=, ?status=, ?dealer_id=. Seed 4 quotes using SKU-0001 to SKU-0015 and customers CUST-0001 to CUST-0008.
+- **Build**: Tables quotes (id QUO-0001, opportunity_id, customer_id, dealer_id nullable (a DLR id), sales_rep_id, status = draft/sent/accepted/rejected default draft, discount_percent default 0, needs_approval boolean default false, approved boolean default false, rejection_reason text nullable, created_at) and quote_items (id, quote_id, sku, product_name, quantity, unit_price). POST /api/quotes accepts items in the same request (one transaction). GET /api/quotes/:id returns items plus subtotal, discount amount, GST 18% and total. GET /api/quotes supports ?opportunity_id=, ?status=, ?dealer_id=. Seed 4 quotes using SKU-0001 to SKU-0015 and customers CUST-0001 to CUST-0008.
 - **Depends on**: CRM1-B1 (MOCK: store opportunity_id as plain text and use OPP-0001 to OPP-0006 in seeds, no foreign key needed).
 - **Needed by**: CRM1-B3, C2, C3, D2, D3, CRM5-B1, B3.
 - **Done when**: you can create a quote with 3 items and GET shows the correct totals; the three filters work.
@@ -58,7 +58,7 @@
 
 ### [CRM1-C3] Discount rule, quote status and order handoff
 
-- **Build**: If discount_percent is above 5, set needs_approval = true and block moving to sent until approved = true (set by CRM1-D3). Add PATCH /api/quotes/:id/status (draft to sent, sent to accepted or rejected). When a quote becomes accepted: (1) POST to ERP-4 /api/sales-orders with {quote_id, customer_id, sales_rep_id, items:[{sku, product_name, quantity, unit_price}]}; (2) post a timeline event to CRM-3 /api/interactions/ from-event {customer_id, type:'order', summary:'Quote QUO-xxxx accepted', source_team:'CRM-1'}. Both are side effects: wrap in try/catch and log failures; a 409 from ERP-4 (order already exists) is fine.
+- **Build**: If discount_percent is above 5, set needs_approval = true and block moving to sent until approved = true (set by CRM1-D3). Add PATCH /api/quotes/:id/status (draft to sent, sent to accepted or rejected). When a quote becomes accepted: (1) POST to ERP-4 /api/sales-orders with {quote_id, customer_id, sales_rep_id, items:[{sku, product_name, quantity, unit_price}]}; (2) post a timeline event to CRM-3 /api/interactions/from-event {customer_id, type:'order', summary:'Quote QUO-xxxx accepted', source_team:'CRM-1'}. Both are side effects: wrap in try/catch and log failures; a 409 from ERP-4 (order already exists) is fine.
 - **Depends on**: CRM1-C1 (WAIT). CRM1-D3 (MOCK: until approvals exist, set approved=true by hand in the database to test). ERP4-A1 (MOCK: log the payload). CRM3-B3 (MOCK: log the payload).
 - **Needed by**: CRM1-B3 (accepted quotes), ERP4-A1 (receives the order).
 - **Done when**: a 10% discount quote cannot be sent without approval; accepting a quote creates an ERP-4 order (or logs the mock) and a timeline entry.
@@ -78,7 +78,7 @@
 
 ### [CRM1-D3] Quote approval screen
 
-- **Build**: GET /api/approvals (quotes with needs_approval = true, approved = false and status draft), PATCH /api/ quotes/:id/approve (sets approved = true) and /reject {reason} (stores rejection_reason). Both only for role admin ( requireRole('admin')). Page /approvals (route-level roles: ['admin']): table with approve and reject buttons. Show each dealer's tier next to the quote (gold up to 15% discount, silver 10%, bronze 5%) as a hint.
+- **Build**: GET /api/approvals (quotes with needs_approval = true, approved = false and status draft), PATCH /api/quotes/:id/approve (sets approved = true) and /reject {reason} (stores rejection_reason). Both only for role admin ( requireRole('admin')). Page /approvals (route-level roles: ['admin']): table with approve and reject buttons. Show each dealer's tier next to the quote (gold up to 15% discount, silver 10%, bronze 5%) as a hint.
 - **Depends on**: CRM1-C1 (WAIT), CRM1-D1 (WAIT).
 - **Needed by**: CRM1-C3 (the send step checks approved).
 - **Done when**: approving a quote lets CRM1-C3's flow send it; rejecting stores the reason and shows it on the quote; a non-admin gets 403.
@@ -87,7 +87,7 @@
 
 ### [CRM1-R1] Team Lead: README and demo script
 
-- **Build**: Keep docs/crm1/README.md (what the module does, how to run it, endpoint list, which other teams you call and who calls you). Write docs/crm1/demo.md: a 5-step demo script of your module, with the exact customer, SKU and rep IDs from Section 5. Run a 10-minute check every Friday: every merged PR of the team follows the folder rules, index.jsx lists every page, nothing outside your own folders was changed. Chase teams you are waiting for using the Depends on lines.
+- **Build**: Keep docs/crm1/README.md (what the module does, how to run it, endpoint list, which other teams you call and who calls you). Write docs/crm1/demo.md: a 5-step demo script of your module, with the exact customer, SKU and rep IDs from Section 5. Run a daily 10-minute check during morning standup: every merged PR of the team follows the folder rules, index.jsx lists every page, nothing outside your own folders was changed. Chase teams you are waiting for using the Depends on lines.
 - **Depends on**: Start now. Final demo script waits for all 12 build issues of your team (WAIT).
 - **Done when**: README and demo script in main; demo script can be followed by someone outside the team.
 
@@ -108,4 +108,3 @@
 - **Build**: Write test cases (a table: id, issue key, steps, expected result, actual, pass/fail), at least 3 per build issue, in docs/crm1/tests.md. Write the API spec docs/crm1/api.md (every endpoint: method, path, request body, response, error codes) and a Postman collection. Run your team's rows of the cross-team table (Section 7) with USE_MOCKS=false and file a bug issue for any failure. Which cross-team rows (Section 7) this team must verify: 1, 2, 3, 4, 9, 11.
 - **Depends on**: Test cases wait for each build issue to be merged (WAIT per issue). ERP5-C5 (end-to-end test) is the final check.
 - **Done when**: Test cases all run with results; API spec matches the code; bug issues are filed and closed.
-

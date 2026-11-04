@@ -223,10 +223,10 @@ jobs:
           ISSUE_NUM=$(echo "$CLOSING_ISSUE" | grep -Eoi '#[0-9]+' | tr -d '#')
           echo "Identified closing issue: #$ISSUE_NUM"
 
-          # 2. PR title must match ^\[[A-Z]{3}[0-9]-(?:[A-D][1-5]|R[1-4])\]
-          PR_KEY_MATCH=$(echo "$PR_TITLE" | grep -Eo '^\[[A-Z]{3}[0-9]-(?:[A-D][1-5]|R[1-4])\]' || true)
+          # 2. PR title must match ^\[[A-Z]{3}[0-9]-([A-D][1-5]|R[1-4])\]
+          PR_KEY_MATCH=$(echo "$PR_TITLE" | grep -Eo '^\[[A-Z]{3}[0-9]-([A-D][1-5]|R[1-4])\]' || true)
           if [ -z "$PR_KEY_MATCH" ]; then
-            echo "::error::PR title must start with an issue key in square brackets, matching format ^\[[A-Z]{3}[0-9]-(?:[A-D][1-5]|R[1-4])\]."
+            echo "::error::PR title must start with an issue key in square brackets, matching format ^\[[A-Z]{3}[0-9]-([A-D][1-5]|R[1-4])\]."
             echo "Examples:"
             echo "  [CRM1-A1] Leads table and API"
             echo "  [ERP5-C4] Start-everything script"

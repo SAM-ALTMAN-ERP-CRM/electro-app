@@ -7,7 +7,7 @@
 
 ### [ERP4-A1] Sales orders API
 
-- **Build**: Tables sales_orders (id SO-0001, quote_id nullable unique, customer_id, customer_name, customer_gstin nullable, sales_rep_id, status = created/confirmed/dispatched/delivered/cancelled default created, total_amount, created_at) and so_items (id, so_id, sku, product_name, quantity, unit_price). POST / api/sales-orders accepts items (CRM-1 calls this with quote_id; a repeated quote_id returns 409). GET /:id with items; GET list supports ?customer_id= and ?status=. Seed SO-0001 to SO-0005 as in the shared seed contract (each for CUST-0001 to CUST-0005, each containing SKU-0001).
+- **Build**: Tables sales_orders (id SO-0001, quote_id nullable unique, customer_id, customer_name, customer_gstin nullable, sales_rep_id, status = created/confirmed/dispatched/delivered/cancelled default created, total_amount, created_at) and so_items (id, so_id, sku, product_name, quantity, unit_price). POST /api/sales-orders accepts items (CRM-1 calls this with quote_id; a repeated quote_id returns 409). GET /:id with items; GET list supports ?customer_id= and ?status=. Seed SO-0001 to SO-0005 as in the shared seed contract (each for CUST-0001 to CUST-0005, each containing SKU-0001).
 - **Depends on**: nothing (CRM1-C3 is the caller, not a dependency).
 - **Needed by**: CRM1-C3, CRM5-A1, A3, ERP4-A2, A3, B1, C1.
 - **Done when**: creating an order with 3 items stores the correct total; duplicate quote_id returns 409; 5 seed orders.
@@ -26,7 +26,7 @@
 
 ### [ERP4-B1] Reservation API
 
-- **Build**: Table reservations (id, so_id, sku, quantity, status = reserved/released/shortage, created_at). POST / api/sales-orders/:id/reserve: for each item call ERP-1 GET /api/stock/check?sku=&qty= ( mock: 'stock-check': available except one SKU); create a reservation row per item as reserved or shortage and return a summary. Running it again updates rows, never duplicates.
+- **Build**: Table reservations (id, so_id, sku, quantity, status = reserved/released/shortage, created_at). POST /api/sales-orders/:id/reserve: for each item call ERP-1 GET /api/stock/check?sku=&qty= ( mock: 'stock-check': available except one SKU); create a reservation row per item as reserved or shortage and return a summary. Running it again updates rows, never duplicates.
 - **Depends on**: ERP4-A1 (WAIT). ERP1-B3 (MOCK: mock stock check).
 - **Needed by**: ERP4-B2, B3, C1.
 - **Done when**: a mixed order produces both reserved and shortage rows (with real ERP-1 data, SKU-0003 gives a shortage); running twice does not duplicate rows.
@@ -45,7 +45,7 @@
 
 ### [ERP4-C1] Dispatch API
 
-- **Build**: Tables dispatches (id DSP-0001, so_id, courier = BlueDart/Delhivery/DTDC, tracking_no, status = picked/shipped/delivered, ship_date, delivered_date, address) and dispatch_serials (dispatch_id, sku, serial_number). POST /api/dispatches only for orders where every reservation is reserved (else 400); it gets serials from ERP-1 POST /api/serials/allocate {sku, qty} ( mock: 'serials-allocate': generate fake serials). GET /api/dispatches returns rows {serial_number, sku, customer_id, ship_date} (CRM-2 uses this). PATCH / api/dispatches/:id/status. Seed DSP-0001 to DSP-0005 with serials TV55-2611-0001 to 0005 (shared seed contract).
+- **Build**: Tables dispatches (id DSP-0001, so_id, courier = BlueDart/Delhivery/DTDC, tracking_no, status = picked/shipped/delivered, ship_date, delivered_date, address) and dispatch_serials (dispatch_id, sku, serial_number). POST /api/dispatches only for orders where every reservation is reserved (else 400); it gets serials from ERP-1 POST /api/serials/allocate {sku, qty} ( mock: 'serials-allocate': generate fake serials). GET /api/dispatches returns rows {serial_number, sku, customer_id, ship_date} (CRM-2 uses this). PATCH /api/dispatches/:id/status. Seed DSP-0001 to DSP-0005 with serials TV55-2611-0001 to 0005 (shared seed contract).
 - **Depends on**: ERP4-B1 (WAIT). ERP1-C3 (MOCK: fake serials).
 - **Needed by**: CRM2-B3, ERP4-C2, C3, D1.
 - **Done when**: dispatching an unreserved order returns 400; serials are stored per dispatch; with real ERP-1 the allocated serials are reserved in ERP-1.
@@ -65,8 +65,8 @@
 
 ### [ERP4-D1] Returns API
 
-- **Build**: Table returns (id RET-0001, so_id, serial_number, reason, rma_id nullable unique, outcome nullable, status = requested/received/restocked/scrapped default requested, created_at). POST /api/returns checks that the serial exists in dispatch_serials for that order (else 400). CRUD, PATCH /api/returns/:id/status. New: POST / api/returns/from-rma {rma_id, serial_number, reason, outcome} (CRM-2 calls this): finds the order from dispatch_serials by serial (400 if the serial was never dispatched), creates the return with status requested; a repeated rma_id returns the existing return with 200. Seed 4 returns using serials TV55-2611-0001 to 0004.
-- **Depends on**: ERP4-C1 (WAIT, dispatch_serials). CRM2-C1 (MOCK: test from-rma with Postman until CRM-2 calls it).
+- **Build**: Table returns (id RET-0001, so_id, serial_number, reason, rma_id nullable unique, outcome nullable, status = requested/received/restocked/scrapped default requested, created_at). POST /api/returns checks that the serial exists in dispatch_serials for that order (else 400). CRUD, PATCH /api/returns/:id/status. New: POST /api/returns/from-rma {rma_id, serial_number, reason, outcome} (CRM-2 calls this): finds the order from dispatch_serials by serial (400 if the serial was never dispatched), creates the return with status requested; a repeated rma_id returns the existing return with 200. Seed 4 returns using serials TV55-2611-0001 to 0004.
+- **Depends on**: ERP4-C1 (WAIT, dispatch_serials). CRM2-C3 (MOCK: test from-rma with Postman until CRM2-C3 calls it).
 - **Needed by**: CRM2-C3, ERP4-D2, D3.
 - **Done when**: a return for a serial not in the order is refused; from-rma creates a return and is safe to call twice; 4 seed returns.
 
@@ -86,7 +86,7 @@
 
 ### [ERP4-R1] Team Lead: README and demo script
 
-- **Build**: Keep docs/erp4/README.md (what the module does, how to run it, endpoint list, which other teams you call and who calls you). Write docs/erp4/demo.md: a 5-step demo script of your module, with the exact customer, SKU and rep IDs from Section 5. Run a 10-minute check every Friday: every merged PR of the team follows the folder rules, index.jsx lists every page, nothing outside your own folders was changed. Chase teams you are waiting for using the Depends on lines.
+- **Build**: Keep docs/erp4/README.md (what the module does, how to run it, endpoint list, which other teams you call and who calls you). Write docs/erp4/demo.md: a 5-step demo script of your module, with the exact customer, SKU and rep IDs from Section 5. Run a daily 10-minute check during morning standup: every merged PR of the team follows the folder rules, index.jsx lists every page, nothing outside your own folders was changed. Chase teams you are waiting for using the Depends on lines.
 - **Depends on**: Start now. Final demo script waits for all 12 build issues of your team (WAIT).
 - **Done when**: README and demo script in main; demo script can be followed by someone outside the team.
 
@@ -107,4 +107,3 @@
 - **Build**: Write test cases (a table: id, issue key, steps, expected result, actual, pass/fail), at least 3 per build issue, in docs/erp4/tests.md. Write the API spec docs/erp4/api.md (every endpoint: method, path, request body, response, error codes) and a Postman collection. Run your team's rows of the cross-team table (Section 7) with USE_MOCKS=false and file a bug issue for any failure. Which cross-team rows (Section 7) this team must verify: 3, 4, 6, 7, 10, 19 to 26.
 - **Depends on**: Test cases wait for each build issue to be merged (WAIT per issue). ERP5-C5 (end-to-end test) is the final check.
 - **Done when**: Test cases all run with results; API spec matches the code; bug issues are filed and closed.
-

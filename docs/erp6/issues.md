@@ -26,7 +26,7 @@
 
 ### [ERP6-B1] Attendance and leave API
 
-- **Build**: Tables attendance (id, employee_id, date, status = present/absent/half_day/leave, check_in, check_out, unique employee_id + date) and leave_requests (id LV-0001, employee_id, from_date, to_date, type = casual/ sick/earned, status = pending/approved/rejected default pending, reason). POST /api/attendance/mark (saves or updates the day), GET /api/attendance?month=YYYY-MM&employee_id=, CRUD for leave requests, PATCH / api/leave-requests/:id/decision.
+- **Build**: Tables attendance (id, employee_id, date, status = present/absent/half_day/leave, check_in, check_out, unique employee_id + date) and leave_requests (id LV-0001, employee_id, from_date, to_date, type = casual/ sick/earned, status = pending/approved/rejected default pending, reason). POST /api/attendance/mark (saves or updates the day), GET /api/attendance?month=YYYY-MM&employee_id=, CRUD for leave requests, PATCH /api/leave-requests/:id/decision.
 - **Depends on**: ERP6-A1 (WAIT, employee ids).
 - **Done when**: marking the same employee and day twice updates instead of duplicating.
 
@@ -63,7 +63,7 @@
 
 ### [ERP6-D1] Commission sync API
 
-- **Build**: Table commissions (id, sales_rep_id, invoice_id unique, invoice_amount, rate_percent, commission_amount, month YYYY-MM, created_at). POST /api/commissions/sync fetches ERP-5 GET /api/ invoices/paid ( {invoice_id, sales_rep_id, total, paid_on}; mock: 'invoices-paid') and inserts a row for each new invoice: rate 2%, or 3% if the amount is above 100000; month comes from paid_on. Returns how many were added. GET /api/commissions?month=&sales_rep_id=.
+- **Build**: Table commissions (id, sales_rep_id, invoice_id unique, invoice_amount, rate_percent, commission_amount, month YYYY-MM, created_at). POST /api/commissions/sync fetches ERP-5 GET /api/invoices/paid ( {invoice_id, sales_rep_id, total, paid_on}; mock: 'invoices-paid') and inserts a row for each new invoice: rate 2%, or 3% if the amount is above 100000; month comes from paid_on. Returns how many were added. GET /api/commissions?month=&sales_rep_id=.
 - **Depends on**: ERP6-A1 (WAIT, rep names). ERP5-B3 (MOCK: 3-row mock).
 - **Needed by**: ERP6-C1, D2, D3.
 - **Done when**: syncing twice adds nothing the second time; rates are applied correctly.
@@ -84,7 +84,7 @@
 
 ### [ERP6-R1] Team Lead: README and demo script
 
-- **Build**: Keep docs/erp6/README.md (what the module does, how to run it, endpoint list, which other teams you call and who calls you). Write docs/erp6/demo.md: a 5-step demo script of your module, with the exact customer, SKU and rep IDs from Section 5. Run a 10-minute check every Friday: every merged PR of the team follows the folder rules, index.jsx lists every page, nothing outside your own folders was changed. Chase teams you are waiting for using the Depends on lines.
+- **Build**: Keep docs/erp6/README.md (what the module does, how to run it, endpoint list, which other teams you call and who calls you). Write docs/erp6/demo.md: a 5-step demo script of your module, with the exact customer, SKU and rep IDs from Section 5. Run a daily 10-minute check during morning standup: every merged PR of the team follows the folder rules, index.jsx lists every page, nothing outside your own folders was changed. Chase teams you are waiting for using the Depends on lines.
 - **Depends on**: Start now. Final demo script waits for all 12 build issues of your team (WAIT).
 - **Done when**: README and demo script in main; demo script can be followed by someone outside the team.
 
@@ -105,4 +105,3 @@
 - **Build**: Write test cases (a table: id, issue key, steps, expected result, actual, pass/fail), at least 3 per build issue, in docs/erp6/tests.md. Write the API spec docs/erp6/api.md (every endpoint: method, path, request body, response, error codes) and a Postman collection. Run your team's rows of the cross-team table (Section 7) with USE_MOCKS=false and file a bug issue for any failure. Which cross-team rows (Section 7) this team must verify: 1, 5, 27, 28.
 - **Depends on**: Test cases wait for each build issue to be merged (WAIT per issue). ERP5-C5 (end-to-end test) is the final check.
 - **Done when**: Test cases all run with results; API spec matches the code; bug issues are filed and closed.
-
