@@ -9,7 +9,7 @@
 
 - **Build**: Tables customers (id CUST-0001, name, type = retail/corporate/dealer, email, phone, gstin nullable, billing_address, shipping_address, city, created_at) and contacts (id, customer_id, name, phone, email, designation). CRUD for customers (GET list supports ?q= and ?type=), GET /api/customers/:id (returns gstin; used by ERP-4, ERP-5, CRM-5), POST and GET /api/customers/:id/contacts. Seed exactly the 10 customers in the shared seed contract (CUST-0001 to CUST-0010, including the two duplicate rows), each with 1 to 2 contacts.
 - **Depends on**: nothing. This is the most-used API in the project: merge it early.
-- **Needed by**: CRM3-A2 and the rest of CRM-3, ERP4-A3, ERP5-A1, CRM5-A1, CRM5-D1.
+- **Needed by**: CRM3-A2 and the rest of CRM3-A2, CRM3-B1, ERP4-A3, ERP5-A1, CRM5-A1, CRM5-D1.
 - **Done when**: all endpoints work; the 10 seed customers match the shared seed contract.
 
 ### [CRM3-A2] Customer screens
@@ -33,7 +33,7 @@
 ### [CRM3-B2] Timeline screen
 
 - **Build**: Page /customers/:id/timeline: vertical list with icon per type, date, summary, source team. "Add note" form at the top. Link to this page from the customer detail page.
-- **Depends on**: CRM3-B1 (WAIT). CRM3-A2 (WAIT, for the link).
+- **Depends on**: CRM3-B1 (WAIT). CRM3-A2 (MOCK: /crm3/customers/:id/timeline opens directly; customer detail page link connects once A2 is merged).
 - **Done when**: the timeline is sorted newest first and a new note appears at once.
 
 ### [CRM3-B3] Events from other teams
@@ -84,7 +84,7 @@
 
 ### [CRM3-R1] Team Lead: README and demo script
 
-- **Build**: Keep docs/crm3/README.md (what the module does, how to run it, endpoint list, which other teams you call and who calls you). Write docs/crm3/demo.md: a 5-step demo script of your module, with the exact customer, SKU and rep IDs from Section 5. Run a 10-minute check every Friday: every merged PR of the team follows the folder rules, index.jsx lists every page, nothing outside your own folders was changed. Chase teams you are waiting for using the Depends on lines.
+- **Build**: Keep docs/crm3/README.md (what the module does, how to run it, endpoint list, which other teams you call and who calls you). Write docs/crm3/demo.md: a 5-step demo script of your module, with the exact customer, SKU and rep IDs from Section 5. Run a daily 10-minute check during morning standup: every merged PR of the team follows the folder rules, index.jsx lists every page, nothing outside your own folders was changed. Chase teams you are waiting for using the Depends on lines.
 - **Depends on**: Start now. Final demo script waits for all 12 build issues of your team (WAIT).
 - **Done when**: README and demo script in main; demo script can be followed by someone outside the team.
 
@@ -105,4 +105,3 @@
 - **Build**: Write test cases (a table: id, issue key, steps, expected result, actual, pass/fail), at least 3 per build issue, in docs/crm3/tests.md. Write the API spec docs/crm3/api.md (every endpoint: method, path, request body, response, error codes) and a Postman collection. Run your team's rows of the cross-team table (Section 7) with USE_MOCKS=false and file a bug issue for any failure. Which cross-team rows (Section 7) this team must verify: 4, 8, 10, 12, 19.
 - **Depends on**: Test cases wait for each build issue to be merged (WAIT per issue). ERP5-C5 (end-to-end test) is the final check.
 - **Done when**: Test cases all run with results; API spec matches the code; bug issues are filed and closed.
-

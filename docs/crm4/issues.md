@@ -7,14 +7,14 @@
 
 ### [CRM4-A1] Campaigns table and API
 
-- **Build**: Table campaigns (id CMP-0001, name, objective, channel = email/whatsapp/sms, status = draft/ scheduled/sent default draft, segment_id, template_id, scheduled_at, created_at). CRUD plus PATCH /api/ campaigns/:id/status. 5 seed campaigns in different statuses; segment_id from SEG-0001 to SEG-0004, template_id from TPL-0001 to TPL-0004.
+- **Build**: Table campaigns (id CMP-0001, name, objective, channel = email/whatsapp/sms, status = draft/ scheduled/sent default draft, segment_id, template_id, scheduled_at, created_at). CRUD plus PATCH /api/campaigns/:id/status. 5 seed campaigns in different statuses; segment_id from SEG-0001 to SEG-0004, template_id from TPL-0001 to TPL-0004.
 - **Depends on**: nothing (IDs are plain text).
 - **Needed by**: CRM4-A2, A3.
 - **Done when**: CRUD works; 5 seed campaigns in different statuses.
 
 ### [CRM4-A2] Campaign screens
 
-- **Build**: Page /campaigns (table, status badges, create/edit form). Dropdowns: segment from api('crm3', '/ api/segments'), template from this team's api('crm4', '/api/templates').
+- **Build**: Page /campaigns (table, status badges, create/edit form). Dropdowns: segment from api('crm3', '/api/segments'), template from this team's api('crm4', '/api/templates').
 - **Depends on**: CRM4-A1 (WAIT). CRM3-C1 (MOCK: hard-code 4 segments until merged). CRM4-C1 (MOCK: hard- code 4 templates until merged).
 - **Done when**: you can create and edit a campaign choosing a segment and a template.
 
@@ -38,7 +38,7 @@
 
 ### [CRM4-B3] Import from segment and opt-out
 
-- **Build**: POST /api/audiences/:id/import-segment {segment_id} copies customers from CRM-3 GET /api/ segments/:id/customers ( mock: 'segment-customers'), skipping ones already in the audience. "Opt out" toggle per member; opted-out members are not counted as reachable. Show the "reachable" count on the list.
+- **Build**: POST /api/audiences/:id/import-segment {segment_id} copies customers from CRM-3 GET /api/segments/:id/customers ( mock: 'segment-customers'), skipping ones already in the audience. "Opt out" toggle per member; opted-out members are not counted as reachable. Show the "reachable" count on the list.
 - **Depends on**: CRM4-B1 (WAIT), CRM4-B2 (WAIT). CRM3-C1 (MOCK).
 - **Done when**: importing twice adds no duplicates; toggling opt-out changes the reachable count.
 
@@ -90,7 +90,7 @@
 
 ### [CRM4-R1] Team Lead: README and demo script
 
-- **Build**: Keep docs/crm4/README.md (what the module does, how to run it, endpoint list, which other teams you call and who calls you). Write docs/crm4/demo.md: a 5-step demo script of your module, with the exact customer, SKU and rep IDs from Section 5. Run a 10-minute check every Friday: every merged PR of the team follows the folder rules, index.jsx lists every page, nothing outside your own folders was changed. Chase teams you are waiting for using the Depends on lines.
+- **Build**: Keep docs/crm4/README.md (what the module does, how to run it, endpoint list, which other teams you call and who calls you). Write docs/crm4/demo.md: a 5-step demo script of your module, with the exact customer, SKU and rep IDs from Section 5. Run a daily 10-minute check during morning standup: every merged PR of the team follows the folder rules, index.jsx lists every page, nothing outside your own folders was changed. Chase teams you are waiting for using the Depends on lines.
 - **Depends on**: Start now. Final demo script waits for all 13 build issues of your team (WAIT).
 - **Done when**: README and demo script in main; demo script can be followed by someone outside the team.
 
@@ -111,4 +111,3 @@
 - **Build**: Write test cases (a table: id, issue key, steps, expected result, actual, pass/fail), at least 3 per build issue, in docs/crm4/tests.md. Write the API spec docs/crm4/api.md (every endpoint: method, path, request body, response, error codes) and a Postman collection. Run your team's rows of the cross-team table (Section 7) with USE_MOCKS=false and file a bug issue for any failure. Which cross-team rows (Section 7) this team must verify: 2, 4, 8, 9.
 - **Depends on**: Test cases wait for each build issue to be merged (WAIT per issue). ERP5-C5 (end-to-end test) is the final check.
 - **Done when**: Test cases all run with results; API spec matches the code; bug issues are filed and closed.
-

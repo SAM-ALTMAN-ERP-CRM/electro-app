@@ -26,7 +26,7 @@
 
 ### [ERP2-B1] Purchase requests API
 
-- **Build**: Table purchase_requests (id PR-0001, sku, product_name, quantity, requested_by, reason, status = pending/approved/rejected/converted default pending, created_at). CRUD, GET with ?status=, PATCH /api/ purchase-requests/:id/decision {status}. Only pending requests can be decided (else 400). ERP-1 (low stock) and ERP-3 (short components) post requests here, so POST must accept {sku, product_name, quantity, requested_by, reason} with no other required fields.
+- **Build**: Table purchase_requests (id PR-0001, sku, product_name, quantity, requested_by, reason, status = pending/approved/rejected/converted default pending, created_at). CRUD, GET with ?status=, PATCH /api/purchase-requests/:id/decision {status}. Only pending requests can be decided (else 400). ERP-1 (low stock) and ERP-3 (short components) post requests here, so POST must accept {sku, product_name, quantity, requested_by, reason} with no other required fields.
 - **Depends on**: nothing.
 - **Needed by**: ERP1-D3, ERP3-A3 (both create requests), ERP2-B2, B3.
 - **Done when**: CRUD and decision work; a POST from another team works with only the five fields above.
@@ -46,7 +46,7 @@
 ### [ERP2-C1] Purchase orders API
 
 - **Build**: Tables purchase_orders (id PO-0001, supplier_id, status = draft/sent/partially_received/received/ cancelled default draft, expected_date, total_amount, sent_at, created_at) and po_items (id, po_id, sku, product_name, quantity, unit_cost, received_qty default 0). POST creates a PO with items (one transaction) and calculates total_amount; GET /:id returns items; GET list supports ?status=; PATCH /api/purchase-orders/:id/ status. 4 seed POs (sent, partially_received, received, draft) using SUP-0001 to SUP-0006 and SKU-0101 to SKU-0105.
-- **Depends on**: ERP2-A1 (MOCK: supplier_id is plain text; seed with SUP-0001 to SUP-0006).
+- **Depends on**: ERP2-A1 (MOCK: supplier_id is plain text; seed with seed contract (Section 5)).
 - **Needed by**: ERP2-B3, C2, C3, D1.
 - **Done when**: creating a PO with 3 items gives the correct total; 4 seed POs.
 
@@ -84,7 +84,7 @@
 
 ### [ERP2-R1] Team Lead: README and demo script
 
-- **Build**: Keep docs/erp2/README.md (what the module does, how to run it, endpoint list, which other teams you call and who calls you). Write docs/erp2/demo.md: a 5-step demo script of your module, with the exact customer, SKU and rep IDs from Section 5. Run a 10-minute check every Friday: every merged PR of the team follows the folder rules, index.jsx lists every page, nothing outside your own folders was changed. Chase teams you are waiting for using the Depends on lines.
+- **Build**: Keep docs/erp2/README.md (what the module does, how to run it, endpoint list, which other teams you call and who calls you). Write docs/erp2/demo.md: a 5-step demo script of your module, with the exact customer, SKU and rep IDs from Section 5. Run a daily 10-minute check during morning standup: every merged PR of the team follows the folder rules, index.jsx lists every page, nothing outside your own folders was changed. Chase teams you are waiting for using the Depends on lines.
 - **Depends on**: Start now. Final demo script waits for all 12 build issues of your team (WAIT).
 - **Done when**: README and demo script in main; demo script can be followed by someone outside the team.
 
@@ -105,4 +105,3 @@
 - **Build**: Write test cases (a table: id, issue key, steps, expected result, actual, pass/fail), at least 3 per build issue, in docs/erp2/tests.md. Write the API spec docs/erp2/api.md (every endpoint: method, path, request body, response, error codes) and a Postman collection. Run your team's rows of the cross-team table (Section 7) with USE_MOCKS=false and file a bug issue for any failure. Which cross-team rows (Section 7) this team must verify: 13, 14, 15, 17.
 - **Depends on**: Test cases wait for each build issue to be merged (WAIT per issue). ERP5-C5 (end-to-end test) is the final check.
 - **Done when**: Test cases all run with results; API spec matches the code; bug issues are filed and closed.
-

@@ -70,6 +70,9 @@ const TIER_3_KEYS = new Set([
 ]);
 
 const MILESTONE_RULES = [
+  // Specific milestone alignments for dependent screens
+  { match: (k, iss) => ['ERP2-D2', 'ERP6-D2'].includes(k), milestone: 'G3 Integration' },
+
   // 1. ERP5-C1 -> Wave 0 Foundation
   { match: (k, iss) => k === 'ERP5-C1', milestone: 'Wave 0 Foundation' },
   // 2. ERP5-C4 -> G2 Core flow ; ERP5-C5 -> G3 Integration

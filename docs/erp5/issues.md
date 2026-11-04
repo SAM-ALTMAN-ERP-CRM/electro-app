@@ -7,7 +7,7 @@
 
 ### [ERP5-A1] Invoices API
 
-- **Build**: Tables invoices (id INV-0001, so_id, customer_id, customer_name, customer_gstin nullable, sales_rep_id, invoice_date, due_date = invoice_date + 15 days, subtotal, cgst, sgst, total, status = unpaid/ partially_paid/paid default unpaid, created_at) and invoice_items (id, invoice_id, sku, description, quantity, unit_price, tax_rate default 18). POST /api/invoices (ERP-4 calls this) calculates CGST 9% and SGST 9% on the subtotal. If customer_gstin is missing in the body and the customer is corporate or dealer, fetch it from CRM-3 GET /api/customers/:id ( mock: 'customer'). A repeated so_id returns the existing invoice (200), so ERP-4 can safely retry. After saving, post the ledger pair by calling the same internal function as POST / api/ledger/auto {type:'invoice', reference: invoice id, amount: total} (ERP5-D1); do it in the same database transaction. GET list (?customer_id= ?status=) and GET /:id with items. Seed INV-0001 to INV-0005 for SO-0001 to SO-0005 (shared seed contract), GSTIN present for corporate and dealer customers.
+- **Build**: Tables invoices (id INV-0001, so_id, customer_id, customer_name, customer_gstin nullable, sales_rep_id, invoice_date, due_date = invoice_date + 15 days, subtotal, cgst, sgst, total, status = unpaid/ partially_paid/paid default unpaid, created_at) and invoice_items (id, invoice_id, sku, description, quantity, unit_price, tax_rate default 18). POST /api/invoices (ERP-4 calls this) calculates CGST 9% and SGST 9% on the subtotal. If customer_gstin is missing in the body and the customer is corporate or dealer, fetch it from CRM-3 GET /api/customers/:id ( mock: 'customer'). A repeated so_id returns the existing invoice (200), so ERP-4 can safely retry. After saving, post the ledger pair by calling the same internal function as POST /api/ledger/auto {type:'invoice', reference: invoice id, amount: total} (ERP5-D1); do it in the same database transaction. GET list (?customer_id= ?status=) and GET /:id with items. Seed INV-0001 to INV-0005 for SO-0001 to SO-0005 (shared seed contract), GSTIN present for corporate and dealer customers.
 - **Depends on**: ERP5-D1 (MOCK: until the ledger function exists, skip the ledger line and add it once D1 is merged). CRM3-A1 (MOCK).
 - **Needed by**: ERP4-C3 (creates invoices), CRM5-A1 (reads invoices), ERP5-A2, A3, B1.
 - **Done when**: an invoice with 2 items has the correct subtotal, CGST, SGST and total; the same so_id twice returns one invoice; creating an invoice adds a balanced pair of ledger rows.
@@ -26,7 +26,7 @@
 
 ### [ERP5-A4] Credit notes NEW
 
-- **Build**: Table credit_notes (id CN-0001, so_id, invoice_id nullable, serial_number, amount, created_at). POST / api/creditnotes {so_id, serial_number, amount} (ERP-4 calls this when a return is credited): finds the invoice by so_id, stores the note, reduces that invoice's outstanding balance (a fully credited unpaid invoice becomes paid), and posts the ledger pair via type:'credit_note' (debit sales, credit receivables). GET /api/creditnotes. Page /credit-notes with a table, and a link from the invoice page. 2 seed credit notes.
+- **Build**: Table credit_notes (id CN-0001, so_id, invoice_id nullable, serial_number, amount, created_at). POST /api/creditnotes {so_id, serial_number, amount} (ERP-4 calls this when a return is credited): finds the invoice by so_id, stores the note, reduces that invoice's outstanding balance (a fully credited unpaid invoice becomes paid), and posts the ledger pair via type:'credit_note' (debit sales, credit receivables). GET /api/creditnotes. Page /credit-notes with a table, and a link from the invoice page. 2 seed credit notes.
 - **Depends on**: ERP5-A1 (WAIT). ERP5-D1 (MOCK: skip the ledger line until D1 is merged).
 - **Needed by**: ERP4-D3.
 - **Done when**: posting a credit note lowers the invoice balance and adds balanced ledger rows; a second POST for the same serial and order returns 409.
@@ -59,7 +59,7 @@
 
 ### [ERP5-C2] Auth API and demo users
 
-- **Build**: (extra packages: bcryptjs, jsonwebtoken) Table users (id USR-0001, name, email unique, password_hash, role = admin/sales/support/warehouse/finance/hr, employee_id nullable (an EMP id), active boolean default true). POST /api/auth/login returns a JWT (8 hours; payload id, name, role, employee_id), GET / api/auth/me, POST /api/users (admin only) with a hashed password, GET /api/users (admin only), GET /api/auth/ verify?token= (returns the payload or 401, for any outside caller). Seed the 6 demo users from Section 4 (password demo123, hashed); sales@demo.com links to EMP-0001.
+- **Build**: (extra packages: bcryptjs, jsonwebtoken) Table users (id USR-0001, name, email unique, password_hash, role = admin/sales/support/warehouse/finance/hr, employee_id nullable (an EMP id), active boolean default true). POST /api/auth/login returns a JWT (8 hours; payload id, name, role, employee_id), GET /api/auth/me, POST /api/users (admin only) with a hashed password, GET /api/users (admin only), GET /api/auth/ verify?token= (returns the payload or 401, for any outside caller). Seed the 6 demo users from Section 4 (password demo123, hashed); sales@demo.com links to EMP-0001.
 - **Depends on**: ERP5-C1 (WAIT).
 - **Needed by**: ERP5-C3, and every team once login is switched on.
 - **Done when**: login with a seeded user returns a token that _shared/auth.js accepts on another team's API; a wrong password returns 401; no password is ever stored in plain text.
@@ -106,7 +106,7 @@
 
 ### [ERP5-R1] Team Lead: README and demo script
 
-- **Build**: Keep docs/erp5/README.md (what the module does, how to run it, endpoint list, which other teams you call and who calls you). Write docs/erp5/demo.md: a 5-step demo script of your module, with the exact customer, SKU and rep IDs from Section 5. Run a 10-minute check every Friday: every merged PR of the team follows the folder rules, index.jsx lists every page, nothing outside your own folders was changed. Chase teams you are waiting for using the Depends on lines.
+- **Build**: Keep docs/erp5/README.md (what the module does, how to run it, endpoint list, which other teams you call and who calls you). Write docs/erp5/demo.md: a 5-step demo script of your module, with the exact customer, SKU and rep IDs from Section 5. Run a daily 10-minute check during morning standup: every merged PR of the team follows the folder rules, index.jsx lists every page, nothing outside your own folders was changed. Chase teams you are waiting for using the Depends on lines.
 - **Depends on**: Start now. Final demo script waits for all 15 build issues of your team (WAIT).
 - **Done when**: README and demo script in main; demo script can be followed by someone outside the team.
 
@@ -127,4 +127,3 @@
 - **Build**: Write test cases (a table: id, issue key, steps, expected result, actual, pass/fail), at least 3 per build issue, in docs/erp5/tests.md. Write the API spec docs/erp5/api.md (every endpoint: method, path, request body, response, error codes) and a Postman collection. Run your team's rows of the cross-team table (Section 7) with USE_MOCKS=false and file a bug issue for any failure. Which cross-team rows (Section 7) this team must verify: 10, 15, 19, 24, 26, 27, 28, 29.
 - **Depends on**: Test cases wait for each build issue to be merged (WAIT per issue). ERP5-C5 (end-to-end test) is the final check.
 - **Done when**: Test cases all run with results; API spec matches the code; bug issues are filed and closed.
-

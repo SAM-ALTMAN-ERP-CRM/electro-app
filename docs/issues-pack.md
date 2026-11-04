@@ -36,7 +36,7 @@ Issue body = the team context line (top of each team section) + Build + Depends 
 Done when.
 To code an issue: open your AI chat, paste the master prompt (Section 6), send it, then paste the issue
 text and send. Run what it gives you. If something breaks, paste the error back.
-Branch per issue ( crm1-a1-leads-api), commit under your own name, open a PR with Closes #<number>.
+Branch per issue (crm1/a1-leads-api), commit under your own name, open a PR with Closes #<number>.
 Only touch files in your own folders: services/<team>/ and frontend/src/modules/<team>/.
 WAIT / MOCK rule (read this once): - WAIT = you cannot finish without it. Do your other issues first, or
 start the parts that do not need it. - MOCK = build now against mock data, then switch to the real call
