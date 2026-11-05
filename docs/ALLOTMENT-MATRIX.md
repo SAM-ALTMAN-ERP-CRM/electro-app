@@ -3,9 +3,24 @@
 This matrix lists all 180 issues grouped by team, showing the designated role, recommended assignee, milestone, tier, and status tracking (Todo, In Progress, Done).
 
 > [!TIP]
-> Team Leads can also manage these dynamically using the [GitHub Project Board / Table](https://github.com/orgs/SAM-ALTMAN-ERP-CRM/projects).
+> Each team now has a dedicated, live interactive **Kanban Sprint Board** on GitHub Projects:
+> 
+> | Team | Live Sprint Board | Team Lead |
+> | :--- | :--- | :--- |
+> | **Master Board** | [All Issues (Org Backlog)](https://github.com/orgs/SAM-ALTMAN-ERP-CRM/projects/3) | `@ninad2008` (PMO) |
+> | **CRM-1** | [CRM-1: Sales Pipeline](https://github.com/orgs/SAM-ALTMAN-ERP-CRM/projects/4) | `@hazelnutbytes` |
+> | **CRM-2** | [CRM-2: Support & Warranty](https://github.com/orgs/SAM-ALTMAN-ERP-CRM/projects/5) | `@zoha71` |
+> | **CRM-3** | [CRM-3: Field Service](https://github.com/orgs/SAM-ALTMAN-ERP-CRM/projects/6) | `@aditya-yadav-75` |
+> | **CRM-4** | [CRM-4: Customer Portal](https://github.com/orgs/SAM-ALTMAN-ERP-CRM/projects/7) | `@juitawde` |
+> | **CRM-5** | [CRM-5: Analytics & Timeline](https://github.com/orgs/SAM-ALTMAN-ERP-CRM/projects/8) | `@ImYuv19` |
+> | **ERP-1** | [ERP-1: Inventory & Warehouses](https://github.com/orgs/SAM-ALTMAN-ERP-CRM/projects/9) | `@Adityac17` |
+> | **ERP-2** | [ERP-2: Procurement & POs](https://github.com/orgs/SAM-ALTMAN-ERP-CRM/projects/10) | `@Soldier224K` |
+> | **ERP-3** | [ERP-3: Manufacturing & Work Orders](https://github.com/orgs/SAM-ALTMAN-ERP-CRM/projects/11) | `@alina22052007` |
+> | **ERP-4** | [ERP-4: Sales Orders & Dispatch](https://github.com/orgs/SAM-ALTMAN-ERP-CRM/projects/12) | `@kaushalrajmandai` |
+> | **ERP-5** | [ERP-5: Invoicing & General Ledger](https://github.com/orgs/SAM-ALTMAN-ERP-CRM/projects/13) | `@Antaraaaa14` |
+> | **ERP-6** | [ERP-6: HR, Roles & Audit](https://github.com/orgs/SAM-ALTMAN-ERP-CRM/projects/14) | `@saiyash07` |
 
-## CRM-1: Sales Pipeline
+## CRM-1: Sales Pipeline ([Open Sprint Board](https://github.com/orgs/SAM-ALTMAN-ERP-CRM/projects/4))
 
 **Roster:**
 - **Member A (Team Lead)**: `@hazelnutbytes`

@@ -66,21 +66,21 @@ Electro App uses a decoupled, event-tolerant **microservice architecture** paire
 
 ## 🗺 Team Directory & Port Mapping
 
-| Subsystem | Team Slug | Port | Database | Module Folder | Key Domain Responsibilities |
-| :--- | :--- | :---: | :--- | :--- | :--- |
-| **Frontend** | `frontend` | `3000` | N/A | `frontend/src/` | App shell, navigation, universal `api()` client, theme |
-| **CRM-1** | `crm1` | `5101` | `crm1_db` | `modules/crm1/` | Leads management, opportunities pipeline, 18% GST quotations |
-| **CRM-2** | `crm2` | `5102` | `crm2_db` | `modules/crm2/` | Helpdesk ticketing, warranty lookups, RMA defect replacements |
-| **CRM-3** | `crm3` | `5103` | `crm3_db` | `modules/crm3/` | Customer master (`CUST-0001..0010`), 360-degree interaction timeline |
-| **CRM-4** | `crm4` | `5104` | `crm4_db` | `modules/crm4/` | Marketing campaigns, audience segmentation, web lead capture forms |
-| **CRM-5** | `crm5` | `5105` | `crm5_db` | `modules/crm5/` | Customer self-service portal, executive business analytics |
-| **ERP-1** | `erp1` | `5201` | `erp1_db` | `modules/erp1/` | Product catalog (`SKU-0001..0015`), warehouse inventory, TV serial tracking |
-| **ERP-2** | `erp2` | `5202` | `erp2_db` | `modules/erp2/` | Supplier management, purchase requests, Goods Receipt Notes (GRN) |
-| **ERP-3** | `erp3` | `5203` | `erp3_db` | `modules/erp3/` | Bill of Materials (BOM), production work orders, quality control |
-| **ERP-4** | `erp4` | `5204` | `erp4_db` | `modules/erp4/` | Sales orders, inventory allocation, shipment dispatch & tracking |
-| **ERP-5** | `erp5` | `5205` | `erp5_db` | `modules/erp5/` | GST tax invoicing, double-entry general ledger, payment gateway |
-| **ERP-6** | `erp6` | `5206` | `erp6_db` | `modules/erp6/` | Employee directory (`EMP-0001..0012`), attendance, sales commissions |
-| **PMO** | `pmo` | N/A | N/A | `scripts/pmo/` | Program management, CI automation, code reviews, verification harness |
+| Subsystem | Team Slug | Port | Database | Sprint Board | Key Domain Responsibilities |
+| :--- | :--- | :---: | :--- | :---: | :--- |
+| **Frontend** | `frontend` | `3000` | N/A | [Master Board](https://github.com/orgs/SAM-ALTMAN-ERP-CRM/projects/3) | App shell, navigation, universal `api()` client, theme |
+| **CRM-1** | `crm1` | `5101` | `crm1_db` | [CRM-1 Board](https://github.com/orgs/SAM-ALTMAN-ERP-CRM/projects/4) | Leads management, opportunities pipeline, 18% GST quotations |
+| **CRM-2** | `crm2` | `5102` | `crm2_db` | [CRM-2 Board](https://github.com/orgs/SAM-ALTMAN-ERP-CRM/projects/5) | Helpdesk ticketing, warranty lookups, RMA defect replacements |
+| **CRM-3** | `crm3` | `5103` | `crm3_db` | [CRM-3 Board](https://github.com/orgs/SAM-ALTMAN-ERP-CRM/projects/6) | Customer master (`CUST-0001..0010`), 360-degree interaction timeline |
+| **CRM-4** | `crm4` | `5104` | `crm4_db` | [CRM-4 Board](https://github.com/orgs/SAM-ALTMAN-ERP-CRM/projects/7) | Marketing campaigns, audience segmentation, web lead capture forms |
+| **CRM-5** | `crm5` | `5105` | `crm5_db` | [CRM-5 Board](https://github.com/orgs/SAM-ALTMAN-ERP-CRM/projects/8) | Customer self-service portal, executive business analytics |
+| **ERP-1** | `erp1` | `5201` | `erp1_db` | [ERP-1 Board](https://github.com/orgs/SAM-ALTMAN-ERP-CRM/projects/9) | Product catalog (`SKU-0001..0015`), warehouse inventory, TV serial tracking |
+| **ERP-2** | `erp2` | `5202` | `erp2_db` | [ERP-2 Board](https://github.com/orgs/SAM-ALTMAN-ERP-CRM/projects/10) | Supplier management, purchase requests, Goods Receipt Notes (GRN) |
+| **ERP-3** | `erp3` | `5203` | `erp3_db` | [ERP-3 Board](https://github.com/orgs/SAM-ALTMAN-ERP-CRM/projects/11) | Bill of Materials (BOM), production work orders, quality control |
+| **ERP-4** | `erp4` | `5204` | `erp4_db` | [ERP-4 Board](https://github.com/orgs/SAM-ALTMAN-ERP-CRM/projects/12) | Sales orders, inventory allocation, shipment dispatch & tracking |
+| **ERP-5** | `erp5` | `5205` | `erp5_db` | [ERP-5 Board](https://github.com/orgs/SAM-ALTMAN-ERP-CRM/projects/13) | GST tax invoicing, double-entry general ledger, payment gateway |
+| **ERP-6** | `erp6` | `5206` | `erp6_db` | [ERP-6 Board](https://github.com/orgs/SAM-ALTMAN-ERP-CRM/projects/14) | Employee directory (`EMP-0001..0012`), attendance, sales commissions |
+| **PMO** | `pmo` | N/A | N/A | [Master Backlog](https://github.com/orgs/SAM-ALTMAN-ERP-CRM/projects/3) | Program management, CI automation, code reviews, verification harness |
 
 ---
 
