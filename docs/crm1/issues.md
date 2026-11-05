@@ -1,110 +1,443 @@
-# Issues for Team CRM1
+# 📋 Team CRM-1: Sales Pipeline — Detailed Engineering Specifications
 
-**Context Line**:
-> Team: CRM-1 Sales pipeline. Database: crm1_db. Backend services/crm1 on port 5101. Frontend module frontend/src/modules/crm1 (id crm1, title Sales, roles admin and sales). Our job: track sales leads, opportunities and quotes for dealers and direct customers.
+> **Team Domain**: CRM-1 Sales Pipeline  
+> **Database**: `crm1_db` (PostgreSQL 16) | **Backend Port**: `5101` (`services/crm1`)  
+> **Frontend Module**: `frontend/src/modules/crm1` (`id: 'crm1'`, `title: 'Sales'`, `roles: ['admin', 'sales']`)  
+> **Domain Responsibility**: Track sales leads, score leads, manage the deal opportunities pipeline, calculate 18% GST quotations, manage dealer partnerships, and hand off accepted orders to ERP-4.  
+> **Business Workflow Position**: **Steps 1 & 2 of the 9-Step Order-to-Cash Workflow** (Lead Capture $\rightarrow$ Deal Qualification $\rightarrow$ Quotation Approval $\rightarrow$ Sales Order Handoff).
 
-## Build Issues
+---
+
+## 🛠 Shared Helpers & Architecture Rules (Must Follow)
+1. **Directory Isolation**: Only write code in `services/crm1/`, `frontend/src/modules/crm1/`, and `docs/crm1/`.
+2. **Database Helpers**:
+   ```javascript
+   const { makePool } = require('../_shared/db');
+   const pool = makePool('crm1_db');
+   ```
+3. **Authentication & Roles**:
+   ```javascript
+   const { requireAuth, requireRole } = require('../_shared/auth');
+   router.use(requireAuth); // Protect all routes
+   ```
+4. **Cross-Service Calls (`callService`)**:
+   ```javascript
+   const { callService } = require('../_shared/callService');
+   // Example: callService('erp6', '/api/employees?role_title=Sales Rep', { mock: 'employees-sales' });
+   ```
+5. **Frontend API Calls**:
+   ```javascript
+   import { api } from '../../../api';
+   // Example: const res = await api('crm1', '/api/leads');
+   ```
+6. **API Response Contract**:
+   - Success: `{ "data": ... }`
+   - Failure: `{ "error": "Clear human-readable error message" }` with appropriate status (`400`, `404`, `409`, `500`).
+
+---
+
+## 📦 Member A: Lead Capture & Scoring
 
 ### [CRM1-A1] Leads table and API
+- **Assigned Role**: Member A (Lead Capture & Scoring)
+- **Files to Create/Edit**:
+  - `services/crm1/db/schema.sql` (table & sequence DDL)
+  - `services/crm1/db/seed.sql` (5 seed rows)
+  - `services/crm1/routes/leads.js` (Express router)
+- **Database Schema**:
+  ```sql
+  CREATE SEQUENCE IF NOT EXISTS leads_seq START 1;
 
-- **Build**: Table leads (id LEAD-0001, name, phone, email, source = dealer/web/walk-in, product_interest, status = new/contacted/qualified/lost default new, score int default 0, sales_rep_id text (an EMP id), created_at). Endpoints in routes/leads.js: GET /api/leads (optional ?status=), GET /api/leads/:id, POST, PUT /:id, DELETE /:id. Validate: name required, source and status must be from the allowed lists. Seed 5 leads with a mix of sources and sales_rep_id from EMP-0001 to EMP-0004.
-- **Depends on**: nothing from other teams.
-- **Needed by**: CRM1-A2, A3, B1 (lead_id), CRM4-B4 (creates leads here), CRM5-B1 and CRM5-D1 (read leads).
-- **Done when**: table and 5 seed leads exist; all five endpoints work in Postman; no name returns 400.
+  CREATE TABLE IF NOT EXISTS leads (
+    id VARCHAR(20) PRIMARY KEY DEFAULT ('LEAD-' || LPAD(nextval('leads_seq')::TEXT, 4, '0')),
+    name VARCHAR(100) NOT NULL,
+    phone VARCHAR(20),
+    email VARCHAR(100),
+    source VARCHAR(20) NOT NULL CHECK (source IN ('dealer', 'web', 'walk-in')),
+    product_interest VARCHAR(100),
+    status VARCHAR(20) NOT NULL DEFAULT 'new' CHECK (status IN ('new', 'contacted', 'qualified', 'lost')),
+    score INT NOT NULL DEFAULT 0,
+    sales_rep_id VARCHAR(20), -- references EMP-0001..EMP-0004
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  );
+  ```
+- **Seed Data (5 rows)**:
+  - `LEAD-0001`: Aarav Mehta, `9820011223`, `aarav@gmail.com`, source `dealer`, interest `55-inch 4K Smart TV`, status `qualified`, score `70`, sales_rep `EMP-0001`
+  - `LEAD-0002`: Sunrise Electronics, `022-28491029`, `procurement@sunrise.com`, source `web`, interest `Soundbar 5.1`, status `contacted`, score `50`, sales_rep `EMP-0002`
+  - `LEAD-0003`: Priya Nair, `9847012345`, `priya.nair@yahoo.com`, source `walk-in`, interest `Microwave Oven 25L`, status `new`, score `30`, sales_rep `EMP-0003`
+  - `LEAD-0004`: BrightHome Retail, `020-25671199`, `orders@brighthome.in`, source `dealer`, interest `65-inch OLED TV`, status `qualified`, score `80`, sales_rep `EMP-0001`
+  - `LEAD-0005`: Kiran Patel, `9825098765`, `kiran.patel@rediffmail.com`, source `web`, interest `Air Fryer 4L`, status `new`, score `40`, sales_rep `EMP-0004`
+- **API Endpoints**:
+  - `GET /api/leads` (optional query: `?status=new`): Returns `{ "data": [...] }`
+  - `GET /api/leads/:id`: Returns `{ "data": { lead } }` or `404` `{ "error": "Lead not found" }`
+  - `POST /api/leads`: Body `{ name, phone?, email?, source, product_interest?, sales_rep_id? }`. Validates `name` (required, 400), `source` in allowed list (400). Returns `201` with `{ "data": { lead } }`
+  - `PUT /api/leads/:id`: Updates lead details and recalculates score. Returns `{ "data": { lead } }`
+  - `DELETE /api/leads/:id`: Returns `200` with `{ "data": { "message": "Lead deleted successfully" } }`
+- **Depends on**: Nothing from other teams.
+- **Needed by**: CRM1-A2, CRM1-A3, CRM1-B1, CRM4-B4 (web form pushes leads here), CRM5-B1 & CRM5-D1 (analytics reads leads).
+- **Done When**: Tables and 5 seed rows created; all 5 endpoints tested and working via Postman / curl; invalid source or missing name returns 400.
+
+---
 
 ### [CRM1-A2] Lead screens
+- **Assigned Role**: Member A
+- **Files to Create/Edit**:
+  - `frontend/src/modules/crm1/pages/LeadsPage.jsx`
+  - `frontend/src/modules/crm1/index.jsx`
+- **Screen Requirements**:
+  - Route: `/crm1/leads` registered in `index.jsx`.
+  - **Leads Table**: Displays Name, Phone, Email, Source, Status (colored badge: `new` blue, `contacted` yellow, `qualified` green, `lost` red), Score, Assigned Rep, and Action buttons (Edit, Delete).
+  - **Status Filter**: Dropdown with options: `All`, `new`, `contacted`, `qualified`, `lost`.
+  - **Add Lead Form**: Modal or toggle form with inputs for Name, Phone, Email, Source dropdown, Product Interest, and Sales Rep dropdown.
+  - **Edit Lead Form**: Pre-filled form allowing updates to status, rep, and contact info.
+  - **Sales Rep Dropdown**: Fetches sales reps via `api('erp6', '/api/employees?role_title=Sales Rep')`.
+- **Mock Fallback**: If ERP-6 is not merged yet, fallback to a local array of `[ { id: 'EMP-0001', name: 'Rohan Kulkarni' }, { id: 'EMP-0002', name: 'Neha Sharma' }, { id: 'EMP-0003', name: 'Vikram Singh' }, { id: 'EMP-0004', name: 'Anjali Rao' } ]`.
+- **Done When**: You can add, edit, delete, and filter leads in the browser; list refreshes immediately upon changes; rep dropdown dynamically loads ERP-6 reps.
 
-- **Build**: Pages /leads (table of name, source, status, score; status filter dropdown; "Add lead" form; edit form; delete button) and register them in modules/crm1/index.jsx. The "sales rep" field is a dropdown filled from ERP-6: api('erp6', '/api/employees?role_title=Sales Rep'). Status is a coloured badge.
-- **Depends on**: CRM1-A1 (WAIT, same person). ERP6-A1 (MOCK: until merged, use a hard-coded list of the 4 reps EMP-0001 to EMP-0004 in the page, then switch to the API call).
-- **Done when**: you can add, edit, delete and filter leads from the one app at /crm1/leads; the list refreshes after each change; the rep dropdown shows real ERP-6 employees once ERP6-A1 is merged.
+---
 
 ### [CRM1-A3] Lead scoring and Hot leads
+- **Assigned Role**: Member A
+- **Files to Create/Edit**:
+  - `services/crm1/routes/leads.js`
+  - `frontend/src/modules/crm1/pages/LeadsPage.jsx`
+- **Scoring Algorithm**:
+  - Source: `dealer` (+30 pts), `web` (+20 pts), `walk-in` (+10 pts)
+  - Contact Details: `email` present (+10 pts), `phone` present (+10 pts)
+  - Product Interest: `product_interest` present and non-empty (+10 pts)
+  - Maximum score cap: `100` points.
+  - Trigger: Automatically compute score on `POST /api/leads` and re-compute on `PUT /api/leads/:id`.
+- **API Endpoint**:
+  - `GET /api/leads/hot`: Returns all leads with `score >= 60`.
+  - ⚠️ **Critical Express Route Ordering**: Define `router.get('/leads/hot', ...)` **BEFORE** `router.get('/leads/:id', ...)` to prevent Express from capturing the string `"hot"` as an ID parameter!
+- **UI Requirement**:
+  - Display a distinct flame or orange badge: **"🔥 Hot (Score: X)"** in the leads table when `score >= 60`.
+- **Done When**: Adding/editing a lead updates score automatically; `/api/leads/hot` returns only leads with score $\ge 60$; UI reflects the Hot badge.
 
-- **Build**: On create and update calculate score: source dealer +30, web +20, walk-in +10; email present +10; phone present +10; product_interest filled +10 (maximum 100). Recalculate on every PUT. Add GET /api/leads/hot (score 60 or more); define this route before /:id. Show a "Hot" badge in the table.
-- **Depends on**: CRM1-A1 (WAIT), CRM1-A2 (WAIT, for the badge).
-- **Done when**: new leads get a score automatically; editing a lead updates it; /api/leads/hot returns only 60+ leads; the badge shows in the UI.
+---
+
+## 📈 Member B: Opportunities & Pipeline Board
 
 ### [CRM1-B1] Opportunities table and API
+- **Assigned Role**: Member B (Opportunities & Pipeline)
+- **Files to Create/Edit**:
+  - `services/crm1/db/schema.sql`
+  - `services/crm1/db/seed.sql`
+  - `services/crm1/routes/opportunities.js`
+- **Database Schema**:
+  ```sql
+  CREATE SEQUENCE IF NOT EXISTS opp_seq START 1;
 
-- **Build**: Table opportunities (id OPP-0001, lead_id, customer_id nullable (a CUST id), title, expected_value numeric, stage = prospect/proposal/negotiation/won/lost default prospect, expected_close_date, sales_rep_id, created_at). CRUD plus PATCH /api/opportunities/:id/stage {stage}. lead_id must exist in leads (400 if not). 6 seed rows spread over the stages, lead_ids from the seed leads, customer_ids from CUST-0001 to CUST-0008.
-- **Depends on**: CRM1-A1 (WAIT, needs lead IDs).
-- **Needed by**: CRM1-B2, B3, C1 (opportunity_id), CRM5-B1, C1, C3 (read opportunities).
-- **Done when**: CRUD and the stage endpoint work; seed rows cover all stages; invalid stage returns 400.
+  CREATE TABLE IF NOT EXISTS opportunities (
+    id VARCHAR(20) PRIMARY KEY DEFAULT ('OPP-' || LPAD(nextval('opp_seq')::TEXT, 4, '0')),
+    lead_id VARCHAR(20) REFERENCES leads(id) ON DELETE SET NULL,
+    customer_id VARCHAR(20), -- references CRM-3 CUST-0001..CUST-0008
+    title VARCHAR(150) NOT NULL,
+    expected_value NUMERIC(12, 2) NOT NULL DEFAULT 0.00,
+    stage VARCHAR(20) NOT NULL DEFAULT 'prospect' CHECK (stage IN ('prospect', 'proposal', 'negotiation', 'won', 'lost')),
+    expected_close_date DATE,
+    sales_rep_id VARCHAR(20), -- references EMP-0001..EMP-0004
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  );
+  ```
+- **Seed Data (6 rows across stages)**:
+  - `OPP-0001`: `lead_id` `LEAD-0001`, `customer_id` `CUST-0001`, title `55" Smart TV bulk purchase`, `₹1,28,970`, stage `won`, rep `EMP-0001`
+  - `OPP-0002`: `lead_id` `LEAD-0002`, `customer_id` `CUST-0002`, title `Corporate sound system setup`, `₹89,950`, stage `proposal`, rep `EMP-0002`
+  - `OPP-0003`: `lead_id` `LEAD-0003`, `customer_id` `CUST-0003`, title `Kitchen appliances bundle`, `₹25,490`, stage `negotiation`, rep `EMP-0003`
+  - `OPP-0004`: `lead_id` `LEAD-0004`, `customer_id` `CUST-0004`, title `Dealer annual TV quota`, `₹4,74,950`, stage `proposal`, rep `EMP-0001`
+  - `OPP-0005`: `lead_id` `LEAD-0005`, `customer_id` `CUST-0005`, title `Home audio upgrades`, `₹35,980`, stage `prospect`, rep `EMP-0004`
+  - `OPP-0006`: `lead_id` `LEAD-0002`, `customer_id` `CUST-0006`, title `Office TV installation`, `₹94,990`, stage `lost`, rep `EMP-0002`
+- **API Endpoints**:
+  - `GET /api/opportunities`: Returns list `{ "data": [...] }`
+  - `GET /api/opportunities/:id`: Returns single opportunity
+  - `POST /api/opportunities`: Validates `lead_id` exists (400 if invalid). Creates opportunity.
+  - `PUT /api/opportunities/:id`: Update details.
+  - `PATCH /api/opportunities/:id/stage`: Body `{ "stage": "proposal" }`. Validates stage transitions.
+- **Done When**: CRUD and stage endpoints pass; invalid stage returns 400; seed rows cover all 5 stages.
+
+---
 
 ### [CRM1-B2] Pipeline board
+- **Assigned Role**: Member B
+- **Files to Create/Edit**:
+  - `frontend/src/modules/crm1/pages/PipelinePage.jsx`
+  - `frontend/src/modules/crm1/index.jsx`
+- **Screen Requirements**:
+  - Route: `/crm1/pipeline` registered in `index.jsx`.
+  - **Kanban Board Layout**: 5 vertical columns:
+    1. Prospect
+    2. Proposal
+    3. Negotiation
+    4. Won (Green header)
+    5. Lost (Red/Grey header)
+  - **Column Headers**: Show stage name, count of deals, and total monetary value formatted in INR (`₹4,74,950`).
+  - **Cards**: Show Deal Title, Customer ID / Name, Value in `₹`, Expected Close Date, and a button: **"Advance Stage ➔"**.
+  - Clicking the button advances the opportunity one stage forward and immediately updates the board and totals.
+- **Done When**: Cards appear in correct columns with accurate sums; clicking advance updates database and UI without errors.
 
-- **Build**: Page /pipeline: 5 columns (one per stage). Each card shows title and ₹ value, with a "Move to next stage" button (no drag and drop). Total ₹ value at the top of each column.
-- **Depends on**: CRM1-B1 (WAIT).
-- **Done when**: cards appear in the right columns; clicking the button moves a card and updates the column totals.
+---
 
 ### [CRM1-B3] Stage rules and summary
+- **Assigned Role**: Member B
+- **Files to Create/Edit**:
+  - `services/crm1/routes/opportunities.js`
+  - `services/crm1/mocks/quotes-accepted.json`
+- **Validation Rules**:
+  - Stage transitions must move forward **strictly one step at a time** (`prospect` $\rightarrow$ `proposal` $\rightarrow$ `negotiation` $\rightarrow$ `won`).
+  - An opportunity can move to `lost` from any stage.
+  - Skipping stages (e.g. `prospect` $\rightarrow$ `won`) must be blocked with `400 Bad Request` `{ "error": "Cannot skip stages. Next allowed stage: proposal or lost" }`.
+  - **Won Gate**: Moving to `won` is **strictly prohibited** unless an accepted quotation exists for this opportunity.
+    - Check quotes: `callService('crm1', '/api/quotes?opportunity_id=' + id + '&status=accepted', { mock: 'quotes-accepted' })`.
+    - If no accepted quote exists: return `400 Bad Request` `{ "error": "Cannot close as won without an accepted quote" }`.
+- **API Endpoint**:
+  - `GET /api/opportunities/summary`: Returns counts and total ₹ values per stage:
+    ```json
+    {
+      "data": {
+        "prospect": { "count": 1, "total_value": 35980.00 },
+        "proposal": { "count": 2, "total_value": 564900.00 },
+        "negotiation": { "count": 1, "total_value": 25490.00 },
+        "won": { "count": 1, "total_value": 128970.00 },
+        "lost": { "count": 1, "total_value": 94990.00 }
+      }
+    }
+    ```
+- **Done When**: Skipping stages is rejected with 400; closing Won without accepted quote is blocked; summary statistics match the board numbers.
 
-- **Build**: A stage can only move one step forward (or to lost). Moving to won is allowed only if an accepted quote exists: query GET /api/quotes?opportunity_id=...&status=accepted from this same service (use callService('crm1', ...) with mock: 'quotes-accepted' until C1 is merged). Add GET /api/opportunities/summary (count and total value per stage) and show it above the board.
-- **Depends on**: CRM1-B1 (WAIT). CRM1-C1 (MOCK: use the mock file until the quotes API is merged).
-- **Done when**: skipping stages returns 400 with a clear message; won without an accepted quote is blocked; summary numbers match the board.
+---
+
+## 💰 Member C: Quotations & ERP-4 Order Handoff
 
 ### [CRM1-C1] Quotes tables and API
+- **Assigned Role**: Member C (Quotations & Order Handoff)
+- **Files to Create/Edit**:
+  - `services/crm1/db/schema.sql`
+  - `services/crm1/db/seed.sql`
+  - `services/crm1/routes/quotes.js`
+- **Database Schema**:
+  ```sql
+  CREATE SEQUENCE IF NOT EXISTS quote_seq START 1;
+  CREATE SEQUENCE IF NOT EXISTS quote_items_seq START 1;
 
-- **Build**: Tables quotes (id QUO-0001, opportunity_id, customer_id, dealer_id nullable (a DLR id), sales_rep_id, status = draft/sent/accepted/rejected default draft, discount_percent default 0, needs_approval boolean default false, approved boolean default false, rejection_reason text nullable, created_at) and quote_items (id, quote_id, sku, product_name, quantity, unit_price). POST /api/quotes accepts items in the same request (one transaction). GET /api/quotes/:id returns items plus subtotal, discount amount, GST 18% and total. GET /api/quotes supports ?opportunity_id=, ?status=, ?dealer_id=. Seed 4 quotes using SKU-0001 to SKU-0015 and customers CUST-0001 to CUST-0008.
-- **Depends on**: CRM1-B1 (MOCK: store opportunity_id as plain text and use OPP-0001 to OPP-0006 in seeds, no foreign key needed).
-- **Needed by**: CRM1-B3, C2, C3, D2, D3, CRM5-B1, B3.
-- **Done when**: you can create a quote with 3 items and GET shows the correct totals; the three filters work.
+  CREATE TABLE IF NOT EXISTS quotes (
+    id VARCHAR(20) PRIMARY KEY DEFAULT ('QUO-' || LPAD(nextval('quote_seq')::TEXT, 4, '0')),
+    opportunity_id VARCHAR(20),
+    customer_id VARCHAR(20) NOT NULL, -- references CUST-0001..CUST-0008
+    dealer_id VARCHAR(20), -- references DLR-0001..DLR-0005
+    sales_rep_id VARCHAR(20) NOT NULL, -- references EMP-0001..EMP-0004
+    status VARCHAR(20) NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'sent', 'accepted', 'rejected')),
+    discount_percent NUMERIC(5, 2) NOT NULL DEFAULT 0.00,
+    needs_approval BOOLEAN NOT NULL DEFAULT FALSE,
+    approved BOOLEAN NOT NULL DEFAULT FALSE,
+    rejection_reason TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  );
+
+  CREATE TABLE IF NOT EXISTS quote_items (
+    id VARCHAR(20) PRIMARY KEY DEFAULT ('QI-' || LPAD(nextval('quote_items_seq')::TEXT, 4, '0')),
+    quote_id VARCHAR(20) NOT NULL REFERENCES quotes(id) ON DELETE CASCADE,
+    sku VARCHAR(20) NOT NULL,
+    product_name VARCHAR(150) NOT NULL,
+    quantity INT NOT NULL CHECK (quantity > 0),
+    unit_price NUMERIC(12, 2) NOT NULL
+  );
+  ```
+- **Tax & Calculation Rules**:
+  - Subtotal = $\sum (\text{quantity} \times \text{unit\_price})$
+  - Discount Amount = $\text{subtotal} \times (\text{discount\_percent} / 100)$
+  - Taxable Value = $\text{subtotal} - \text{discount\_amount}$
+  - GST 18% = $\text{taxable\_value} \times 0.18$ (9% CGST + 9% SGST)
+  - Total = $\text{taxable\_value} + \text{GST 18\%}$
+- **API Endpoints**:
+  - `GET /api/quotes` (filters: `?opportunity_id=`, `?status=`, `?dealer_id=`): Returns list of quotes.
+  - `GET /api/quotes/:id`: Returns quote details, items array, subtotal, discount, GST 18%, and grand total.
+  - `POST /api/quotes`: Body `{ opportunity_id, customer_id, dealer_id?, sales_rep_id, discount_percent, items: [{ sku, product_name, quantity, unit_price }] }`. Creates quote and items in a single PostgreSQL transaction (`BEGIN ... COMMIT`).
+- **Seed Data**: 4 quotes using `SKU-0001..SKU-0005` and `CUST-0001..CUST-0004`.
+- **Done When**: Quotes with items are created atomically; GET returns calculated tax breakdown; query filters work.
+
+---
 
 ### [CRM1-C2] Quote builder screen
+- **Assigned Role**: Member C
+- **Files to Create/Edit**:
+  - `frontend/src/modules/crm1/pages/QuoteBuilderPage.jsx`
+  - `frontend/src/modules/crm1/pages/QuotesListPage.jsx`
+  - `frontend/src/modules/crm1/index.jsx`
+- **Screen Requirements**:
+  - Routes: `/crm1/quotes` (list view) and `/crm1/quotes/new` (builder view).
+  - **Product Selection**: Calls ERP-1 `api('erp1', '/api/products')`.
+    - Fallback Mock: Array with 3 products (`SKU-0001 55" TV ₹42,990`, `SKU-0004 Soundbar 2.1 ₹8,990`, `SKU-0006 Headphones ₹3,499`).
+  - **Dynamic Item Rows**: Button to "Add Item", selecting SKU pre-populates product name and unit price. Changing quantity calculates row total.
+  - **Live Totals Box**: Automatically calculates and renders Subtotal, Discount %, GST (18%), and Grand Total in INR.
+  - Save button saves as `draft` and redirects to `/crm1/quotes`.
+- **Done When**: Totals update live in the UI as prices and quantities are modified; quotes save and display in the list.
 
-- **Build**: Page /quotes/new: choose opportunity ID, add item rows (SKU dropdown, quantity, price filled automatically), discount % box, live totals (subtotal, discount, GST, total). Product list from ERP-1: api('erp1', '/api/products'). Page /quotes lists all quotes. Save as draft.
-- **Depends on**: CRM1-C1 (WAIT). ERP1-A1 (MOCK: until merged, use a local array of 3 products from the shared seed list).
-- **Done when**: totals update live as you type; saving creates a quote that appears in the list.
+---
 
 ### [CRM1-C3] Discount rule, quote status and order handoff
+- **Assigned Role**: Member C
+- **Files to Create/Edit**:
+  - `services/crm1/routes/quotes.js`
+  - `services/crm1/mocks/sales-orders.json`
+  - `services/crm1/mocks/timeline-event.json`
+- **Discount & Approval Enforcement**:
+  - If `discount_percent > 5`, automatically set `needs_approval = true`.
+  - When `needs_approval = true`, moving status from `draft` to `sent` is blocked with `400 Bad Request` unless `approved = true`.
+- **Endpoints**:
+  - `PATCH /api/quotes/:id/status`: Body `{ "status": "sent" | "accepted" | "rejected" }`.
+- **Order Handoff & Timeline Side Effects (When status $\rightarrow$ `accepted`)**:
+  1. **Handoff to ERP-4**:
+     ```javascript
+     try {
+       await callService('erp4', '/api/sales-orders', {
+         method: 'POST',
+         body: {
+           quote_id: quote.id,
+           customer_id: quote.customer_id,
+           sales_rep_id: quote.sales_rep_id,
+           items: quote.items
+         },
+         mock: 'sales-orders'
+       });
+     } catch (err) {
+       console.error('[integration-error] ERP-4 order handoff failed:', err.message);
+     }
+     ```
+  2. **Customer 360 Timeline Event (CRM-3)**:
+     ```javascript
+     try {
+       await callService('crm3', '/api/interactions/from-event', {
+         method: 'POST',
+         body: {
+           customer_id: quote.customer_id,
+           type: 'order',
+           summary: `Quote ${quote.id} accepted by customer. Handed off to ERP-4.`,
+           source_team: 'CRM-1'
+         },
+         mock: 'timeline-event'
+       });
+     } catch (err) {
+       console.error('[integration-error] CRM-3 timeline event failed:', err.message);
+     }
+     ```
+- **Done When**: Quotes with $>5\%$ discount require approval before sending; accepting a quote triggers ERP-4 order creation and posts to CRM-3 timeline.
 
-- **Build**: If discount_percent is above 5, set needs_approval = true and block moving to sent until approved = true (set by CRM1-D3). Add PATCH /api/quotes/:id/status (draft to sent, sent to accepted or rejected). When a quote becomes accepted: (1) POST to ERP-4 /api/sales-orders with {quote_id, customer_id, sales_rep_id, items:[{sku, product_name, quantity, unit_price}]}; (2) post a timeline event to CRM-3 /api/interactions/from-event {customer_id, type:'order', summary:'Quote QUO-xxxx accepted', source_team:'CRM-1'}. Both are side effects: wrap in try/catch and log failures; a 409 from ERP-4 (order already exists) is fine.
-- **Depends on**: CRM1-C1 (WAIT). CRM1-D3 (MOCK: until approvals exist, set approved=true by hand in the database to test). ERP4-A1 (MOCK: log the payload). CRM3-B3 (MOCK: log the payload).
-- **Needed by**: CRM1-B3 (accepted quotes), ERP4-A1 (receives the order).
-- **Done when**: a 10% discount quote cannot be sent without approval; accepting a quote creates an ERP-4 order (or logs the mock) and a timeline entry.
+---
+
+## 🤝 Member D: Dealer Management & Quote Approvals
 
 ### [CRM1-D1] Dealers table and API
+- **Assigned Role**: Member D (Dealers & Approvals)
+- **Files to Create/Edit**:
+  - `services/crm1/db/schema.sql`
+  - `services/crm1/db/seed.sql`
+  - `services/crm1/routes/dealers.js`
+- **Database Schema**:
+  ```sql
+  CREATE SEQUENCE IF NOT EXISTS dealer_seq START 1;
 
-- **Build**: Table dealers (id DLR-0001, name, contact_person, phone, email, city, tier = gold/silver/bronze, credit_limit numeric, status = active/inactive default active). CRUD plus GET /api/dealers?q=&city=. Seed DLR-0001 to DLR-0005 as in the shared seed contract (tiers spread across gold, silver, bronze).
-- **Depends on**: nothing.
-- **Needed by**: CRM1-D2, D3, C1 (dealer_id).
-- **Done when**: CRUD works; search by name or city works; 5 seed dealers across tiers.
+  CREATE TABLE IF NOT EXISTS dealers (
+    id VARCHAR(20) PRIMARY KEY DEFAULT ('DLR-' || LPAD(nextval('dealer_seq')::TEXT, 4, '0')),
+    name VARCHAR(150) NOT NULL,
+    contact_person VARCHAR(100),
+    phone VARCHAR(20),
+    email VARCHAR(100),
+    city VARCHAR(50) NOT NULL,
+    tier VARCHAR(20) NOT NULL CHECK (tier IN ('gold', 'silver', 'bronze')),
+    credit_limit NUMERIC(12, 2) NOT NULL DEFAULT 100000.00,
+    status VARCHAR(20) NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'inactive')),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  );
+  ```
+- **Seed Data (5 rows from Section 5 Contract)**:
+  - `DLR-0001`: BrightHome Retail, Rahul Deshmukh, `020-25671199`, `rahul@brighthome.in`, Pune, `gold`, `₹15,00,000`, `active`
+  - `DLR-0002`: Gadget Hub, Suresh Rao, `080-22345678`, `contact@gadgethub.in`, Bengaluru, `silver`, `₹8,00,000`, `active`
+  - `DLR-0003`: Metro Electronics, Amit Verma, `011-23456789`, `amit@metroelec.com`, Delhi, `gold`, `₹20,00,000`, `active`
+  - `DLR-0004`: Western Appliance Mart, Manoj Joshi, `022-26789012`, `manoj@westernmart.com`, Mumbai, `bronze`, `₹3,00,000`, `active`
+  - `DLR-0005`: Royal Vision Hub, Priya S., `044-24567890`, `priya@royalvision.com`, Chennai, `silver`, `₹6,00,000`, `active`
+- **API Endpoints**:
+  - `GET /api/dealers` (query filters: `?q=` name search, `?city=` city filter)
+  - `GET /api/dealers/:id`
+  - `POST /api/dealers`: Validates name, city, and tier in `['gold', 'silver', 'bronze']`.
+  - `PUT /api/dealers/:id`
+- **Done When**: Full CRUD tested; search by name and city filter work; 5 seed dealers loaded across tiers.
+
+---
 
 ### [CRM1-D2] Dealer screens
+- **Assigned Role**: Member D
+- **Files to Create/Edit**:
+  - `frontend/src/modules/crm1/pages/DealersPage.jsx`
+  - `frontend/src/modules/crm1/pages/DealerDetailPage.jsx`
+  - `frontend/src/modules/crm1/index.jsx`
+- **Screen Requirements**:
+  - Routes: `/crm1/dealers` and `/crm1/dealers/:id` registered in `index.jsx`.
+  - **Dealers List**: Table with Name, City, Tier badge (Gold: gold, Silver: silver, Bronze: bronze), Credit Limit in INR, Contact info, and Action links.
+  - **Dealer Detail**: Shows dealer profile card, credit limit, and lists all quotes associated with this dealer via `api('crm1', '/api/quotes?dealer_id=' + id)`.
+- **Done When**: Dealers can be added, viewed, and filtered from the browser; detail page lists all dealer quotes.
 
-- **Build**: Page /dealers (table, search box, city filter, add/edit form). Page /dealers/:id shows dealer details and that dealer's quotes via GET /api/quotes?dealer_id=....
-- **Depends on**: CRM1-D1 (WAIT). CRM1-C1 (MOCK: show an empty "No quotes yet" state until the quotes API exists).
-- **Done when**: you can manage dealers from the browser and see each dealer's quotes on its page.
+---
 
 ### [CRM1-D3] Quote approval screen
+- **Assigned Role**: Member D
+- **Files to Create/Edit**:
+  - `services/crm1/routes/quotes.js` (approval endpoints)
+  - `frontend/src/modules/crm1/pages/ApprovalsPage.jsx`
+  - `frontend/src/modules/crm1/index.jsx`
+- **Role Enforcement & Security**:
+  - Endpoints protected with `requireRole('admin')`.
+- **API Endpoints**:
+  - `GET /api/approvals`: Returns all quotes where `needs_approval = true AND approved = false AND status = 'draft'`.
+  - `PATCH /api/quotes/:id/approve`: Sets `approved = true`.
+  - `PATCH /api/quotes/:id/reject`: Body `{ "reason": "Discount too high for bronze tier" }`. Sets `rejection_reason` and sets `status = 'rejected'`.
+- **Screen Requirements**:
+  - Route: `/crm1/approvals` registered with `roles: ['admin']`.
+  - Table of pending quotes showing Quote ID, Customer/Dealer, Discount %, and a hint showing Dealer Tier policy:
+    - **Gold**: Up to 15% discount allowed.
+    - **Silver**: Up to 10% discount allowed.
+    - **Bronze**: Up to 5% discount allowed.
+  - Action buttons: **Approve** (green) and **Reject** (opens modal for reason).
+- **Done When**: Non-admin receives 403; approving unlocks the send status in CRM1-C3; rejecting records reason.
 
-- **Build**: GET /api/approvals (quotes with needs_approval = true, approved = false and status draft), PATCH /api/quotes/:id/approve (sets approved = true) and /reject {reason} (stores rejection_reason). Both only for role admin ( requireRole('admin')). Page /approvals (route-level roles: ['admin']): table with approve and reject buttons. Show each dealer's tier next to the quote (gold up to 15% discount, silver 10%, bronze 5%) as a hint.
-- **Depends on**: CRM1-C1 (WAIT), CRM1-D1 (WAIT).
-- **Needed by**: CRM1-C3 (the send step checks approved).
-- **Done when**: approving a quote lets CRM1-C3's flow send it; rejecting stores the reason and shows it on the quote; a non-admin gets 403.
+---
 
-## Role Issues (Section 8b)
+## 👥 Role Issues (All 4 Team Members)
 
 ### [CRM1-R1] Team Lead: README and demo script
-
-- **Build**: Keep docs/crm1/README.md (what the module does, how to run it, endpoint list, which other teams you call and who calls you). Write docs/crm1/demo.md: a 5-step demo script of your module, with the exact customer, SKU and rep IDs from Section 5. Run a daily 10-minute check during morning standup: every merged PR of the team follows the folder rules, index.jsx lists every page, nothing outside your own folders was changed. Chase teams you are waiting for using the Depends on lines.
-- **Depends on**: Start now. Final demo script waits for all 12 build issues of your team (WAIT).
-- **Done when**: README and demo script in main; demo script can be followed by someone outside the team.
+- **Owner**: Member A (`@hazelnutbytes`)
+- **Deliverables**:
+  1. `docs/crm1/README.md`: Module architecture, port 5101, all routes, cross-team calls.
+  2. `docs/crm1/demo.md`: 5-step viva demo script:
+     - Step 1: Create lead `LEAD-0001` with score calculation.
+     - Step 2: Convert lead to Opportunity `OPP-0001`.
+     - Step 3: Advance opportunity through the Kanban pipeline.
+     - Step 4: Build Quote `QUO-0001` with 10% discount, approve it as Admin, and accept it.
+     - Step 5: Verify order handoff to ERP-4 and CRM-3 timeline event.
+- **Done When**: Complete README and demo script committed to `main`.
 
 ### [CRM1-R2] Data owner: ER diagram, data dictionary and seed verification
-
-- **Build**: Draw the ER diagram of your tables in 3NF (docs/crm1/er-diagram.md as a Mermaid diagram or an image) and write a short data dictionary (table, column, type, meaning). Review every schema.sql change in the team. Check that your seed.sql follows the shared seed contract (Section 5): same customer, SKU, employee, dealer and serial IDs, and that npm run reset loads it with no error.
-- **Depends on**: Tables arrive with the team's A1, B1, C1, D1 issues (WAIT for the final diagram; draw the first version from the issue text on day 1).
-- **Done when**: ER diagram and data dictionary match the final schema; seed matches the contract; reset runs clean.
+- **Owner**: Member B (`@tanmay01-D3V`)
+- **Deliverables**:
+  1. `docs/crm1/er-diagram.md`: Mermaid diagram showing tables `leads`, `opportunities`, `quotes`, `quote_items`, and `dealers` in 3NF.
+  2. Data dictionary explaining every column, type, constraint, and default value.
+  3. Verify that `npm run reset` executes cleanly with zero errors.
+- **Done When**: ER diagram and dictionary match database schemas perfectly.
 
 ### [CRM1-R3] UI owner: Wireframes and screen consistency
-
-- **Build**: Draw simple wireframes (paper photo, Figma or draw.io) for every page of your module, one image per page in docs/crm1/wireframes/, before the page issues start. Agree the look with the other UI owners (same badge colours, same table style, same form layout). Check that every page is registered in frontend/src/modules/crm1/index.jsx with the right path prefix and roles, that nothing creates its own router or navbar, and that print styles hide the sidebar.
-- **Depends on**: None to start. Needed by the team's frontend issues (A2, B2, C2, D2 and similar): wireframes should be ready within the first 3 days of the sprint.
-- **Done when**: Wireframes for all pages exist; every page opens from the sidebar at /crm1/... and looks consistent.
+- **Owner**: Member C (`@2025prince-control`)
+- **Deliverables**:
+  1. Wireframes for `/leads`, `/pipeline`, `/quotes`, `/quotes/new`, `/dealers`, and `/approvals` in `docs/crm1/wireframes/`.
+  2. Ensure plain CSS styles match color guidelines (badges, buttons, ₹ currency format).
+- **Done When**: All 6 pages open from the navigation sidebar at `/crm1/...` without navbar duplications.
 
 ### [CRM1-R4] QA and docs owner: Test cases, API spec and cross-team verification
-
-- **Build**: Write test cases (a table: id, issue key, steps, expected result, actual, pass/fail), at least 3 per build issue, in docs/crm1/tests.md. Write the API spec docs/crm1/api.md (every endpoint: method, path, request body, response, error codes) and a Postman collection. Run your team's rows of the cross-team table (Section 7) with USE_MOCKS=false and file a bug issue for any failure. Which cross-team rows (Section 7) this team must verify: 1, 2, 3, 4, 9, 11.
-- **Depends on**: Test cases wait for each build issue to be merged (WAIT per issue). ERP5-C5 (end-to-end test) is the final check.
-- **Done when**: Test cases all run with results; API spec matches the code; bug issues are filed and closed.
+- **Owner**: Member D (`@PranavNair2007`)
+- **Deliverables**:
+  1. `docs/crm1/tests.md`: Test suite with at least 3 test cases per build issue (total $\ge 36$ test cases).
+  2. `docs/crm1/api.md`: Comprehensive OpenAPI-style specification for all endpoints.
+  3. Verify Cross-Team Rows:
+     - Row 1: Read sales reps from ERP-6 (`GET /api/employees?role_title=Sales Rep`).
+     - Row 2: Read products from ERP-1 (`GET /api/products`).
+     - Row 3: Push sales order to ERP-4 (`POST /api/sales-orders`).
+     - Row 4: Push timeline interaction to CRM-3 (`POST /api/interactions/from-event`).
+- **Done When**: All test cases verified with `USE_MOCKS=false`.
