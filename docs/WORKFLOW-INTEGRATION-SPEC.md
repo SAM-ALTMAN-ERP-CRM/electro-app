@@ -189,3 +189,4 @@ Every database table and seed file must conform to these exact shared identifier
 | **Wave 2** | Weeks 2–3 | `ERP1-B3`, `ERP1-C1`, `ERP1-C3`, `CRM3-B3`, `CRM3-C1`, `CRM1-B1`, `CRM1-C1`, `ERP3-A1`, `ERP3-B3`, `ERP4-B1`, `ERP4-C1`, `ERP5-A1`, `ERP5-A4`, `ERP5-B1`, `ERP5-B3` | Inter-service APIs (stocks, serials, dispatches, orders, invoices) |
 | **Wave 3** | Week 4 | `CRM1-C3`, `CRM2-C3`, `ERP4-C3`, `ERP4-D3`, `ERP3-A3`, `ERP2-D1`, `ERP6-C3`, `ERP6-D1`, `CRM4-B4` | Real calls replace mocks; live inter-service events flowing |
 | **Gate 4** | Week 5 | All 11 Teams (`USE_MOCKS=false`) | Full end-to-end integration test (`npm run e2e`) passing clean |
+
