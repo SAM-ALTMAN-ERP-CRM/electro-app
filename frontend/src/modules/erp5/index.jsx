@@ -1,6 +1,8 @@
 import React from 'react';
 import Login from './pages/Login';
 import Users from './pages/Users';
+import InvoicesPage from './pages/InvoicesPage';
+import InvoiceDetailPage from './pages/InvoiceDetailPage';
 
 /*
  * ERP-5 module registration.
@@ -11,21 +13,20 @@ import Users from './pages/Users';
  * - `roles` lists which roles may see this module group in the sidebar.
  * - Each route's optional `roles` array limits it further (e.g. admin only).
  * - No BrowserRouter, no navbar, no App.jsx edits — the shell handles all that.
- *
- * Pages registered here:
- *   /erp5/login  — public login form for the whole app (all roles, no sidebar label)
- *   /erp5/users  — user management, admin role only
  */
 export default {
   id: 'erp5',
   title: 'Finance & Auth',
   roles: ['admin', 'finance', 'sales', 'support', 'warehouse', 'hr'],
   routes: [
-    // Login page: visible to everyone (no roles restriction),
-    // but hidden from the sidebar (no label) so it doesn't clutter the nav.
+    // Login page: visible to everyone (no roles restriction), hidden from sidebar (no label)
     { path: 'login', element: <Login /> },
 
-    // Users page: admin only — the backend also enforces this with requireRole('admin').
+    // Users page: admin only
     { path: 'users', label: 'Users', element: <Users />, roles: ['admin'] },
-  ],
+
+    // Invoices pages: admin and finance
+    { path: 'invoices', label: 'Invoices', element: <InvoicesPage />, roles: ['admin', 'finance'] },
+    { path: 'invoices/:id', element: <InvoiceDetailPage />, roles: ['admin', 'finance'] }
+  ]
 };
