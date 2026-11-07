@@ -1,0 +1,90 @@
+[
+  {
+    "id": "CUST-0001",
+    "name": "Aarav Mehta",
+    "type": "retail",
+    "email": "aarav.mehta@example.com",
+    "phone": "9820112345",
+    "gstin": null,
+    "billing_address": "101, Sea View Apartments, Worli",
+    "shipping_address": "101, Sea View Apartments, Worli",
+    "city": "Mumbai"
+  },
+  {
+    "id": "CUST-0002",
+    "name": "Sunrise Electronics Pvt Ltd",
+    "type": "corporate",
+    "email": "purchase@sunrise.com",
+    "phone": "9820223456",
+    "gstin": "27AABCS1234F1Z5",
+    "billing_address": "Plot 45, MIDC Industrial Area, Andheri East",
+    "shipping_address": "Plot 45, MIDC Industrial Area, Andheri East",
+    "city": "Mumbai"
+  },
+  {
+    "id": "CUST-0003",
+    "name": "Priya Nair",
+    "type": "retail",
+    "email": "priya.nair@example.com",
+    "phone": "9847134567",
+    "gstin": null,
+    "billing_address": "Flat 3B, Palm Grove, Marine Drive",
+    "shipping_address": "Flat 3B, Palm Grove, Marine Drive",
+    "city": "Kochi"
+  },
+  {
+    "id": "CUST-0004",
+    "name": "BrightHome Retail LLP",
+    "type": "dealer",
+    "email": "contact@brighthome.com",
+    "phone": "9850145678",
+    "gstin": "27AAACB5678G1Z2",
+    "billing_address": "Shop 12, Phoenix Marketcity, Viman Nagar",
+    "shipping_address": "Shop 12, Phoenix Marketcity, Viman Nagar",
+    "city": "Pune"
+  },
+  {
+    "id": "CUST-0005",
+    "name": "Kiran Patel",
+    "type": "retail",
+    "email": "kiran.patel@example.com",
+    "phone": "9879156789",
+    "gstin": null,
+    "billing_address": "24, Shanti Nagar, SG Highway",
+    "shipping_address": "24, Shanti Nagar, SG Highway",
+    "city": "Ahmedabad"
+  },
+  {
+    "id": "CUST-0006",
+    "name": "Metro Offices Ltd",
+    "type": "corporate",
+    "email": "admin@metrooffices.com",
+    "phone": "9811167890",
+    "gstin": "07AABCM9012K1Z8",
+    "billing_address": "Level 5, Connaught Place, Barakhamba Road",
+    "shipping_address": "Level 5, Connaught Place, Barakhamba Road",
+    "city": "Delhi"
+  },
+  {
+    "id": "CUST-0007",
+    "name": "Sneha Iyer",
+    "type": "retail",
+    "email": "sneha.iyer@example.com",
+    "phone": "9840178901",
+    "gstin": null,
+    "billing_address": "15, Besant Avenue, Adyar",
+    "shipping_address": "15, Besant Avenue, Adyar",
+    "city": "Chennai"
+  },
+  {
+    "id": "CUST-0008",
+    "name": "Gadget Hub",
+    "type": "dealer",
+    "email": "sales@gadgethub.com",
+    "phone": "9845189012",
+    "gstin": "29AABCG3456L1Z4",
+    "billing_address": "88, Brigade Road, Ashok Nagar",
+    "shipping_address": "88, Brigade Road, Ashok Nagar",
+    "city": "Bengaluru"
+  }
+]
