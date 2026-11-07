@@ -1,4 +1,6 @@
 -- Database seed for ERP-5 Finance & App Shell
+-- 6 Demo Users (Member C), Invoices INV-0001 to INV-0005 (Member A), Credit Notes CN-0001 to CN-0002 (Member A), & Payments PAY-0001 (Member B)
+-- Adheres strictly to Section 5 Shared Seed Contract
 
 -- 1. Demo Users Seed
 INSERT INTO users (id, name, email, password_hash, role, employee_id, active)
@@ -63,10 +65,21 @@ ON CONFLICT (id) DO UPDATE SET
   unit_price = EXCLUDED.unit_price,
   tax_rate = EXCLUDED.tax_rate;
 
+-- 4. Seed Credit Notes (2 seed credit notes per ERP5-A4)
+INSERT INTO credit_notes (id, so_id, invoice_id, serial_number, amount)
+VALUES
+  ('CN-0001', 'SO-0001', 'INV-0001', 'SN-0001', 1000.00),
+  ('CN-0002', 'SO-0002', 'INV-0002', 'SN-0002', 2999.00)
+ON CONFLICT (id) DO UPDATE SET
+  so_id = EXCLUDED.so_id,
+  invoice_id = EXCLUDED.invoice_id,
+  serial_number = EXCLUDED.serial_number,
+  amount = EXCLUDED.amount;
+
 -- Advance sequences past seeded IDs
 SELECT setval('users_seq', COALESCE((SELECT MAX(CAST(SUBSTRING(id FROM 5) AS INTEGER)) FROM users), 0) + 1, false);
 SELECT setval('invoices_seq', COALESCE((SELECT MAX(CAST(SUBSTRING(id FROM 5) AS INTEGER)) FROM invoices), 0) + 1, false);
 SELECT setval('invoice_items_seq', COALESCE((SELECT MAX(CAST(SUBSTRING(id FROM 5) AS INTEGER)) FROM invoice_items), 0) + 1, false);
 SELECT setval('payments_seq', COALESCE((SELECT MAX(CAST(SUBSTRING(id FROM 5) AS INTEGER)) FROM payments), 0) + 1, false);
-SELECT setval('credit_notes_seq', COALESCE((SELECT MAX(CAST(SUBSTRING(id FROM 5) AS INTEGER)) FROM credit_notes), 0) + 1, false);
+SELECT setval('credit_notes_seq', COALESCE((SELECT MAX(CAST(SUBSTRING(id FROM 4) AS INTEGER)) FROM credit_notes), 0) + 1, false);
 SELECT setval('ledger_entries_seq', COALESCE((SELECT MAX(CAST(SUBSTRING(id FROM 4) AS INTEGER)) FROM ledger_entries), 0) + 1, false);

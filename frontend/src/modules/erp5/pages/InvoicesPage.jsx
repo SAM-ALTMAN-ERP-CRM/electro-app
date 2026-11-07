@@ -164,15 +164,31 @@ export default function InvoicesPage() {
             Commercial tax invoices, amount in words, payment status, and manual bill creation.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => setIsModalOpen(true)}
-          className="btn"
-          style={{ background: '#2563eb', display: 'flex', gap: '0.4rem', alignItems: 'center' }}
-        >
-          <span>+</span>
-          <span>Create Manual Invoice</span>
-        </button>
+        <div style={{ display: 'flex', gap: '0.75rem' }}>
+          <button
+            type="button"
+            onClick={() => navigate('/erp5/credit-notes')}
+            style={{
+              background: 'white',
+              border: '1px solid #cbd5e1',
+              color: '#334155',
+              padding: '0.5rem 1rem',
+              borderRadius: '6px',
+              cursor: 'pointer'
+            }}
+          >
+            Credit Notes
+          </button>
+          <button
+            type="button"
+            onClick={() => setIsModalOpen(true)}
+            className="btn"
+            style={{ background: '#2563eb', display: 'flex', gap: '0.4rem', alignItems: 'center' }}
+          >
+            <span>+</span>
+            <span>Create Manual Invoice</span>
+          </button>
+        </div>
       </div>
 
       {/* Summary KPI Cards */}
