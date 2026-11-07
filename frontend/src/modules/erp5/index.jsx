@@ -1,6 +1,7 @@
 import React from 'react';
 import Login from './pages/Login';
 import Users from './pages/Users';
+import Receivables from './pages/Receivables';
 
 /*
  * ERP-5 module registration.
@@ -27,5 +28,8 @@ export default {
 
     // Users page: admin only — the backend also enforces this with requireRole('admin').
     { path: 'users', label: 'Users', element: <Users />, roles: ['admin'] },
+
+    // Receivables ageing page.
+    { path: 'receivables', label: 'Receivables', element: <Receivables />, roles: ['admin', 'finance'] },
   ],
 };
