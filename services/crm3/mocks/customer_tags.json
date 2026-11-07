@@ -1,0 +1,12 @@
+[
+  { "customer_id": "CUST-0001", "tag": "VIP" },
+  { "customer_id": "CUST-0001", "tag": "Priority Support" },
+  { "customer_id": "CUST-0002", "tag": "Key Account" },
+  { "customer_id": "CUST-0002", "tag": "Enterprise" },
+  { "customer_id": "CUST-0003", "tag": "Loyal" },
+  { "customer_id": "CUST-0004", "tag": "Tier 1 Dealer" },
+  { "customer_id": "CUST-0005", "tag": "High Value" },
+  { "customer_id": "CUST-0006", "tag": "Corporate Tier 1" },
+  { "customer_id": "CUST-0007", "tag": "Repeat Buyer" },
+  { "customer_id": "CUST-0008", "tag": "Regional Distributor" }
+]
