@@ -1,27 +1,26 @@
 # ERP-5 Finance, Access & The App Shell
 
-> **Module**: ERP-5 Finance & General Ledger  
-> **Backend Service**: `services/erp5` (Express on Port `5205`)  
-> **Database**: PostgreSQL `erp5_db`  
-> **Frontend Module**: `frontend/src/modules/erp5` (Roles: `["admin", "finance"]`)  
+> **Team**: ERP-5 Finance & General Ledger  
+> **Backend Service**: `services/erp5` · Port **5205**  
+> **Database**: `erp5_db` (PostgreSQL)  
+> **Frontend Module**: `frontend/src/modules/erp5`  
+> **Roles**: `admin`, `finance`, `sales`, `support`, `warehouse`, `hr`  
 > **Workflow**: Order-to-Cash Steps 6, 7 & 9 (Commercial Invoicing, Payment Tracking, Ledger, Credit Notes)
 
 ---
 
-## 1. Module Overview
+## 1. What This Module Does
 
-Team ERP-5 is responsible for the financial backbone of the Electro App monorepo suite:
-- **Commercial GST Invoicing**: Generation of compliant tax invoices with automatic 18% GST calculation (9% CGST + 9% SGST), idempotency on sales order IDs (`so_id`), and customer GSTIN resolution.
-- **Bill View & Printing**: Printable single-page commercial invoices with corporate branding, tax breakdowns, statutory disclosures, and automated **Amount in Words** (Indian numbering system: Crores, Lakhs, Thousands, Hundreds, and Paise).
-- **Credit Notes**: Commercial credit note issuance for RMA returns (Workflow Step 9), reducing receivable balances, automatically transitioning fully credited invoices to `paid`, with deterministic duplicate prevention (HTTP 409).
-- **General Ledger Automation**: Balanced double-entry ledger postings (debit receivables, credit sales for invoices; debit sales, credit receivables for credit notes) committed atomically within the same PostgreSQL transaction.
-- **Financial Analytics & Filters**: Real-time aggregated financial KPI cards (`total_billed`, `total_outstanding`) and flexible date range, customer, and status filtering.
+ERP-5 owns two central domains for the whole application:
+
+1. **Authentication & Access** — The single auth service (`POST /api/auth/login`) that all 11 teams rely on. It issues JWTs, manages demo users, verifies tokens, and provides role-based navigation.
+2. **Commercial Finance & Billing** — GST tax invoices with 18% GST (9% CGST + 9% SGST), single-page printable bills with Indian numbering **Amount in Words**, credit notes for RMA returns (Workflow Step 9) with duplicate prevention (HTTP 409), and balanced double-entry ledger postings.
 
 ---
 
 ## 2. Cross-Team Contracts & Integration
 
-ERP-5 serves as the central billing and settlement hub:
+ERP-5 serves as the central billing, auth, and settlement hub:
 
 ```mermaid
 flowchart LR
@@ -30,13 +29,15 @@ flowchart LR
     ERP5 -->|"GET /api/customers/:id (mock: customer)"| CRM3["CRM-3 Customers"]
     CRM5["CRM-5 Customer Portal"] -->|"GET /api/invoices"| ERP5
     ERP6["ERP-6 Commissions"] -->|"GET /api/invoices/paid"| ERP5
+    ALL["All 11 Modules"] -->|"GET /api/auth/verify"| ERP5
 ```
 
 ### Inbound Integrations (Who Calls ERP-5)
 | Caller | Method & Path | Purpose |
 |---|---|---|
+| **All Teams** | `GET /api/auth/verify?token=` | Token verification across services. |
 | **ERP-4** | `POST /api/invoices` | Dispatched sales order generates commercial tax invoice. Repeated `so_id` returns HTTP 200 (idempotent). |
-| **ERP-4** | `POST /api/creditnotes` | RMA return approved for refund/credit note. Repeated order + serial returns HTTP 409. |
+| **ERP-4** | `POST /api/creditnotes` | RMA return approved for credit note. Repeated order + serial returns HTTP 409. |
 | **CRM-5** | `GET /api/invoices` | Displays billing history on customer self-service portal. |
 | **ERP-6** | `GET /api/invoices/paid` | Sales commission calculation for paid invoices linked to `sales_rep_id`. |
 
@@ -47,126 +48,98 @@ flowchart LR
 
 ---
 
-## 3. API Reference
+## 3. Quick Start & Setup
 
-All endpoints require JWT Bearer authentication (`requireAuth`).
-
-### `POST /api/invoices`
-Creates a commercial tax invoice. Idempotent on `so_id`.
-- **Request Body**:
-```json
-{
-  "so_id": "SO-0002",
-  "customer_id": "CUST-0002",
-  "customer_name": "Sunrise Electronics Pvt Ltd",
-  "customer_gstin": "27AABCS1234F1Z5",
-  "sales_rep_id": "EMP-0002",
-  "invoice_date": "2026-11-02",
-  "items": [
-    {
-      "sku": "SKU-0002",
-      "description": "Smart Fitness Watch",
-      "quantity": 5,
-      "unit_price": 2999.00,
-      "tax_rate": 18.00
-    }
-  ]
-}
-```
-- **Responses**:
-  - `201 Created`: Invoice and line items inserted, ledger pair posted, `amount_in_words` calculated.
-  - `200 OK`: Existing invoice returned if `so_id` was already processed (ERP-4 safe retry).
-  - `400 Bad Request`: Missing customer ID or empty items array.
-
-### `GET /api/invoices`
-Lists all invoices matching optional filter criteria.
-- **Query Parameters**:
-  - `customer_id` (e.g. `CUST-0002`)
-  - `status` (`unpaid`, `partially_paid`, `paid`)
-  - `from_date` & `to_date` (`YYYY-MM-DD` date range)
-- **Response**: `{ "data": [ ... ] }`
-
-### `GET /api/invoices/:id`
-Fetches a single invoice by ID along with line items and amount in words.
-- **Response**:
-```json
-{
-  "data": {
-    "id": "INV-0002",
-    "so_id": "SO-0002",
-    "customer_id": "CUST-0002",
-    "customer_name": "Sunrise Electronics Pvt Ltd",
-    "customer_gstin": "27AABCS1234F1Z5",
-    "subtotal": "18993.00",
-    "cgst": "1709.37",
-    "sgst": "1709.37",
-    "total": "22411.74",
-    "status": "unpaid",
-    "amount_in_words": "Rupees Twenty-Two Thousand Four Hundred Eleven and Seventy-Four Paise Only",
-    "items": [ ... ]
-  }
-}
-```
-
-### `GET /api/invoices/summary`
-Aggregates commercial metrics for executive dashboards.
-- **Response**:
-```json
-{
-  "data": {
-    "total_billed": 113828.70,
-    "total_outstanding": 113828.70,
-    "total_invoices": 6,
-    "unpaid_count": 5,
-    "partially_paid_count": 1,
-    "paid_count": 0
-  }
-}
-```
-
-### `POST /api/creditnotes`
-Issues a credit note against an order and serial number.
-- **Request Body**:
-```json
-{
-  "so_id": "SO-0002",
-  "serial_number": "SN-0002",
-  "amount": 2999.00
-}
-```
-- **Responses**:
-  - `201 Created`: Credit note stored, invoice balance updated, ledger pair posted.
-  - `409 Conflict`: Returned if a credit note has already been issued for this order and serial number.
-  - `404 Not Found`: Returned if no invoice exists for the provided `so_id`.
-
-### `GET /api/creditnotes`
-Lists all credit notes. Supports `?so_id=` and `?invoice_id=`.
-
----
-
-## 4. Frontend Routes
-
-Mounted at `/erp5/*` in the unified Vite shell:
-- `/erp5/invoices`: Interactive invoices table, KPI summary cards, filter toolbar (customer, status, date range), and "+ Create Manual Invoice" modal.
-- `/erp5/invoices/:id`: Printable tax invoice bill with corporate header, GSTIN details, items breakdown, Amount in Words, and `@media print` hiding the shell sidebar.
-- `/erp5/credit-notes`: Credit notes directory with total credited KPI metrics and quick links to invoice bills.
-
----
-
-## 5. Running & Verification
-
+### Option A — Local PostgreSQL
 ```bash
-# 1. Initialize schema & shared seed contract data
+# 1. Install all monorepo dependencies
+npm install
+
+# 2. Setup database schema and seed
 psql -U postgres -d erp5_db -f services/erp5/db/schema.sql
 psql -U postgres -d erp5_db -f services/erp5/db/seed.sql
 
-# 2. Run backend service
-npm --workspace=services/erp5 run dev
+# 3. Start services
+npm run dev
+```
 
-# 3. Run frontend shell
-npm --workspace=frontend run dev
+### Option B — Docker Compose
+```bash
+docker compose up -d
+npm run db:setup
+npm run dev
+```
 
-# 4. Verify syntax & frontend production build
+The app opens at **http://localhost:3000**.  
+ERP-5 backend health check: **http://localhost:5205/api/health**
+
+---
+
+## 4. Demo Login Credentials
+
+> All demo passwords are `demo123`.
+
+| Email | Role | Employee ID |
+|---|---|---|
+| `admin@demo.com` | admin | EMP-0012 |
+| `sales@demo.com` | sales | EMP-0001 |
+| `finance@demo.com` | finance | EMP-0010 |
+| `support@demo.com` | support | — |
+| `warehouse@demo.com` | warehouse | — |
+| `hr@demo.com` | hr | EMP-0008 |
+
+---
+
+## 5. API Reference
+
+All endpoints (except login/verify) require JWT Bearer authentication (`requireAuth`).
+
+### Authentication & Users
+| Method | Path | Auth | Description |
+|---|---|---|---|
+| `POST` | `/api/auth/login` | None | Login with email + password → returns JWT |
+| `GET` | `/api/auth/me` | Bearer JWT | Returns current user decoded token payload |
+| `GET` | `/api/auth/verify?token=` | None | Verifies JWT token for external callers |
+| `GET` | `/api/users` | admin | List all users in system |
+| `POST` | `/api/users` | admin | Create new user with hashed password |
+
+### Commercial Invoicing & Billing
+| Method | Path | Auth | Description |
+|---|---|---|---|
+| `POST` | `/api/invoices` | Bearer JWT | Creates commercial tax invoice. Idempotent on `so_id`. Calculates 9% CGST + 9% SGST. |
+| `GET` | `/api/invoices` | Bearer JWT | Lists invoices with filters (`?customer_id=`, `?status=`, `?from_date=`, `?to_date=`). |
+| `GET` | `/api/invoices/:id` | Bearer JWT | Single invoice with items array and `amount_in_words`. |
+| `GET` | `/api/invoices/summary` | Bearer JWT | Aggregates `total_billed`, `total_outstanding`, and invoice status counts. |
+
+### Credit Notes (Workflow Step 9)
+| Method | Path | Auth | Description |
+|---|---|---|---|
+| `POST` | `/api/creditnotes` | Bearer JWT | Issues credit note for returned serial. Duplicate prevention (409). Reduces invoice balance. |
+| `GET` | `/api/creditnotes` | Bearer JWT | Lists credit notes with invoice details (`?so_id=`, `?invoice_id=`). |
+
+---
+
+## 6. Frontend Routes
+
+Registered in `frontend/src/modules/erp5/index.jsx`:
+- `/erp5/login`: Shared login form for all roles.
+- `/erp5/users`: User management table + add-user form (admin role only).
+- `/erp5/invoices`: Invoices dashboard with summary KPI cards, date/status filters, and "+ Create Manual Invoice" modal.
+- `/erp5/invoices/:id`: Printable commercial tax invoice bill layout with Amount in Words and `@media print` single-page print styles.
+- `/erp5/credit-notes`: Credit notes directory with total credited KPI metrics.
+
+---
+
+## 7. Verification & Tests
+
+```bash
+# PMO Syntax Smoke Test & Frontend Production Build
 npm run smoke
 npm run build
+
+# Interactive 5-Step Demo Script Walkthrough
+# Follow docs/erp5/demo.md
 ```
+
+- [ERP-5 5-Step Demo Script](./demo.md)
+- [ERP-5 Issues Pack](./issues.md)

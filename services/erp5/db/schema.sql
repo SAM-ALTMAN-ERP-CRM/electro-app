@@ -1,6 +1,20 @@
 -- Database schema for ERP-5 Finance, Access & App Shell
 -- Port: 5205 | Database: erp5_db
 
+-- Table: users (Auth & Demo Users)
+CREATE TABLE IF NOT EXISTS users (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  email TEXT UNIQUE NOT NULL,
+  password_hash TEXT NOT NULL,
+  role TEXT NOT NULL CHECK (role IN ('admin','sales','support','warehouse','finance','hr')),
+  employee_id TEXT,
+  active BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE SEQUENCE IF NOT EXISTS users_seq START 1;
+
 -- Sequence for Invoices (INV-0001..)
 CREATE SEQUENCE IF NOT EXISTS invoices_seq START WITH 1;
 
