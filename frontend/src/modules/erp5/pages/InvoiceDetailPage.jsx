@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '../../../api';
+import { amountInWords } from '../utils/amountInWords';
 
 export default function InvoiceDetailPage() {
   const { id } = useParams();
@@ -288,6 +289,23 @@ export default function InvoiceDetailPage() {
               <strong style={{ color: '#2563eb' }}>{formatCurrency(invoice.total)}</strong>
             </div>
           </div>
+        </div>
+
+        {/* Amount in Words (Indian Accounting Standard) */}
+        <div
+          style={{
+            marginTop: '1.25rem',
+            padding: '0.85rem 1.25rem',
+            background: '#f8fafc',
+            border: '1px solid #e2e8f0',
+            borderRadius: '6px',
+            fontSize: '0.875rem'
+          }}
+        >
+          <strong style={{ color: '#475569' }}>Amount Chargeable (in words): </strong>
+          <span style={{ color: '#0f172a', fontWeight: 600 }}>
+            {invoice.amount_in_words || amountInWords(invoice.total)}
+          </span>
         </div>
 
         {/* Bill Footer & Statutory Notice */}

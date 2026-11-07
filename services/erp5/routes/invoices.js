@@ -6,6 +6,7 @@ const { requireAuth } = require('../../_shared/auth');
 const { makePool } = require('../../_shared/db');
 const { callService } = require('../../_shared/callService');
 const { postLedgerPair } = require('../utils/ledgerHelper');
+const { amountInWords } = require('../utils/amountInWords');
 
 const pool = makePool('erp5_db');
 
@@ -21,28 +22,77 @@ function calculateDueDate(invoiceDateStr) {
 }
 
 /**
+ * GET /api/invoices/summary
+ * Returns total billed and total outstanding across all invoices.
+ * Mounted BEFORE /:id to prevent route shadowing.
+ */
+router.get('/invoices/summary', async (req, res, next) => {
+  try {
+    const summaryRes = await pool.query(`
+      SELECT 
+        COALESCE(SUM(total), 0) as total_billed,
+        COALESCE(SUM(CASE WHEN status IN ('unpaid', 'partially_paid') THEN total ELSE 0 END), 0) as total_outstanding,
+        COUNT(*) as total_invoices,
+        COALESCE(SUM(CASE WHEN status = 'unpaid' THEN 1 ELSE 0 END), 0) as unpaid_count,
+        COALESCE(SUM(CASE WHEN status = 'partially_paid' THEN 1 ELSE 0 END), 0) as partially_paid_count,
+        COALESCE(SUM(CASE WHEN status = 'paid' THEN 1 ELSE 0 END), 0) as paid_count
+      FROM invoices
+    `);
+
+    const row = summaryRes.rows[0];
+    return res.json({
+      data: {
+        total_billed: parseFloat(row.total_billed),
+        total_outstanding: parseFloat(row.total_outstanding),
+        total_invoices: parseInt(row.total_invoices, 10),
+        unpaid_count: parseInt(row.unpaid_count, 10),
+        partially_paid_count: parseInt(row.partially_paid_count, 10),
+        paid_count: parseInt(row.paid_count, 10)
+      }
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
  * GET /api/invoices
- * Query filters: ?customer_id= & ?status=
+ * Query filters:
+ *   - ?customer_id=
+ *   - ?status=
+ *   - ?from_date= & ?to_date= (date range)
  */
 router.get('/invoices', async (req, res, next) => {
   try {
-    const { customer_id, status } = req.query;
+    const { customer_id, status, from_date, to_date, start_date, end_date } = req.query;
     let query = `
       SELECT id, so_id, customer_id, customer_name, customer_gstin, sales_rep_id,
-             invoice_date, due_date, subtotal, cgst, sgst, total, status, created_at
+             invoice_date::text as invoice_date, due_date::text as due_date, subtotal, cgst, sgst, total, status, created_at
       FROM invoices
     `;
     const conditions = [];
     const values = [];
 
-    if (customer_id) {
+    if (customer_id && customer_id.trim()) {
       values.push(customer_id.trim());
       conditions.push(`customer_id = $${values.length}`);
     }
 
-    if (status) {
+    if (status && status.trim()) {
       values.push(status.trim().toLowerCase());
       conditions.push(`LOWER(status) = $${values.length}`);
+    }
+
+    const effectiveFrom = from_date || start_date;
+    if (effectiveFrom && effectiveFrom.trim()) {
+      values.push(effectiveFrom.trim());
+      conditions.push(`invoice_date >= $${values.length}`);
+    }
+
+    const effectiveTo = to_date || end_date;
+    if (effectiveTo && effectiveTo.trim()) {
+      values.push(effectiveTo.trim());
+      conditions.push(`invoice_date <= $${values.length}`);
     }
 
     if (conditions.length > 0) {
@@ -60,14 +110,14 @@ router.get('/invoices', async (req, res, next) => {
 
 /**
  * GET /api/invoices/:id
- * Fetches single invoice along with line items
+ * Fetches single invoice along with line items and amount in words
  */
 router.get('/invoices/:id', async (req, res, next) => {
   try {
     const { id } = req.params;
     const invRes = await pool.query(
       `SELECT id, so_id, customer_id, customer_name, customer_gstin, sales_rep_id,
-              invoice_date, due_date, subtotal, cgst, sgst, total, status, created_at
+              invoice_date::text as invoice_date, due_date::text as due_date, subtotal, cgst, sgst, total, status, created_at
        FROM invoices
        WHERE id = $1`,
       [id]
@@ -87,6 +137,7 @@ router.get('/invoices/:id', async (req, res, next) => {
 
     const invoice = invRes.rows[0];
     invoice.items = itemsRes.rows;
+    invoice.amount_in_words = amountInWords(invoice.total);
 
     return res.json({ data: invoice });
   } catch (err) {
@@ -96,8 +147,8 @@ router.get('/invoices/:id', async (req, res, next) => {
 
 /**
  * POST /api/invoices
- * ERP-4 calls this when orders are fulfilled/dispatched.
- * Idempotent on so_id: a repeated so_id returns existing invoice (200).
+ * ERP-4 calls this when orders are fulfilled/dispatched, or created manually for non-order items (so_id empty).
+ * Idempotent on so_id: a repeated non-empty so_id returns existing invoice (200).
  * Calculates 9% CGST and 9% SGST on subtotal.
  * Fetches customer GSTIN if missing for corporate/dealer from CRM-3.
  */
@@ -123,9 +174,10 @@ router.post('/invoices', async (req, res, next) => {
       return res.status(400).json({ error: 'Invoice must contain at least one line item in items array' });
     }
 
+    const cleanSoId = (so_id && String(so_id).trim()) ? String(so_id).trim() : null;
+
     // 1. Idempotency Check on so_id (safe retry for ERP-4)
-    if (so_id && String(so_id).trim()) {
-      const cleanSoId = String(so_id).trim();
+    if (cleanSoId) {
       const existing = await client.query(
         `SELECT id, so_id, customer_id, customer_name, customer_gstin, sales_rep_id,
                 invoice_date, due_date, subtotal, cgst, sgst, total, status, created_at
@@ -144,6 +196,7 @@ router.post('/invoices', async (req, res, next) => {
           [existingInvoice.id]
         );
         existingInvoice.items = existingItems.rows;
+        existingInvoice.amount_in_words = amountInWords(existingInvoice.total);
         return res.status(200).json({
           data: existingInvoice,
           message: 'Existing invoice returned (idempotent so_id)'
@@ -165,7 +218,6 @@ router.post('/invoices', async (req, res, next) => {
           }
         }
       } catch (err) {
-        // Fallback to local mock if CRM3 is not running and shared mock unavailable
         const localMockPath = path.resolve(__dirname, '../mocks/customer.json');
         if (fs.existsSync(localMockPath)) {
           try {
@@ -175,9 +227,7 @@ router.post('/invoices', async (req, res, next) => {
               if (!customerName && c.name) customerName = c.name;
               if (!customerGstin && c.gstin) customerGstin = c.gstin;
             }
-          } catch (e) {
-            // ignore mock read error
-          }
+          } catch (e) {}
         }
       }
     }
@@ -239,7 +289,7 @@ router.post('/invoices', async (req, res, next) => {
     `;
     const invValues = [
       invoiceId,
-      so_id ? String(so_id).trim() : null,
+      cleanSoId,
       customer_id,
       customerName,
       customerGstin || null,
@@ -288,6 +338,7 @@ router.post('/invoices', async (req, res, next) => {
     await client.query('COMMIT');
 
     createdInvoice.items = insertedItems;
+    createdInvoice.amount_in_words = amountInWords(createdInvoice.total);
     return res.status(201).json({ data: createdInvoice });
   } catch (err) {
     await client.query('ROLLBACK');
