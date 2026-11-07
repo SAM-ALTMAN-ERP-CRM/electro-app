@@ -1,16 +1,13 @@
 /**
  * Ledger Helper for ERP-5 (ERP5-D1 integration).
  * Safely posts balanced ledger pairs within an active database transaction/client.
- * If the ledger_entries table has not yet been merged (ERP5-D1), skips gracefully per PMO rules.
  */
-
 async function postLedgerPair(client, { type, reference, amount, description }) {
   try {
-    // Check if table ledger_entries exists
     const tableCheck = await client.query(`
       SELECT EXISTS (
-        SELECT FROM information_schema.tables 
-        WHERE table_schema = 'public' 
+        SELECT FROM information_schema.tables
+        WHERE table_schema = 'public'
         AND table_name = 'ledger_entries'
       );
     `);
@@ -20,10 +17,10 @@ async function postLedgerPair(client, { type, reference, amount, description }) 
       return false;
     }
 
-    // Check for duplicate type and reference (safe to retry)
+    // Safe to retry: same type + reference means already posted.
     const existing = await client.query(
-      `SELECT id FROM ledger_entries WHERE reference = $1 AND description LIKE $2 LIMIT 1`,
-      [reference, `%${type}%`]
+      `SELECT id FROM ledger_entries WHERE reference = $1 LIMIT 1`,
+      [reference]
     );
     if (existing.rows.length > 0) {
       return true;
@@ -34,28 +31,47 @@ async function postLedgerPair(client, { type, reference, amount, description }) 
 
     if (type === 'invoice') {
       // Debit: receivables, Credit: sales
-      await client.query(`
-        INSERT INTO ledger_entries (entry_date, account, debit, credit, reference, description)
-        VALUES 
-          ($1, 'receivables', $2, 0, $3, $4),
-          ($1, 'sales', 0, $2, $3, $4)
-      `, [today, numAmount, reference, description || `Invoice ${reference}`]);
+      await client.query(
+        `INSERT INTO ledger_entries (entry_date, account, debit, credit, reference, description)
+         VALUES ($1, 'receivables', $2, 0, $3, $4),
+                ($1, 'sales', 0, $2, $3, $4)`,
+        [today, numAmount, reference, description || `Invoice ${reference}`]
+      );
     } else if (type === 'payment') {
       // Debit: cash, Credit: receivables
-      await client.query(`
-        INSERT INTO ledger_entries (entry_date, account, debit, credit, reference, description)
-        VALUES 
-          ($1, 'cash', $2, 0, $3, $4),
-          ($1, 'receivables', 0, $2, $3, $4)
-      `, [today, numAmount, reference, description || `Payment ${reference}`]);
+      await client.query(
+        `INSERT INTO ledger_entries (entry_date, account, debit, credit, reference, description)
+         VALUES ($1, 'cash', $2, 0, $3, $4),
+                ($1, 'receivables', 0, $2, $3, $4)`,
+        [today, numAmount, reference, description || `Payment ${reference}`]
+      );
     } else if (type === 'credit_note') {
       // Debit: sales, Credit: receivables
-      await client.query(`
-        INSERT INTO ledger_entries (entry_date, account, debit, credit, reference, description)
-        VALUES 
-          ($1, 'sales', $2, 0, $3, $4),
-          ($1, 'receivables', 0, $2, $3, $4)
-      `, [today, numAmount, reference, description || `Credit Note ${reference}`]);
+      await client.query(
+        `INSERT INTO ledger_entries (entry_date, account, debit, credit, reference, description)
+         VALUES ($1, 'sales', $2, 0, $3, $4),
+                ($1, 'receivables', 0, $2, $3, $4)`,
+        [today, numAmount, reference, description || `Credit Note ${reference}`]
+      );
+    } else if (type === 'purchase') {
+      // Debit: purchases, Credit: cash
+      await client.query(
+        `INSERT INTO ledger_entries (entry_date, account, debit, credit, reference, description)
+         VALUES ($1, 'purchases', $2, 0, $3, $4),
+                ($1, 'cash', 0, $2, $3, $4)`,
+        [today, numAmount, reference, description || `Purchase ${reference}`]
+      );
+    } else if (type === 'salary') {
+      // Debit: salary_expense, Credit: cash
+      await client.query(
+        `INSERT INTO ledger_entries (entry_date, account, debit, credit, reference, description)
+         VALUES ($1, 'salary_expense', $2, 0, $3, $4),
+                ($1, 'cash', 0, $2, $3, $4)`,
+        [today, numAmount, reference, description || `Salary ${reference}`]
+      );
+    } else {
+      console.warn(`[erp5 ledger] Unknown type '${type}', skipping ledger line.`);
+      return false;
     }
 
     return true;
@@ -65,6 +81,4 @@ async function postLedgerPair(client, { type, reference, amount, description }) 
   }
 }
 
-module.exports = {
-  postLedgerPair
-};
+module.exports = { postLedgerPair };
