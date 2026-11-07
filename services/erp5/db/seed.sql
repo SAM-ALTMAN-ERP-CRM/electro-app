@@ -1,6 +1,4 @@
 -- Database seed for ERP-5 Finance & App Shell
--- 6 Demo Users (Member C) & Invoices INV-0001 to INV-0005 for Orders SO-0001 to SO-0005 (Member A)
--- Adheres strictly to Section 5 Shared Seed Contract
 
 -- 1. Demo Users Seed
 INSERT INTO users (id, name, email, password_hash, role, employee_id, active)
@@ -8,29 +6,22 @@ VALUES
   ('USR-0001','System Administrator','admin@demo.com',
    'pbkdf2:electro5salt0001:eb3bcf3730db6983b507acb4f8f62b25580c0bc945baeae8a43867c740fe6bfd',
    'admin','EMP-0012',true),
-
   ('USR-0002','Rohan Kulkarni','sales@demo.com',
    'pbkdf2:electro5salt0002:1e4cf698b0995fbf3308635a58d664172c08df4c5a165afa42fe4a9739e36c80',
    'sales','EMP-0001',true),
-
   ('USR-0003','Support Agent','support@demo.com',
    'pbkdf2:electro5salt0003:305662f676b53048a4ca1b2b31c4a3b4edd5c63ae8688a8d51760a5a9f94dc1b',
    'support',NULL,true),
-
   ('USR-0004','Warehouse Manager','warehouse@demo.com',
    'pbkdf2:electro5salt0004:61c44c1d7ff0dcd08a7dfb65036951a5fc19795bc1ed76ba175f9281bb84fdac',
    'warehouse',NULL,true),
-
   ('USR-0005','Finance Manager','finance@demo.com',
    'pbkdf2:electro5salt0005:9a0084684ad1f51d4761aea553bc9f73c447bc66531b06745460504f2ff0cb32',
    'finance','EMP-0010',true),
-
   ('USR-0006','HR Manager','hr@demo.com',
    'pbkdf2:electro5salt0006:9dbbda31a8a5a1f60e296b0b2a8f960b545bb81136d89b2b54a0b929923dd870',
    'hr','EMP-0008',true)
 ON CONFLICT (email) DO NOTHING;
-
-SELECT setval('users_seq', (SELECT COALESCE(MAX(CAST(SUBSTRING(id FROM 5) AS INTEGER)),0) FROM users));
 
 -- 2. Invoices Seed
 INSERT INTO invoices (id, so_id, customer_id, customer_name, customer_gstin, sales_rep_id, invoice_date, due_date, subtotal, cgst, sgst, total, status)
@@ -73,5 +64,9 @@ ON CONFLICT (id) DO UPDATE SET
   tax_rate = EXCLUDED.tax_rate;
 
 -- Advance sequences past seeded IDs
-SELECT setval('invoices_seq', COALESCE((SELECT MAX(CAST(SUBSTRING(id FROM 5) AS INTEGER)) FROM invoices), 0));
-SELECT setval('invoice_items_seq', COALESCE((SELECT MAX(CAST(SUBSTRING(id FROM 5) AS INTEGER)) FROM invoice_items), 0));
+SELECT setval('users_seq', COALESCE((SELECT MAX(CAST(SUBSTRING(id FROM 5) AS INTEGER)) FROM users), 0) + 1, false);
+SELECT setval('invoices_seq', COALESCE((SELECT MAX(CAST(SUBSTRING(id FROM 5) AS INTEGER)) FROM invoices), 0) + 1, false);
+SELECT setval('invoice_items_seq', COALESCE((SELECT MAX(CAST(SUBSTRING(id FROM 5) AS INTEGER)) FROM invoice_items), 0) + 1, false);
+SELECT setval('payments_seq', COALESCE((SELECT MAX(CAST(SUBSTRING(id FROM 5) AS INTEGER)) FROM payments), 0) + 1, false);
+SELECT setval('credit_notes_seq', COALESCE((SELECT MAX(CAST(SUBSTRING(id FROM 5) AS INTEGER)) FROM credit_notes), 0) + 1, false);
+SELECT setval('ledger_entries_seq', COALESCE((SELECT MAX(CAST(SUBSTRING(id FROM 4) AS INTEGER)) FROM ledger_entries), 0) + 1, false);
