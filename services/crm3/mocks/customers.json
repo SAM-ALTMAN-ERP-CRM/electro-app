@@ -1,0 +1,122 @@
+[
+  {
+    "id": "CUST-0001",
+    "name": "Aarav Mehta",
+    "type": "retail",
+    "email": "aarav.mehta@example.com",
+    "phone": "9820011111",
+    "gstin": null,
+    "billing_address": "12 Linking Road, Bandra West",
+    "shipping_address": "12 Linking Road, Bandra West",
+    "city": "Mumbai",
+    "created_at": "2026-11-01T10:00:00.000Z"
+  },
+  {
+    "id": "CUST-0002",
+    "name": "Sunrise Electronics Pvt Ltd",
+    "type": "corporate",
+    "email": "contact@sunrise.com",
+    "phone": "9820022222",
+    "gstin": "27AABCS1234F1Z5",
+    "billing_address": "88 Nariman Point, Express Towers",
+    "shipping_address": "Plot 42 MIDC Andheri East",
+    "city": "Mumbai",
+    "created_at": "2026-11-01T10:05:00.000Z"
+  },
+  {
+    "id": "CUST-0003",
+    "name": "Priya Nair",
+    "type": "retail",
+    "email": "priya.nair@example.com",
+    "phone": "9847012345",
+    "gstin": null,
+    "billing_address": "5 Marine Drive",
+    "shipping_address": "5 Marine Drive",
+    "city": "Kochi",
+    "created_at": "2026-11-01T10:10:00.000Z"
+  },
+  {
+    "id": "CUST-0004",
+    "name": "BrightHome Retail LLP",
+    "type": "dealer",
+    "email": "sales@brighthome.com",
+    "phone": "9822098765",
+    "gstin": "27AABCB9876E1Z2",
+    "billing_address": "45 FC Road, Shivajinagar",
+    "shipping_address": "Warehouse 3, Hadapsar Industrial Estate",
+    "city": "Pune",
+    "created_at": "2026-11-01T10:15:00.000Z"
+  },
+  {
+    "id": "CUST-0005",
+    "name": "Kiran Patel",
+    "type": "retail",
+    "email": "kiran.patel@example.com",
+    "phone": "9825012345",
+    "gstin": null,
+    "billing_address": "23 Ashram Road",
+    "shipping_address": "23 Ashram Road",
+    "city": "Ahmedabad",
+    "created_at": "2026-11-01T10:20:00.000Z"
+  },
+  {
+    "id": "CUST-0006",
+    "name": "Metro Offices Ltd",
+    "type": "corporate",
+    "email": "admin@metrooffices.com",
+    "phone": "9811054321",
+    "gstin": "07AABCM5432D1Z9",
+    "billing_address": "10 Barakhamba Road, Connaught Place",
+    "shipping_address": "Building 5 DLF Phase 2",
+    "city": "Delhi",
+    "created_at": "2026-11-01T10:25:00.000Z"
+  },
+  {
+    "id": "CUST-0007",
+    "name": "Sneha Iyer",
+    "type": "retail",
+    "email": "sneha.iyer@example.com",
+    "phone": "9840012345",
+    "gstin": null,
+    "billing_address": "77 Anna Salai",
+    "shipping_address": "77 Anna Salai",
+    "city": "Chennai",
+    "created_at": "2026-11-01T10:30:00.000Z"
+  },
+  {
+    "id": "CUST-0008",
+    "name": "Gadget Hub",
+    "type": "dealer",
+    "email": "info@gadgethub.com",
+    "phone": "9845012345",
+    "gstin": "29AABCG1234H1Z1",
+    "billing_address": "150 Brigade Road",
+    "shipping_address": "Electronics City Phase 1",
+    "city": "Bengaluru",
+    "created_at": "2026-11-01T10:35:00.000Z"
+  },
+  {
+    "id": "CUST-0009",
+    "name": "Aarav Mehta (Duplicate)",
+    "type": "retail",
+    "email": "aarav.duplicate@example.com",
+    "phone": "9820011111",
+    "gstin": null,
+    "billing_address": "12 Linking Road, Bandra West",
+    "shipping_address": "12 Linking Road, Bandra West",
+    "city": "Mumbai",
+    "created_at": "2026-11-01T10:40:00.000Z"
+  },
+  {
+    "id": "CUST-0010",
+    "name": "Sunrise Electronics (Branch)",
+    "type": "corporate",
+    "email": "contact@sunrise.com",
+    "phone": "9820033333",
+    "gstin": "27AABCS1234F1Z5",
+    "billing_address": "18 Senapati Bapat Road",
+    "shipping_address": "Hinjewadi Tech Park Phase 2",
+    "city": "Pune",
+    "created_at": "2026-11-01T10:45:00.000Z"
+  }
+]
