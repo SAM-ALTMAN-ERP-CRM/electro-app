@@ -1,0 +1,30 @@
+[
+  {
+    "id": "SEG-0001",
+    "name": "Corporate in Mumbai",
+    "customer_type": "corporate",
+    "city": "Mumbai",
+    "created_at": "2026-11-02T09:00:00.000Z"
+  },
+  {
+    "id": "SEG-0002",
+    "name": "Retail Customers",
+    "customer_type": "retail",
+    "city": null,
+    "created_at": "2026-11-02T09:30:00.000Z"
+  },
+  {
+    "id": "SEG-0003",
+    "name": "Dealers Nationwide",
+    "customer_type": "dealer",
+    "city": null,
+    "created_at": "2026-11-02T10:00:00.000Z"
+  },
+  {
+    "id": "SEG-0004",
+    "name": "Pune Accounts",
+    "customer_type": null,
+    "city": "Pune",
+    "created_at": "2026-11-02T10:30:00.000Z"
+  }
+]
