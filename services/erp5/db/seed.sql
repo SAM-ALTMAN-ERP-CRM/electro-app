@@ -1,5 +1,6 @@
 -- Database seed for ERP-5 Finance & App Shell
 -- Invoices INV-0001 to INV-0005 for Orders SO-0001 to SO-0005
+-- Credit Notes CN-0001 to CN-0002
 -- Adheres strictly to Section 5 Shared Seed Contract
 
 -- Invoices Seed
@@ -42,6 +43,18 @@ ON CONFLICT (id) DO UPDATE SET
   unit_price = EXCLUDED.unit_price,
   tax_rate = EXCLUDED.tax_rate;
 
+-- Seed Credit Notes (2 seed credit notes per ERP5-A4)
+INSERT INTO credit_notes (id, so_id, invoice_id, serial_number, amount)
+VALUES
+  ('CN-0001', 'SO-0001', 'INV-0001', 'SN-0001', 1000.00),
+  ('CN-0002', 'SO-0002', 'INV-0002', 'SN-0002', 2999.00)
+ON CONFLICT (id) DO UPDATE SET
+  so_id = EXCLUDED.so_id,
+  invoice_id = EXCLUDED.invoice_id,
+  serial_number = EXCLUDED.serial_number,
+  amount = EXCLUDED.amount;
+
 -- Advance sequences past seeded IDs
 SELECT setval('invoices_seq', COALESCE((SELECT MAX(CAST(SUBSTRING(id FROM 5) AS INTEGER)) FROM invoices), 0));
 SELECT setval('invoice_items_seq', COALESCE((SELECT MAX(CAST(SUBSTRING(id FROM 5) AS INTEGER)) FROM invoice_items), 0));
+SELECT setval('credit_notes_seq', COALESCE((SELECT MAX(CAST(SUBSTRING(id FROM 4) AS INTEGER)) FROM credit_notes), 0));

@@ -37,8 +37,24 @@ CREATE TABLE IF NOT EXISTS invoice_items (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Indexes for performance
+-- Sequence for Credit Notes (CN-0001..)
+CREATE SEQUENCE IF NOT EXISTS credit_notes_seq START WITH 1;
+
+-- Table: credit_notes
+CREATE TABLE IF NOT EXISTS credit_notes (
+  id VARCHAR(20) PRIMARY KEY,
+  so_id VARCHAR(50) NOT NULL,
+  invoice_id VARCHAR(20) REFERENCES invoices(id) ON DELETE SET NULL,
+  serial_number VARCHAR(100) NOT NULL,
+  amount NUMERIC(12, 2) NOT NULL CHECK (amount > 0),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Indexes for performance & integrity
 CREATE INDEX IF NOT EXISTS idx_invoices_so_id ON invoices(so_id);
 CREATE INDEX IF NOT EXISTS idx_invoices_customer_id ON invoices(customer_id);
 CREATE INDEX IF NOT EXISTS idx_invoices_status ON invoices(status);
 CREATE INDEX IF NOT EXISTS idx_invoice_items_invoice_id ON invoice_items(invoice_id);
+CREATE INDEX IF NOT EXISTS idx_credit_notes_so_id ON credit_notes(so_id);
+CREATE INDEX IF NOT EXISTS idx_credit_notes_invoice_id ON credit_notes(invoice_id);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_credit_notes_so_serial ON credit_notes(so_id, serial_number);
