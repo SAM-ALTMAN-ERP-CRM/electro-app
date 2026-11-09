@@ -5,12 +5,15 @@ const path = require('path');
 const { requireAuth } = require('../../_shared/auth');
 const { makePool } = require('../../_shared/db');
 
+// Database pool for CRM-3 Customer 360
 const pool = makePool('crm3_db');
 
-// Protect all CRM-3 segment routes with authentication middleware
+// Protect all CRM-3 segment endpoints with authentication middleware
 router.use(requireAuth);
 
-// In-memory fallback stores for offline testing / mock mode
+const ALLOWED_CUSTOMER_TYPES = ['retail', 'corporate', 'dealer'];
+
+// In-memory fallback store for offline development / test environments
 let inMemorySegments = [];
 let inMemoryCustomers = [];
 
@@ -19,97 +22,39 @@ try {
   if (fs.existsSync(segMockPath)) {
     inMemorySegments = JSON.parse(fs.readFileSync(segMockPath, 'utf-8'));
   }
-} catch (err) {
-  console.warn('[crm3] Could not pre-load mock segments:', err.message);
-}
-
-try {
   const custMockPath = path.resolve(__dirname, '../mocks/customers.json');
   if (fs.existsSync(custMockPath)) {
     inMemoryCustomers = JSON.parse(fs.readFileSync(custMockPath, 'utf-8'));
   }
 } catch (err) {
-  console.warn('[crm3] Could not pre-load mock customers:', err.message);
+  console.warn('[crm3] Could not pre-load mock data:', err.message);
 }
 
+let mockSegIdCounter = inMemorySegments.length + 1;
+
 /**
- * Execute a query safely against crm3_db.
- * Returns query result or null if the database is offline or query fails.
+ * Helper to safely execute parameterised database queries without throwing on offline DB.
  */
 async function safeQuery(text, params = []) {
   try {
     return await pool.query(text, params);
   } catch (err) {
-    console.warn(`[crm3 safeQuery] DB query failed (${err.code || err.message}), falling back to in-memory/mock`);
     return null;
   }
 }
 
 /**
- * Filter customers by segment criteria in-memory.
- * Blank or null customer_type or city means any.
- */
-function filterCustomersInMemory(customerType, city) {
-  return inMemoryCustomers.filter(cust => {
-    if (customerType && String(customerType).trim() !== '') {
-      const typeVal = String(customerType).trim().toLowerCase();
-      if (!cust.type || cust.type.toLowerCase() !== typeVal) {
-        return false;
-      }
-    }
-    if (city && String(city).trim() !== '') {
-      const cityVal = String(city).trim().toLowerCase();
-      if (!cust.city || cust.city.toLowerCase() !== cityVal) {
-        return false;
-      }
-    }
-    return true;
-  });
-}
-
-/**
- * Generate next segment ID in the format SEG-0001.
- */
-async function generateSegmentId() {
-  const dbResult = await safeQuery('SELECT id FROM segments');
-  let allIds = [];
-  if (dbResult && dbResult.rows) {
-    allIds = dbResult.rows.map(r => r.id);
-  } else {
-    allIds = inMemorySegments.map(s => s.id);
-  }
-
-  let maxNum = 0;
-  for (const id of allIds) {
-    const match = id && String(id).match(/^SEG-(\d+)$/i);
-    if (match) {
-      const num = parseInt(match[1], 10);
-      if (num > maxNum) maxNum = num;
-    }
-  }
-  const nextNum = maxNum + 1;
-  return `SEG-${String(nextNum).padStart(4, '0')}`;
-}
-
-const ALLOWED_CUSTOMER_TYPES = ['retail', 'corporate', 'dealer'];
-
-/**
  * GET /api/segments
- * Returns all segments ordered by id ASC.
+ * Returns all defined customer segments ordered by id ASC.
  */
 router.get('/segments', async (req, res, next) => {
   try {
-    const dbResult = await safeQuery(`
-      SELECT id, name, customer_type, city, created_at
-      FROM segments
-      ORDER BY id ASC
-    `);
-
-    if (dbResult && dbResult.rows && dbResult.rows.length > 0) {
-      return res.json({ data: dbResult.rows });
+    const pgResult = await safeQuery(
+      'SELECT id, name, customer_type, city, created_at FROM segments ORDER BY id ASC'
+    );
+    if (pgResult) {
+      return res.json({ data: pgResult.rows });
     }
-
-    // Fallback to in-memory segments
     return res.json({ data: inMemorySegments });
   } catch (err) {
     next(err);
@@ -118,20 +63,19 @@ router.get('/segments', async (req, res, next) => {
 
 /**
  * POST /api/segments
- * Create a new segment: { name, customer_type, city }
+ * Creates a new segment with validation rules.
+ * Body: { name, customer_type?, city? }
  */
 router.post('/segments', async (req, res, next) => {
   try {
-    const { name, customer_type, city, id } = req.body || {};
+    const { name, customer_type, city } = req.body || {};
 
-    // Validate name
-    if (!name || typeof name !== 'string' || name.trim() === '') {
+    if (!name || typeof name !== 'string' || !name.trim()) {
       return res.status(400).json({ error: 'Segment name is required' });
     }
 
     const trimmedName = name.trim();
 
-    // Validate and normalize customer_type (nullable)
     let cleanType = null;
     if (customer_type !== undefined && customer_type !== null) {
       const typeStr = String(customer_type).trim().toLowerCase();
@@ -145,7 +89,6 @@ router.post('/segments', async (req, res, next) => {
       }
     }
 
-    // Normalize city (nullable)
     let cleanCity = null;
     if (city !== undefined && city !== null) {
       const cityStr = String(city).trim();
@@ -154,106 +97,41 @@ router.post('/segments', async (req, res, next) => {
       }
     }
 
-    const newId = (id && String(id).trim()) || await generateSegmentId();
-    const createdAt = new Date().toISOString();
+    try {
+      let id;
+      try {
+        const seqResult = await pool.query("SELECT nextval('segment_id_seq') AS n");
+        const nextNum = seqResult.rows[0].n;
+        id = `SEG-${String(nextNum).padStart(4, '0')}`;
+      } catch (seqErr) {
+        const maxRes = await pool.query(
+          "SELECT COALESCE(MAX(CAST(SUBSTRING(id FROM 5) AS INTEGER)), 0) + 1 AS next_n FROM segments WHERE id LIKE 'SEG-%'"
+        );
+        id = `SEG-${String(maxRes.rows[0].next_n).padStart(4, '0')}`;
+      }
 
-    const newSegment = {
-      id: newId,
-      name: trimmedName,
-      customer_type: cleanType,
-      city: cleanCity,
-      created_at: createdAt
-    };
+      const insertResult = await pool.query(
+        `INSERT INTO segments (id, name, customer_type, city)
+         VALUES ($1, $2, $3, $4)
+         RETURNING id, name, customer_type, city, created_at`,
+        [id, trimmedName, cleanType, cleanCity]
+      );
 
-    // Attempt DB insert
-    const dbResult = await safeQuery(
-      `INSERT INTO segments (id, name, customer_type, city, created_at)
-       VALUES ($1, $2, $3, $4, $5)
-       RETURNING id, name, customer_type, city, created_at`,
-      [newId, trimmedName, cleanType, cleanCity, createdAt]
-    );
-
-    // Keep in-memory store in sync
-    const existingIndex = inMemorySegments.findIndex(s => s.id === newId);
-    if (existingIndex >= 0) {
-      inMemorySegments[existingIndex] = newSegment;
-    } else {
-      inMemorySegments.push(newSegment);
+      const saved = insertResult.rows[0];
+      inMemorySegments.push(saved);
+      return res.status(201).json({ data: saved });
+    } catch (dbErr) {
+      const id = `SEG-${String(mockSegIdCounter++).padStart(4, '0')}`;
+      const saved = {
+        id,
+        name: trimmedName,
+        customer_type: cleanType,
+        city: cleanCity,
+        created_at: new Date().toISOString()
+      };
+      inMemorySegments.push(saved);
+      return res.status(201).json({ data: saved });
     }
-
-    const savedSegment = (dbResult && dbResult.rows && dbResult.rows[0]) || newSegment;
-    return res.status(201).json({ data: savedSegment });
-  } catch (err) {
-    next(err);
-  }
-});
-
-/**
- * GET /api/segments/:id/customers
- * Returns customers matching the segment's customer_type and city.
- * Blank / null filter means any. Calls this service's own customers table.
- */
-router.get('/segments/:id/customers', async (req, res, next) => {
-  try {
-    const { id } = req.params;
-
-    // 1. Fetch the segment definition
-    let segment = null;
-    const segDb = await safeQuery(
-      `SELECT id, name, customer_type, city, created_at FROM segments WHERE id = $1`,
-      [id]
-    );
-
-    if (segDb && segDb.rows && segDb.rows.length > 0) {
-      segment = segDb.rows[0];
-    } else {
-      segment = inMemorySegments.find(s => s.id === id);
-    }
-
-    if (!segment) {
-      return res.status(404).json({ error: `Segment not found: ${id}` });
-    }
-
-    const { customer_type, city } = segment;
-
-    // 2. Query matching customers from this service's own customers table
-    const conditions = [];
-    const params = [];
-
-    if (customer_type && String(customer_type).trim() !== '') {
-      params.push(String(customer_type).trim().toLowerCase());
-      conditions.push(`LOWER(type) = $${params.length}`);
-    }
-
-    if (city && String(city).trim() !== '') {
-      params.push(String(city).trim().toLowerCase());
-      conditions.push(`LOWER(city) = $${params.length}`);
-    }
-
-    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
-    const queryText = `
-      SELECT id, name, type, email, phone, gstin, billing_address, shipping_address, city, created_at
-      FROM customers
-      ${whereClause}
-      ORDER BY id ASC
-    `;
-
-    const custDb = await safeQuery(queryText, params);
-
-    let matchingCustomers = [];
-    if (custDb && custDb.rows) {
-      matchingCustomers = custDb.rows;
-    } else {
-      // In-memory / mock fallback if DB customers query returned null
-      matchingCustomers = filterCustomersInMemory(customer_type, city);
-    }
-
-    return res.json({
-      data: matchingCustomers,
-      segment,
-      customers: matchingCustomers,
-      count: matchingCustomers.length
-    });
   } catch (err) {
     next(err);
   }
@@ -261,27 +139,113 @@ router.get('/segments/:id/customers', async (req, res, next) => {
 
 /**
  * GET /api/segments/:id
- * Returns single segment by ID.
+ * Fetches single segment details.
  */
 router.get('/segments/:id', async (req, res, next) => {
   try {
     const { id } = req.params;
-
-    const dbResult = await safeQuery(
-      `SELECT id, name, customer_type, city, created_at FROM segments WHERE id = $1`,
-      [id]
-    );
-
-    if (dbResult && dbResult.rows && dbResult.rows.length > 0) {
-      return res.json({ data: dbResult.rows[0] });
+    const pgRes = await safeQuery('SELECT id, name, customer_type, city, created_at FROM segments WHERE id = $1', [id]);
+    if (pgRes) {
+      if (pgRes.rows.length === 0) {
+        return res.status(404).json({ error: `Segment with ID '${id}' not found` });
+      }
+      return res.json({ data: pgRes.rows[0] });
     }
 
-    const memSeg = inMemorySegments.find(s => s.id === id);
-    if (memSeg) {
-      return res.json({ data: memSeg });
+    const match = inMemorySegments.find(s => s.id === id);
+    if (!match) {
+      return res.status(404).json({ error: `Segment with ID '${id}' not found` });
+    }
+    return res.json({ data: match });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * GET /api/segments/:id/customers
+ * Evaluates segment filter rules against customers table.
+ * Blank/null customer_type or city matches any.
+ */
+router.get('/segments/:id/customers', async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    // 1. Fetch segment
+    let segment = null;
+    const segRes = await safeQuery('SELECT id, name, customer_type, city FROM segments WHERE id = $1', [id]);
+    if (segRes && segRes.rows.length > 0) {
+      segment = segRes.rows[0];
+    } else {
+      segment = inMemorySegments.find(s => s.id === id);
     }
 
-    return res.status(404).json({ error: `Segment not found: ${id}` });
+    if (!segment) {
+      return res.status(404).json({ error: `Segment with ID '${id}' not found` });
+    }
+
+    const targetType = segment.customer_type ? segment.customer_type.trim().toLowerCase() : null;
+    const targetCity = segment.city ? segment.city.trim() : null;
+
+    // 2. Query customers with dynamic filters
+    let query = `
+      SELECT id, name, type, email, phone, gstin, billing_address, shipping_address, city, created_at
+      FROM customers
+    `;
+    const conditions = [];
+    const values = [];
+
+    if (targetType) {
+      values.push(targetType);
+      conditions.push(`LOWER(type) = $${values.length}`);
+    }
+
+    if (targetCity) {
+      values.push(targetCity);
+      conditions.push(`LOWER(city) = LOWER($${values.length})`);
+    }
+
+    if (conditions.length > 0) {
+      query += ` WHERE ${conditions.join(' AND ')}`;
+    }
+
+    query += ' ORDER BY id ASC';
+
+    const custRes = await safeQuery(query, values);
+    if (custRes) {
+      return res.json({
+        data: custRes.rows,
+        segment: {
+          id: segment.id,
+          name: segment.name,
+          customer_type: segment.customer_type,
+          city: segment.city
+        },
+        customers: custRes.rows,
+        count: custRes.rows.length
+      });
+    }
+
+    // In-memory fallback
+    let matched = [...inMemoryCustomers];
+    if (targetType) {
+      matched = matched.filter(c => c.type && c.type.toLowerCase() === targetType);
+    }
+    if (targetCity) {
+      matched = matched.filter(c => c.city && c.city.toLowerCase() === targetCity.toLowerCase());
+    }
+
+    return res.json({
+      data: matched,
+      segment: {
+        id: segment.id,
+        name: segment.name,
+        customer_type: segment.customer_type,
+        city: segment.city
+      },
+      customers: matched,
+      count: matched.length
+    });
   } catch (err) {
     next(err);
   }
@@ -289,19 +253,17 @@ router.get('/segments/:id', async (req, res, next) => {
 
 /**
  * PUT /api/segments/:id
- * Full update of a segment.
  */
 router.put('/segments/:id', async (req, res, next) => {
   try {
     const { id } = req.params;
     const { name, customer_type, city } = req.body || {};
 
-    if (!name || typeof name !== 'string' || name.trim() === '') {
+    if (!name || typeof name !== 'string' || !name.trim()) {
       return res.status(400).json({ error: 'Segment name is required' });
     }
 
     const trimmedName = name.trim();
-
     let cleanType = null;
     if (customer_type !== undefined && customer_type !== null) {
       const typeStr = String(customer_type).trim().toLowerCase();
@@ -323,15 +285,7 @@ router.put('/segments/:id', async (req, res, next) => {
       }
     }
 
-    // Check if segment exists
-    const checkDb = await safeQuery('SELECT id FROM segments WHERE id = $1', [id]);
-    const memIndex = inMemorySegments.findIndex(s => s.id === id);
-
-    if ((!checkDb || checkDb.rows.length === 0) && memIndex < 0) {
-      return res.status(404).json({ error: `Segment not found: ${id}` });
-    }
-
-    const dbResult = await safeQuery(
+    const updateRes = await safeQuery(
       `UPDATE segments
        SET name = $1, customer_type = $2, city = $3
        WHERE id = $4
@@ -339,96 +293,25 @@ router.put('/segments/:id', async (req, res, next) => {
       [trimmedName, cleanType, cleanCity, id]
     );
 
-    const updated = (dbResult && dbResult.rows && dbResult.rows[0]) || {
-      id,
+    if (updateRes && updateRes.rows.length > 0) {
+      const updated = updateRes.rows[0];
+      const memIdx = inMemorySegments.findIndex(s => s.id === id);
+      if (memIdx !== -1) inMemorySegments[memIdx] = updated;
+      return res.json({ data: updated });
+    }
+
+    const memIdx = inMemorySegments.findIndex(s => s.id === id);
+    if (memIdx === -1) {
+      return res.status(404).json({ error: `Segment with ID '${id}' not found` });
+    }
+
+    const updated = {
+      ...inMemorySegments[memIdx],
       name: trimmedName,
       customer_type: cleanType,
-      city: cleanCity,
-      created_at: (inMemorySegments[memIndex] && inMemorySegments[memIndex].created_at) || new Date().toISOString()
+      city: cleanCity
     };
-
-    if (memIndex >= 0) {
-      inMemorySegments[memIndex] = { ...inMemorySegments[memIndex], ...updated };
-    }
-
-    return res.json({ data: updated });
-  } catch (err) {
-    next(err);
-  }
-});
-
-/**
- * PATCH /api/segments/:id
- * Partial update of a segment.
- */
-router.patch('/segments/:id', async (req, res, next) => {
-  try {
-    const { id } = req.params;
-    const { name, customer_type, city } = req.body || {};
-
-    // Retrieve existing segment
-    let current = null;
-    const curDb = await safeQuery('SELECT * FROM segments WHERE id = $1', [id]);
-    if (curDb && curDb.rows && curDb.rows.length > 0) {
-      current = curDb.rows[0];
-    } else {
-      current = inMemorySegments.find(s => s.id === id);
-    }
-
-    if (!current) {
-      return res.status(404).json({ error: `Segment not found: ${id}` });
-    }
-
-    const updatedName = (name !== undefined) ? (typeof name === 'string' ? name.trim() : current.name) : current.name;
-    if (name !== undefined && updatedName === '') {
-      return res.status(400).json({ error: 'Segment name cannot be empty' });
-    }
-
-    let updatedType = current.customer_type;
-    if (customer_type !== undefined) {
-      if (customer_type === null || String(customer_type).trim() === '') {
-        updatedType = null;
-      } else {
-        const typeStr = String(customer_type).trim().toLowerCase();
-        if (!ALLOWED_CUSTOMER_TYPES.includes(typeStr)) {
-          return res.status(400).json({
-            error: `Invalid customer_type: '${customer_type}'. Allowed values: ${ALLOWED_CUSTOMER_TYPES.join(', ')}`
-          });
-        }
-        updatedType = typeStr;
-      }
-    }
-
-    let updatedCity = current.city;
-    if (city !== undefined) {
-      if (city === null || String(city).trim() === '') {
-        updatedCity = null;
-      } else {
-        updatedCity = String(city).trim();
-      }
-    }
-
-    const dbResult = await safeQuery(
-      `UPDATE segments
-       SET name = $1, customer_type = $2, city = $3
-       WHERE id = $4
-       RETURNING id, name, customer_type, city, created_at`,
-      [updatedName, updatedType, updatedCity, id]
-    );
-
-    const updated = (dbResult && dbResult.rows && dbResult.rows[0]) || {
-      id,
-      name: updatedName,
-      customer_type: updatedType,
-      city: updatedCity,
-      created_at: current.created_at
-    };
-
-    const memIndex = inMemorySegments.findIndex(s => s.id === id);
-    if (memIndex >= 0) {
-      inMemorySegments[memIndex] = { ...inMemorySegments[memIndex], ...updated };
-    }
-
+    inMemorySegments[memIdx] = updated;
     return res.json({ data: updated });
   } catch (err) {
     next(err);
@@ -437,32 +320,22 @@ router.patch('/segments/:id', async (req, res, next) => {
 
 /**
  * DELETE /api/segments/:id
- * Deletes a segment by ID.
  */
 router.delete('/segments/:id', async (req, res, next) => {
   try {
     const { id } = req.params;
-
-    // Check if segment exists
-    const checkDb = await safeQuery('SELECT id FROM segments WHERE id = $1', [id]);
-    const memIndex = inMemorySegments.findIndex(s => s.id === id);
-
-    if ((!checkDb || checkDb.rows.length === 0) && memIndex < 0) {
-      return res.status(404).json({ error: `Segment not found: ${id}` });
+    const delRes = await safeQuery('DELETE FROM segments WHERE id = $1 RETURNING id, name', [id]);
+    if (delRes && delRes.rows.length > 0) {
+      inMemorySegments = inMemorySegments.filter(s => s.id !== id);
+      return res.json({ data: { message: 'Segment deleted successfully', id } });
     }
 
-    await safeQuery('DELETE FROM segments WHERE id = $1', [id]);
-
-    if (memIndex >= 0) {
-      inMemorySegments.splice(memIndex, 1);
+    const match = inMemorySegments.find(s => s.id === id);
+    if (!match) {
+      return res.status(404).json({ error: `Segment with ID '${id}' not found` });
     }
-
-    return res.json({
-      data: {
-        message: `Segment ${id} deleted successfully`,
-        id
-      }
-    });
+    inMemorySegments = inMemorySegments.filter(s => s.id !== id);
+    return res.json({ data: { message: 'Segment deleted successfully', id } });
   } catch (err) {
     next(err);
   }
