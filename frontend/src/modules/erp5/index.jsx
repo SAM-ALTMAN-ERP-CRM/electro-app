@@ -4,6 +4,7 @@ import Users from './pages/Users';
 import InvoicesPage from './pages/InvoicesPage';
 import InvoiceDetailPage from './pages/InvoiceDetailPage';
 import CreditNotesPage from './pages/CreditNotesPage';
+import LedgerPage from './pages/LedgerPage';
 
 /*
  * ERP-5 module registration.
@@ -31,6 +32,9 @@ export default {
     { path: 'invoices/:id', element: <InvoiceDetailPage />, roles: ['admin', 'finance'] },
 
     // Credit notes page: admin and finance
-    { path: 'credit-notes', label: 'Credit Notes', element: <CreditNotesPage />, roles: ['admin', 'finance'] }
+    { path: 'credit-notes', label: 'Credit Notes', element: <CreditNotesPage />, roles: ['admin', 'finance'] },
+
+    // General Ledger page: admin and finance
+    { path: 'ledger', label: 'General Ledger', element: <LedgerPage />, roles: ['admin', 'finance'] }
   ]
 };
