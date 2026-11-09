@@ -1,5 +1,5 @@
 -- Database schema for CRM-3 Customer 360 (Port 5103)
--- Customer Master Directory, Contacts & Unified Event Timeline
+-- Customer Master Directory, Contacts, Dynamic Segments & Customer Tags
 
 CREATE SEQUENCE IF NOT EXISTS customers_seq START WITH 1;
 
@@ -39,9 +39,19 @@ CREATE TABLE IF NOT EXISTS segments (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Member 3 (CRM3-C3): Customer Tags table
+CREATE TABLE IF NOT EXISTS customer_tags (
+  customer_id VARCHAR(20) NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
+  tag VARCHAR(100) NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (customer_id, tag)
+);
+
 CREATE INDEX IF NOT EXISTS idx_customers_type ON customers(type);
 CREATE INDEX IF NOT EXISTS idx_customers_city ON customers(city);
 CREATE INDEX IF NOT EXISTS idx_customers_email ON customers(email);
 CREATE INDEX IF NOT EXISTS idx_contacts_customer_id ON contacts(customer_id);
 CREATE INDEX IF NOT EXISTS idx_segments_customer_type ON segments(customer_type);
 CREATE INDEX IF NOT EXISTS idx_segments_city ON segments(city);
+CREATE INDEX IF NOT EXISTS idx_customer_tags_customer_id ON customer_tags(customer_id);
+CREATE INDEX IF NOT EXISTS idx_customer_tags_tag ON customer_tags(tag);

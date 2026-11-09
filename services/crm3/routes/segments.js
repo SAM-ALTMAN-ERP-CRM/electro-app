@@ -44,6 +44,18 @@ async function safeQuery(text, params = []) {
 }
 
 /**
+ * Helper to escape CSV values according to RFC 4180
+ */
+function escapeCsv(value) {
+  if (value === null || value === undefined) return '';
+  const str = String(value);
+  if (str.includes(',') || str.includes('"') || str.includes('\n') || str.includes('\r')) {
+    return `"${str.replace(/"/g, '""')}"`;
+  }
+  return str;
+}
+
+/**
  * GET /api/segments
  * Returns all defined customer segments ordered by id ASC.
  */
@@ -138,6 +150,87 @@ router.post('/segments', async (req, res, next) => {
 });
 
 /**
+ * GET /api/segments/:id/export.csv
+ * Exports customers matching segment criteria as Excel-compatible CSV.
+ * Columns: name, email, phone, city
+ */
+router.get('/segments/:id/export.csv', async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    let segment = null;
+    const segRes = await safeQuery('SELECT id, name, customer_type, city FROM segments WHERE id = $1', [id]);
+    if (segRes && segRes.rows.length > 0) {
+      segment = segRes.rows[0];
+    } else {
+      segment = inMemorySegments.find(s => s.id === id);
+    }
+
+    if (!segment) {
+      return res.status(404).json({ error: `Segment with ID '${id}' not found` });
+    }
+
+    const targetType = segment.customer_type ? segment.customer_type.trim().toLowerCase() : null;
+    const targetCity = segment.city ? segment.city.trim() : null;
+
+    let customers = [];
+    let query = `
+      SELECT name, email, phone, city
+      FROM customers
+    `;
+    const conditions = [];
+    const values = [];
+
+    if (targetType) {
+      values.push(targetType);
+      conditions.push(`LOWER(type) = $${values.length}`);
+    }
+
+    if (targetCity) {
+      values.push(targetCity);
+      conditions.push(`LOWER(city) = LOWER($${values.length})`);
+    }
+
+    if (conditions.length > 0) {
+      query += ` WHERE ${conditions.join(' AND ')}`;
+    }
+
+    query += ' ORDER BY id ASC';
+
+    const custRes = await safeQuery(query, values);
+    if (custRes) {
+      customers = custRes.rows;
+    } else {
+      customers = [...inMemoryCustomers];
+      if (targetType) {
+        customers = customers.filter(c => c.type && c.type.toLowerCase() === targetType);
+      }
+      if (targetCity) {
+        customers = customers.filter(c => c.city && c.city.toLowerCase() === targetCity.toLowerCase());
+      }
+    }
+
+    const headerRow = 'name,email,phone,city';
+    const dataRows = customers.map(c =>
+      [
+        escapeCsv(c.name),
+        escapeCsv(c.email),
+        escapeCsv(c.phone),
+        escapeCsv(c.city)
+      ].join(',')
+    );
+
+    const csvContent = '\uFEFF' + [headerRow, ...dataRows].join('\r\n') + '\r\n';
+
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="segment-${id}-export.csv"`);
+    return res.status(200).send(csvContent);
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
  * GET /api/segments/:id
  * Fetches single segment details.
  */
@@ -171,7 +264,6 @@ router.get('/segments/:id/customers', async (req, res, next) => {
   try {
     const { id } = req.params;
 
-    // 1. Fetch segment
     let segment = null;
     const segRes = await safeQuery('SELECT id, name, customer_type, city FROM segments WHERE id = $1', [id]);
     if (segRes && segRes.rows.length > 0) {
@@ -187,7 +279,6 @@ router.get('/segments/:id/customers', async (req, res, next) => {
     const targetType = segment.customer_type ? segment.customer_type.trim().toLowerCase() : null;
     const targetCity = segment.city ? segment.city.trim() : null;
 
-    // 2. Query customers with dynamic filters
     let query = `
       SELECT id, name, type, email, phone, gstin, billing_address, shipping_address, city, created_at
       FROM customers
@@ -226,7 +317,6 @@ router.get('/segments/:id/customers', async (req, res, next) => {
       });
     }
 
-    // In-memory fallback
     let matched = [...inMemoryCustomers];
     if (targetType) {
       matched = matched.filter(c => c.type && c.type.toLowerCase() === targetType);

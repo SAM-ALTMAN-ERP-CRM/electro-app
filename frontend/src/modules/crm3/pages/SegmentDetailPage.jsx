@@ -11,6 +11,7 @@ export default function SegmentDetailPage() {
   const [count, setCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [downloading, setDownloading] = useState(false);
 
   useEffect(() => {
     loadSegmentCustomers();
@@ -35,6 +36,26 @@ export default function SegmentDetailPage() {
     }
   }
 
+  async function handleDownloadCsv() {
+    setDownloading(true);
+    try {
+      const csvText = await api('crm3', `/api/segments/${id}/export.csv`);
+      const blob = new Blob([csvText], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `segment-${id}-export.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      alert('Failed to download CSV: ' + err.message);
+    } finally {
+      setDownloading(false);
+    }
+  }
+
   function renderTypeBadge(type) {
     if (!type) return null;
     const stylesMap = {
@@ -52,18 +73,22 @@ export default function SegmentDetailPage() {
 
   return (
     <div style={styles.container}>
-      {/* Navigation Breadcrumb */}
-      <button onClick={() => navigate('/crm3/segments')} style={styles.backBtn}>
-        &larr; Back to Segments
-      </button>
+      <div style={styles.topBar}>
+        <button onClick={() => navigate('/crm3/segments')} style={styles.backBtn}>
+          &larr; Back to Segments
+        </button>
+        <button
+          onClick={handleDownloadCsv}
+          disabled={downloading || loading || customers.length === 0}
+          style={styles.csvBtn}
+        >
+          {downloading ? 'Exporting...' : '📥 Download CSV (Excel)'}
+        </button>
+      </div>
 
-      {/* Loading State */}
       {loading && <div style={styles.loadingBox}>Evaluating segment rules and loading matching customers...</div>}
-
-      {/* Error Message */}
       {error && <div style={styles.errorBox}>{error}</div>}
 
-      {/* Main Content */}
       {!loading && segment && (
         <>
           <div style={styles.detailHeader}>
@@ -81,18 +106,25 @@ export default function SegmentDetailPage() {
               </div>
             </div>
 
-            {/* Matching Count Card */}
             <div style={styles.countCard}>
               <div style={styles.countNumber}>{count}</div>
               <div style={styles.countLabel}>Matching Customer{count === 1 ? '' : 's'}</div>
             </div>
           </div>
 
-          {/* Customers Table */}
           <div style={styles.tableCard}>
             <div style={styles.tableCardHeader}>
-              <h3 style={styles.tableTitle}>Cohort Customer Directory</h3>
-              <span style={styles.liveIndicator}>• Live dynamic query</span>
+              <div>
+                <h3 style={styles.tableTitle}>Cohort Customer Directory</h3>
+                <span style={styles.liveIndicator}>• Live dynamic query</span>
+              </div>
+              <button
+                onClick={handleDownloadCsv}
+                disabled={downloading || customers.length === 0}
+                style={styles.tableCsvBtn}
+              >
+                Download CSV
+              </button>
             </div>
 
             {customers.length === 0 ? (
@@ -136,7 +168,10 @@ export default function SegmentDetailPage() {
 
 const styles = {
   container: { padding: '24px', maxWidth: '1200px', margin: '0 auto', fontFamily: 'system-ui, sans-serif' },
-  backBtn: { backgroundColor: 'transparent', border: 'none', color: '#2563eb', cursor: 'pointer', fontSize: '14px', marginBottom: '16px', fontWeight: '500', padding: 0 },
+  topBar: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' },
+  backBtn: { backgroundColor: 'transparent', border: 'none', color: '#2563eb', cursor: 'pointer', fontSize: '14px', fontWeight: '500', padding: 0 },
+  csvBtn: { backgroundColor: '#10b981', color: '#fff', border: 'none', borderRadius: '6px', padding: '8px 16px', fontSize: '13px', fontWeight: '600', cursor: 'pointer' },
+  tableCsvBtn: { backgroundColor: '#f0fdf4', color: '#16a34a', border: '1px solid #bbf7d0', borderRadius: '4px', padding: '6px 12px', fontSize: '13px', fontWeight: '500', cursor: 'pointer' },
   detailHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', backgroundColor: '#fff', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '20px', marginBottom: '24px' },
   subId: { fontSize: '13px', fontFamily: 'monospace', color: '#2563eb', fontWeight: 'bold', marginBottom: '4px' },
   title: { fontSize: '22px', fontWeight: 'bold', color: '#111827', margin: '0 0 10px 0' },

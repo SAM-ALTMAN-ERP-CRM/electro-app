@@ -58,6 +58,18 @@ ON CONFLICT (id) DO UPDATE SET
   customer_type = EXCLUDED.customer_type,
   city = EXCLUDED.city;
 
+-- Member 3 (CRM3-C3): Initial Customer Tags
+INSERT INTO customer_tags (customer_id, tag)
+VALUES
+  ('CUST-0001', 'VIP'),
+  ('CUST-0001', 'Priority Support'),
+  ('CUST-0002', 'Corporate Tier 1'),
+  ('CUST-0002', 'High Value'),
+  ('CUST-0003', 'Loyal'),
+  ('CUST-0004', 'Tier 1 Dealer'),
+  ('CUST-0006', 'Enterprise')
+ON CONFLICT (customer_id, tag) DO NOTHING;
+
 -- Advance sequences
 SELECT setval('customers_seq', (SELECT COALESCE(MAX(CAST(SUBSTRING(id FROM 6) AS INTEGER)), 0) FROM customers));
 SELECT setval('contacts_seq', (SELECT COALESCE(MAX(CAST(SUBSTRING(id FROM 5) AS INTEGER)), 0) FROM contacts));
