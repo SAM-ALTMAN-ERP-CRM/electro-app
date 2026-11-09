@@ -14,7 +14,7 @@ VALUES
   ('CUST-0007', 'Sneha Iyer', 'retail', 'sneha.iyer@example.com', '9840178901', NULL, '15, Besant Avenue, Adyar', '15, Besant Avenue, Adyar', 'Chennai'),
   ('CUST-0008', 'Gadget Hub', 'dealer', 'sales@gadgethub.com', '9845189012', '29AABCG3456L1Z4', '88, Brigade Road, Ashok Nagar', '88, Brigade Road, Ashok Nagar', 'Bengaluru'),
   ('CUST-0009', 'Aarav Mehta (Branch)', 'retail', 'aarav.alt@example.com', '9820112345', NULL, '101, Sea View Apartments, Worli', '101, Sea View Apartments, Worli', 'Mumbai'),
-  ('CUST-0010', 'Sunrise Electronics Mumbai Branch', 'corporate', 'purchase@sunrise.com', '9820998877', '27AABCS1234F1Z5', 'Plot 45, MIDC Industrial Area, Andheri East', 'Plot 45, MIDC Industrial Area, Andheri East', 'Mumbai')
+  ('CUST-0010', 'Sunrise Electronics Pune Branch', 'corporate', 'purchase@sunrise.com', '9820998877', '27AABCS1234F1Z5', 'Shop 5, Deccan Gymkhana', 'Shop 5, Deccan Gymkhana', 'Pune')
 ON CONFLICT (id) DO UPDATE SET
   name = EXCLUDED.name,
   type = EXCLUDED.type,
@@ -46,6 +46,19 @@ ON CONFLICT (id) DO UPDATE SET
   email = EXCLUDED.email,
   designation = EXCLUDED.designation;
 
+-- Member 3 (CRM3-C1): 4 Seed Segments
+INSERT INTO segments (id, name, customer_type, city, created_at)
+VALUES
+  ('SEG-0001', 'Corporate in Mumbai', 'corporate', 'Mumbai', '2026-11-02 09:00:00+05:30'),
+  ('SEG-0002', 'All Retail Customers', 'retail', NULL, '2026-11-02 09:30:00+05:30'),
+  ('SEG-0003', 'Dealers in Pune', 'dealer', 'Pune', '2026-11-02 10:00:00+05:30'),
+  ('SEG-0004', 'Delhi NCR Clients', NULL, 'Delhi', '2026-11-02 10:30:00+05:30')
+ON CONFLICT (id) DO UPDATE SET
+  name = EXCLUDED.name,
+  customer_type = EXCLUDED.customer_type,
+  city = EXCLUDED.city;
+
 -- Advance sequences
 SELECT setval('customers_seq', (SELECT COALESCE(MAX(CAST(SUBSTRING(id FROM 6) AS INTEGER)), 0) FROM customers));
 SELECT setval('contacts_seq', (SELECT COALESCE(MAX(CAST(SUBSTRING(id FROM 5) AS INTEGER)), 0) FROM contacts));
+SELECT setval('segment_id_seq', (SELECT COALESCE(MAX(CAST(SUBSTRING(id FROM 5) AS INTEGER)), 0) FROM segments));
