@@ -1,6 +1,6 @@
 [
   {
-    "id": "LED-0001",
+    "id": "LE-0001",
     "entry_date": "2026-11-01",
     "account": "receivables",
     "debit": "59000.00",
@@ -10,7 +10,7 @@
     "transaction_type": "invoice"
   },
   {
-    "id": "LED-0002",
+    "id": "LE-0002",
     "entry_date": "2026-11-01",
     "account": "sales",
     "debit": "0.00",
@@ -20,7 +20,7 @@
     "transaction_type": "invoice"
   },
   {
-    "id": "LED-0003",
+    "id": "LE-0003",
     "entry_date": "2026-11-03",
     "account": "cash",
     "debit": "59000.00",

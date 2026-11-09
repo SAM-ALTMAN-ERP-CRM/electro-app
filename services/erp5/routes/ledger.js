@@ -16,12 +16,12 @@ const VALID_ACCOUNTS = ['sales', 'receivables', 'cash', 'purchases', 'salary_exp
 const VALID_AUTO_TYPES = ['invoice', 'payment', 'credit_note', 'purchase', 'salary'];
 
 /**
- * Generate formatted ledger ID (e.g., LED-0001) using PostgreSQL sequence
+ * Generate formatted ledger ID (e.g., LE-0001) using PostgreSQL sequence
  */
 async function generateLedgerId(client) {
-  const res = await client.query("SELECT nextval('ledger_seq') AS num");
+  const res = await client.query("SELECT nextval('ledger_entries_seq') AS num");
   const num = res.rows[0].num;
-  return `LED-${String(num).padStart(4, '0')}`;
+  return `LE-${String(num).padStart(4, '0')}`;
 }
 
 /**
