@@ -90,10 +90,11 @@ CREATE TABLE IF NOT EXISTS ledger_entries (
   id TEXT PRIMARY KEY DEFAULT ('LE-' || LPAD(nextval('ledger_entries_seq')::text, 4, '0')),
   entry_date DATE NOT NULL DEFAULT CURRENT_DATE,
   account TEXT NOT NULL CHECK (account IN ('sales', 'receivables', 'cash', 'purchases', 'salary_expense')),
-  debit NUMERIC(12, 2) NOT NULL DEFAULT 0.00,
-  credit NUMERIC(12, 2) NOT NULL DEFAULT 0.00,
+  debit NUMERIC(12, 2) NOT NULL DEFAULT 0.00 CHECK (debit >= 0),
+  credit NUMERIC(12, 2) NOT NULL DEFAULT 0.00 CHECK (credit >= 0),
   reference TEXT,
   description TEXT,
+  transaction_type TEXT,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -108,3 +109,4 @@ CREATE INDEX IF NOT EXISTS idx_credit_notes_so_id ON credit_notes(so_id);
 CREATE INDEX IF NOT EXISTS idx_ledger_entries_reference ON ledger_entries(reference);
 CREATE INDEX IF NOT EXISTS idx_ledger_entries_account ON ledger_entries(account);
 CREATE INDEX IF NOT EXISTS idx_ledger_entries_entry_date ON ledger_entries(entry_date);
+CREATE INDEX IF NOT EXISTS idx_ledger_entries_ref_type ON ledger_entries(reference, transaction_type);

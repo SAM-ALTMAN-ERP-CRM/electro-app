@@ -76,6 +76,24 @@ ON CONFLICT (id) DO UPDATE SET
   serial_number = EXCLUDED.serial_number,
   amount = EXCLUDED.amount;
 
+-- 5. Seed General Ledger Entries (ERP5-D1)
+INSERT INTO ledger_entries (id, entry_date, account, debit, credit, reference, description, transaction_type)
+VALUES
+  ('LE-0001', '2026-11-01', 'receivables', 59000.00, 0.00, 'INV-0001', 'Invoice INV-0001 for CUST-0001', 'invoice'),
+  ('LE-0002', '2026-11-01', 'sales', 0.00, 59000.00, 'INV-0001', 'Invoice INV-0001 for CUST-0001', 'invoice'),
+  ('LE-0003', '2026-11-03', 'cash', 59000.00, 0.00, 'PAY-0001', 'Payment received for INV-0001', 'payment'),
+  ('LE-0004', '2026-11-03', 'receivables', 0.00, 59000.00, 'PAY-0001', 'Payment received for INV-0001', 'payment'),
+  ('LE-0005', '2026-11-05', 'receivables', 29500.00, 0.00, 'INV-0002', 'Invoice INV-0002 for CUST-0002', 'invoice'),
+  ('LE-0006', '2026-11-05', 'sales', 0.00, 29500.00, 'INV-0002', 'Invoice INV-0002 for CUST-0002', 'invoice')
+ON CONFLICT (id) DO UPDATE SET
+  entry_date = EXCLUDED.entry_date,
+  account = EXCLUDED.account,
+  debit = EXCLUDED.debit,
+  credit = EXCLUDED.credit,
+  reference = EXCLUDED.reference,
+  description = EXCLUDED.description,
+  transaction_type = EXCLUDED.transaction_type;
+
 -- Advance sequences past seeded IDs
 SELECT setval('users_seq', COALESCE((SELECT MAX(CAST(SUBSTRING(id FROM 5) AS INTEGER)) FROM users), 0) + 1, false);
 SELECT setval('invoices_seq', COALESCE((SELECT MAX(CAST(SUBSTRING(id FROM 5) AS INTEGER)) FROM invoices), 0) + 1, false);
