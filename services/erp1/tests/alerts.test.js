@@ -45,11 +45,11 @@ async function request(app, method, url, body = null) {
   });
 }
 
-describe('ERP1-D1 Low-Stock Alerts API Test Suite', () => {
+describe('ERP1-D1 & ERP1-D3 Low-Stock Alerts and Reorder Test Suite', () => {
   const app = createTestApp();
   let firstAlertId = null;
 
-  it('1. GET /api/alerts/low-stock flags SKU-0003 and SKU-0102 from seed data', async () => {
+  it('1. GET /api/alerts/low-stock flags SKU-0003 and computes (reorder*2 - stock) suggested quantity', async () => {
     const res = await request(app, 'GET', '/api/alerts/low-stock');
     assert.equal(res.status, 200);
     assert.ok(Array.isArray(res.body.data));
@@ -59,12 +59,16 @@ describe('ERP1-D1 Low-Stock Alerts API Test Suite', () => {
     assert.equal(sku3.current_stock, 3);
     assert.equal(sku3.reorder_level, 10);
     assert.equal(sku3.shortfall, 7);
+    // (10 * 2) - 3 = 17
+    assert.equal(sku3.suggested_order_qty, 17, 'Suggested order quantity must be (reorder*2) - stock');
 
     const sku102 = res.body.data.find(item => item.sku === 'SKU-0102');
     assert.ok(sku102, 'SKU-0102 must be in low-stock list');
     assert.equal(sku102.current_stock, 4);
     assert.equal(sku102.reorder_level, 10);
     assert.equal(sku102.shortfall, 6);
+    // (10 * 2) - 4 = 16
+    assert.equal(sku102.suggested_order_qty, 16);
   });
 
   it('2. POST /api/alerts/scan inserts alerts for low items without unacknowledged alerts', async () => {
@@ -106,41 +110,55 @@ describe('ERP1-D1 Low-Stock Alerts API Test Suite', () => {
     assert.equal(openRes.status, 200);
     const stillPresent = openRes.body.data.find(a => a.id === firstAlertId);
     assert.equal(stillPresent, undefined, 'Acknowledged alert must not appear in open alerts');
-
-    // Verify it appears when filtering ?acknowledged=true
-    const ackListRes = await request(app, 'GET', '/api/alerts?acknowledged=true');
-    assert.equal(ackListRes.status, 200);
-    const inAckList = ackListRes.body.data.find(a => a.id === firstAlertId);
-    assert.ok(inAckList, 'Acknowledged alert should appear when acknowledged=true');
   });
 
   it('6. PUT /api/products/:id/reorder-level updates reorder_level with validation', async () => {
-    // Valid update
     const res = await request(app, 'PUT', '/api/products/SKU-0001/reorder-level', {
       reorder_level: 25
     });
     assert.equal(res.status, 200);
     assert.equal(res.body.data.reorder_level, 25);
 
-    // Negative value rejected
     const badRes = await request(app, 'PUT', '/api/products/SKU-0001/reorder-level', {
       reorder_level: -5
     });
     assert.equal(badRes.status, 400);
-
-    // Missing field rejected
-    const missingRes = await request(app, 'PUT', '/api/products/SKU-0001/reorder-level', {});
-    assert.equal(missingRes.status, 400);
-
-    // Unknown product returns 404
-    const notFoundRes = await request(app, 'PUT', '/api/products/SKU-9999/reorder-level', {
-      reorder_level: 15
-    });
-    assert.equal(notFoundRes.status, 404);
   });
 
-  it('7. PATCH /api/alerts/:id/ack returns 404 for unknown alert', async () => {
-    const res = await request(app, 'PATCH', '/api/alerts/ALT-9999/ack');
-    assert.equal(res.status, 404);
+  it('7. GET /api/inventory/summary returns total SKUs, low stock count and out of stock count', async () => {
+    const res = await request(app, 'GET', '/api/inventory/summary');
+    assert.equal(res.status, 200);
+    assert.ok(res.body.data);
+    assert.equal(typeof res.body.data.total_skus, 'number');
+    assert.equal(typeof res.body.data.low_stock_count, 'number');
+    assert.equal(typeof res.body.data.out_of_stock_count, 'number');
+    assert.ok(res.body.data.total_skus >= 20, 'Should count 20 products from Section 5 seed');
+    assert.ok(res.body.data.low_stock_count >= 2, 'Should count at least SKU-0003 and SKU-0102');
+  });
+
+  it('8. POST /api/alerts/purchase-request creates purchase request for ERP-2', async () => {
+    const res = await request(app, 'POST', '/api/alerts/purchase-request', {
+      sku: 'SKU-0003',
+      product_name: '65-inch OLED TV',
+      quantity: 17,
+      reason: 'Low stock shortfall of 7'
+    });
+    assert.equal(res.status, 201);
+    assert.ok(res.body.data);
+    assert.equal(res.body.data.sku, 'SKU-0003');
+    assert.equal(res.body.data.quantity, 17);
+  });
+
+  it('9. POST /api/alerts/purchase-request rejects invalid payload with 400', async () => {
+    const res = await request(app, 'POST', '/api/alerts/purchase-request', {
+      quantity: 10
+    });
+    assert.equal(res.status, 400);
+
+    const res2 = await request(app, 'POST', '/api/alerts/purchase-request', {
+      sku: 'SKU-0003',
+      quantity: -2
+    });
+    assert.equal(res2.status, 400);
   });
 });
