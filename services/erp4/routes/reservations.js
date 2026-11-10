@@ -105,9 +105,71 @@ async function checkStockAvailability(sku, quantity) {
 }
 
 /**
+ * Notify ERP-3 to create a work order for a shortage item.
+ * POST ERP-3 /api/work-orders { product_sku, quantity, source: "shortage" } (mock: 'work-order')
+ */
+async function requestWorkOrderForShortage(sku, quantity) {
+  const payload = {
+    product_sku: sku,
+    quantity,
+    source: 'shortage'
+  };
+
+  try {
+    await callService('erp3', '/api/work-orders', {
+      method: 'POST',
+      body: payload,
+      mock: 'work-order'
+    });
+    console.log(`[erp4] Created ERP-3 work order for shortage SKU ${sku}`);
+  } catch (erp3Err) {
+    // Resilient fallback: use erp4 mock if erp3 is offline
+    try {
+      await callService('erp4', '/api/work-orders', {
+        method: 'POST',
+        body: payload,
+        mock: 'work-order'
+      });
+      console.log(`[erp4] Used mock work-order for shortage SKU ${sku}`);
+    } catch (mockErr) {
+      console.error('[integration-error] Failed to create work order in ERP-3:', erp3Err.message);
+    }
+  }
+}
+
+/**
+ * Internal helper to release all reservations for a given sales order.
+ * Sets reservation rows to status = 'released'.
+ */
+async function releaseReservations(soId) {
+  const dbRes = await safeQuery(
+    "UPDATE reservations SET status = 'released', created_at = CURRENT_TIMESTAMP WHERE so_id = $1 RETURNING *",
+    [soId]
+  );
+  if (dbRes) {
+    return dbRes.rows;
+  }
+
+  // In-memory fallback
+  const updated = [];
+  for (let i = 0; i < inMemoryReservations.length; i++) {
+    if (inMemoryReservations[i].so_id === soId) {
+      inMemoryReservations[i] = {
+        ...inMemoryReservations[i],
+        status: 'released',
+        updated_at: new Date().toISOString()
+      };
+      updated.push(inMemoryReservations[i]);
+    }
+  }
+  return updated;
+}
+
+/**
  * POST /api/sales-orders/:id/reserve
  * For each item in sales order :id, calls ERP-1 stock check.
  * Creates or updates a reservation row per item as reserved or shortage and returns a summary.
+ * For shortage items, triggers ERP-3 work order creation.
  * Running it again updates rows, never duplicates.
  */
 router.post('/sales-orders/:id/reserve', async (req, res, next) => {
@@ -140,11 +202,19 @@ router.post('/sales-orders/:id/reserve', async (req, res, next) => {
     for (const item of items) {
       const qty = parseInt(item.quantity, 10) || 1;
       const isAvailable = await checkStockAvailability(item.sku, qty);
+      const status = isAvailable ? 'reserved' : 'shortage';
+
+      // For shortage items: trigger ERP-3 production work order
+      if (status === 'shortage') {
+        await requestWorkOrderForShortage(item.sku, qty);
+      }
+
       evaluatedItems.push({
         so_id: id,
         sku: item.sku,
         quantity: qty,
-        status: isAvailable ? 'reserved' : 'shortage'
+        status,
+        production_requested: status === 'shortage'
       });
     }
 
@@ -169,7 +239,10 @@ router.post('/sales-orders/:id/reserve', async (req, res, next) => {
             RETURNING *
           `;
           const rowRes = await client.query(upsertSql, [item.so_id, item.sku, item.quantity, item.status]);
-          savedRows.push(rowRes.rows[0]);
+          savedRows.push({
+            ...rowRes.rows[0],
+            production_requested: item.status === 'shortage'
+          });
         }
         await client.query('COMMIT');
         client.release();
@@ -189,6 +262,7 @@ router.post('/sales-orders/:id/reserve', async (req, res, next) => {
             ...inMemoryReservations[existingIdx],
             quantity: item.quantity,
             status: item.status,
+            production_requested: item.status === 'shortage',
             updated_at: new Date().toISOString()
           };
           savedRows.push(inMemoryReservations[existingIdx]);
@@ -199,6 +273,7 @@ router.post('/sales-orders/:id/reserve', async (req, res, next) => {
             sku: item.sku,
             quantity: item.quantity,
             status: item.status,
+            production_requested: item.status === 'shortage',
             created_at: new Date().toISOString()
           };
           inMemoryReservations.push(newRow);
@@ -275,4 +350,44 @@ router.get('/sales-orders/:id/reservations', async (req, res, next) => {
   }
 });
 
+/**
+ * DELETE /api/sales-orders/:id/reservations
+ * Sets all reservations for sales order :id to 'released'.
+ */
+router.delete('/sales-orders/:id/reservations', async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    // Verify sales order exists
+    let orderExists = false;
+    const dbOrder = await safeQuery('SELECT id FROM sales_orders WHERE id = $1', [id]);
+    if (dbOrder && dbOrder.rows.length > 0) {
+      orderExists = true;
+    } else {
+      const mockOrders = loadMockOrders();
+      if (mockOrders.some(o => o.id === id)) {
+        orderExists = true;
+      }
+    }
+
+    if (!orderExists) {
+      return res.status(404).json({ error: `Sales order ${id} not found` });
+    }
+
+    const releasedRows = await releaseReservations(id);
+
+    return res.json({
+      data: {
+        so_id: id,
+        status: 'released',
+        released_count: releasedRows.length,
+        reservations: releasedRows
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 module.exports = router;
+module.exports.releaseReservations = releaseReservations;

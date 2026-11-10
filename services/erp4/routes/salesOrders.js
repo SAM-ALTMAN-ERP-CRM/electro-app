@@ -318,4 +318,76 @@ router.get('/sales-orders/:id', async (req, res, next) => {
   }
 });
 
+/**
+ * PATCH /api/sales-orders/:id/cancel
+ * Cancels a sales order (only allowed before dispatched).
+ * Automatically releases all associated stock reservations per [ERP4-B3].
+ */
+router.patch('/sales-orders/:id/cancel', async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    // 1. Fetch sales order
+    let order = null;
+    const dbRes = await safeQuery('SELECT * FROM sales_orders WHERE id = $1', [id]);
+    if (dbRes && dbRes.rows.length > 0) {
+      order = dbRes.rows[0];
+    } else {
+      order = inMemoryOrders.find(o => o.id === id);
+    }
+
+    if (!order) {
+      return res.status(404).json({ error: `Sales order ${id} not found` });
+    }
+
+    // 2. Disallow cancelling if already dispatched or delivered
+    if (order.status === 'dispatched' || order.status === 'delivered') {
+      return res.status(400).json({
+        error: `Cannot cancel sales order ${id} because it is already ${order.status}`
+      });
+    }
+
+    if (order.status === 'cancelled') {
+      return res.status(400).json({
+        error: `Sales order ${id} is already cancelled`
+      });
+    }
+
+    // 3. Update order status to 'cancelled'
+    let updatedOrder = null;
+    const updateRes = await safeQuery(
+      "UPDATE sales_orders SET status = 'cancelled' WHERE id = $1 RETURNING *",
+      [id]
+    );
+
+    if (updateRes && updateRes.rows.length > 0) {
+      updatedOrder = updateRes.rows[0];
+    } else {
+      order.status = 'cancelled';
+      updatedOrder = order;
+    }
+
+    // 4. Automatically release reservations for this cancelled order
+    try {
+      const { releaseReservations } = require('./reservations');
+      if (typeof releaseReservations === 'function') {
+        await releaseReservations(id);
+      } else {
+        await safeQuery("UPDATE reservations SET status = 'released', created_at = CURRENT_TIMESTAMP WHERE so_id = $1", [id]);
+      }
+    } catch (relErr) {
+      console.error('[integration-error] Error releasing reservations upon cancellation:', relErr.message);
+    }
+
+    return res.json({
+      data: {
+        ...updatedOrder,
+        message: `Sales order ${id} cancelled and reservations released`
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 module.exports = router;

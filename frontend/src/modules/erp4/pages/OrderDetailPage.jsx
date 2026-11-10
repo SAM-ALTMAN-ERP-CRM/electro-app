@@ -77,6 +77,49 @@ export default function OrderDetailPage() {
     }
   };
 
+  // Handle manual reservation release
+  const handleReleaseReservations = async () => {
+    try {
+      setReserving(true);
+      setError(null);
+      setSuccessMsg(null);
+
+      await api('erp4', `/api/sales-orders/${id}/reservations`, {
+        method: 'DELETE'
+      });
+
+      setSuccessMsg(`Reservations for order ${id} released.`);
+      await loadData();
+    } catch (err) {
+      setError(err.message || 'Failed to release reservations');
+    } finally {
+      setReserving(false);
+    }
+  };
+
+  // Handle order cancellation (automatically releases reservations)
+  const handleCancelOrder = async () => {
+    if (!window.confirm(`Are you sure you want to cancel order ${id}? This will automatically release all stock reservations.`)) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+      setSuccessMsg(null);
+
+      await api('erp4', `/api/sales-orders/${id}/cancel`, {
+        method: 'PATCH'
+      });
+
+      setSuccessMsg(`Order ${id} has been cancelled and reservations were released.`);
+      await loadData();
+    } catch (err) {
+      setError(err.message || 'Failed to cancel order');
+      setLoading(false);
+    }
+  };
+
   // Format money in INR
   const formatINR = (val) => {
     const num = parseFloat(val) || 0;
@@ -131,6 +174,8 @@ export default function OrderDetailPage() {
 
   // Check if any reservation has a shortage
   const hasShortage = reservations.some(r => r.status === 'shortage');
+  const isCancellable = order?.status !== 'dispatched' && order?.status !== 'delivered' && order?.status !== 'cancelled';
+  const hasActiveReservations = reservations.some(r => r.status === 'reserved' || r.status === 'shortage');
 
   return (
     <div className="page-container" style={{ maxWidth: '1000px', margin: '0 auto', padding: '2rem' }}>
@@ -148,10 +193,34 @@ export default function OrderDetailPage() {
               Created on {order?.created_at ? new Date(order.created_at).toLocaleDateString('en-IN') : '—'}
             </p>
           </div>
-          <div>
-            <span className="badge badge-blue" style={{ fontSize: '0.875rem', padding: '0.35rem 0.75rem' }}>
+          <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+            <span
+              className={
+                order?.status === 'cancelled'
+                  ? 'badge badge-red'
+                  : order?.status === 'delivered'
+                  ? 'badge badge-green'
+                  : 'badge badge-blue'
+              }
+              style={{ fontSize: '0.875rem', padding: '0.35rem 0.75rem' }}
+            >
               {(order?.status || 'created').toUpperCase()}
             </span>
+            {isCancellable && (
+              <button
+                type="button"
+                onClick={handleCancelOrder}
+                style={{
+                  background: '#fef2f2',
+                  color: '#dc2626',
+                  border: '1px solid #fca5a5',
+                  padding: '0.35rem 0.75rem',
+                  fontSize: '0.85rem'
+                }}
+              >
+                Cancel Order
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -237,7 +306,7 @@ export default function OrderDetailPage() {
       </div>
 
       {/* ========================================================= */}
-      {/* RESERVATION PANEL (ERP4-B2)                               */}
+      {/* RESERVATION PANEL (ERP4-B2 & ERP4-B3)                     */}
       {/* ========================================================= */}
       <div
         id="reservation-panel"
@@ -253,23 +322,42 @@ export default function OrderDetailPage() {
           <div>
             <h3 style={{ fontSize: '1.2rem', fontWeight: 700, color: '#0f172a' }}>Reservation Panel</h3>
             <p style={{ color: '#64748b', fontSize: '0.875rem', marginTop: '0.2rem' }}>
-              Check inventory across warehouses and reserve stock for fulfillment
+              Check inventory across warehouses, reserve stock, and automatically trigger work orders for shortages
             </p>
           </div>
-          <button
-            id="reserve-stock-btn"
-            type="button"
-            className="btn"
-            onClick={handleReserveStock}
-            disabled={reserving}
-            style={{
-              padding: '0.6rem 1.25rem',
-              fontWeight: 600,
-              backgroundColor: reserving ? '#94a3b8' : '#2563eb'
-            }}
-          >
-            {reserving ? 'Reserving...' : 'Reserve stock'}
-          </button>
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            {hasActiveReservations && (
+              <button
+                type="button"
+                onClick={handleReleaseReservations}
+                disabled={reserving}
+                style={{
+                  background: '#fff7ed',
+                  color: '#c2410c',
+                  border: '1px solid #fed7aa',
+                  padding: '0.6rem 1rem',
+                  fontSize: '0.875rem',
+                  fontWeight: 500
+                }}
+              >
+                Release Reservations
+              </button>
+            )}
+            <button
+              id="reserve-stock-btn"
+              type="button"
+              className="btn"
+              onClick={handleReserveStock}
+              disabled={reserving || order?.status === 'cancelled'}
+              style={{
+                padding: '0.6rem 1.25rem',
+                fontWeight: 600,
+                backgroundColor: (reserving || order?.status === 'cancelled') ? '#94a3b8' : '#2563eb'
+              }}
+            >
+              {reserving ? 'Reserving...' : 'Reserve stock'}
+            </button>
+          </div>
         </div>
 
         {/* Shortage Warning Banner */}
@@ -290,7 +378,7 @@ export default function OrderDetailPage() {
           >
             <span style={{ fontSize: '1.25rem' }}>⚠️</span>
             <div>
-              <strong>Stock Shortage Warning:</strong> One or more items in this order have insufficient stock in ERP-1. Production or reorder request needed.
+              <strong>Stock Shortage Warning:</strong> One or more items in this order have insufficient stock in ERP-1. Production work order has been requested from ERP-3.
             </div>
           </div>
         )}
@@ -315,7 +403,14 @@ export default function OrderDetailPage() {
                   <td>{item.product_name}</td>
                   <td style={{ textAlign: 'right' }}>{item.quantity}</td>
                   <td style={{ textAlign: 'center' }}>
-                    {renderStatusChip(status)}
+                    <div style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+                      {renderStatusChip(status)}
+                      {status === 'shortage' && (
+                        <span className="badge badge-amber" style={{ fontSize: '0.7rem', padding: '0.15rem 0.5rem' }}>
+                          Production requested
+                        </span>
+                      )}
+                    </div>
                   </td>
                 </tr>
               );
@@ -329,6 +424,7 @@ export default function OrderDetailPage() {
             <span><strong>Total Items:</strong> {items.length}</span>
             <span><strong>Reserved:</strong> <span style={{ color: '#15803d', fontWeight: 600 }}>{summary.reserved || reservations.filter(r => r.status === 'reserved').length}</span></span>
             <span><strong>Shortage:</strong> <span style={{ color: '#b91c1c', fontWeight: 600 }}>{summary.shortage || reservations.filter(r => r.status === 'shortage').length}</span></span>
+            <span><strong>Released:</strong> <span style={{ color: '#b45309', fontWeight: 600 }}>{summary.released || reservations.filter(r => r.status === 'released').length}</span></span>
           </div>
         )}
       </div>
