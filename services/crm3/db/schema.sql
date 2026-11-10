@@ -28,7 +28,20 @@ CREATE TABLE IF NOT EXISTS contacts (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Member 3 (CRM3-C1): Segments sequence and table
+CREATE SEQUENCE IF NOT EXISTS segment_id_seq START WITH 1;
+
+CREATE TABLE IF NOT EXISTS segments (
+  id VARCHAR(20) PRIMARY KEY DEFAULT ('SEG-' || LPAD(nextval('segment_id_seq')::TEXT, 4, '0')),
+  name VARCHAR(255) NOT NULL,
+  customer_type VARCHAR(50) CHECK (customer_type IS NULL OR customer_type IN ('retail', 'corporate', 'dealer')),
+  city VARCHAR(100),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE INDEX IF NOT EXISTS idx_customers_type ON customers(type);
 CREATE INDEX IF NOT EXISTS idx_customers_city ON customers(city);
 CREATE INDEX IF NOT EXISTS idx_customers_email ON customers(email);
 CREATE INDEX IF NOT EXISTS idx_contacts_customer_id ON contacts(customer_id);
+CREATE INDEX IF NOT EXISTS idx_segments_customer_type ON segments(customer_type);
+CREATE INDEX IF NOT EXISTS idx_segments_city ON segments(city);

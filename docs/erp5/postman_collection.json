@@ -1,0 +1,120 @@
+{
+  "info": {
+    "name": "ERP-5 Finance & Ledger API Collection",
+    "description": "Complete Postman testing suite for ERP-5 microservice endpoints (Port 5205).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Authentication",
+      "item": [
+        {
+          "name": "Login as Finance Manager",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"finance@demo.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": "http://localhost:5205/api/auth/login"
+          }
+        },
+        {
+          "name": "Verify Current Session",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{jwt_token}}" }],
+            "url": "http://localhost:5205/api/auth/me"
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Invoices",
+      "item": [
+        {
+          "name": "List All Invoices",
+          "request": {
+            "method": "GET",
+            "url": "http://localhost:5205/api/invoices"
+          }
+        },
+        {
+          "name": "Get Invoice Details",
+          "request": {
+            "method": "GET",
+            "url": "http://localhost:5205/api/invoices/INV-0001"
+          }
+        },
+        {
+          "name": "Create Tax Invoice",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customer_id\": \"CUST-0003\",\n  \"customer_name\": \"Priya Nair\",\n  \"sales_rep_id\": \"EMP-0001\",\n  \"items\": [\n    {\n      \"sku\": \"SKU-0004\",\n      \"description\": \"USB-C Fast Charger 65W\",\n      \"quantity\": 4,\n      \"unit_price\": 1499.00\n    }\n  ]\n}"
+            },
+            "url": "http://localhost:5205/api/invoices"
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. General Ledger",
+      "item": [
+        {
+          "name": "Query Ledger Records",
+          "request": {
+            "method": "GET",
+            "url": "http://localhost:5205/api/ledger?account=receivables"
+          }
+        },
+        {
+          "name": "Automated Balanced Pair Entry",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"invoice\",\n  \"reference\": \"INV-0003\",\n  \"amount\": 7075.28,\n  \"description\": \"Invoice for CUST-0003\"\n}"
+            },
+            "url": "http://localhost:5205/api/ledger/auto"
+          }
+        },
+        {
+          "name": "Create Manual Ledger Entry",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"entry_date\": \"2026-11-09\",\n  \"account\": \"cash\",\n  \"debit\": 1500.00,\n  \"credit\": 0.00,\n  \"reference\": \"MAN-001\",\n  \"description\": \"Petty cash top-up\"\n}"
+            },
+            "url": "http://localhost:5205/api/ledger"
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Financial Reports",
+      "item": [
+        {
+          "name": "Get Financial KPI Summary",
+          "request": {
+            "method": "GET",
+            "url": "http://localhost:5205/api/reports/summary"
+          }
+        },
+        {
+          "name": "Get Monthly Sales Breakdown",
+          "request": {
+            "method": "GET",
+            "url": "http://localhost:5205/api/reports/monthly-sales"
+          }
+        }
+      ]
+    }
+  ]
+}
