@@ -75,7 +75,7 @@ export default function CustomersPage() {
             <span className="badge badge-blue">CRM-3</span>
           </div>
           <p style={{ color: '#64748b', fontSize: '0.875rem', marginTop: '0.25rem' }}>
-            Customer directory with contacts, retail/corporate/dealer classification, and address management.
+            Manage customer records, contacts, classification, addresses, and validation rules.
           </p>
         </div>
 

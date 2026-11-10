@@ -1,25 +1,13 @@
 import React from 'react';
+import QuotesListPage from './pages/QuotesListPage';
+import QuoteBuilderPage from './pages/QuoteBuilderPage';
 
-function Placeholder() {
-  return (
-    <div style={{ padding: '2rem', maxWidth: '800px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
-        <h2>Sales</h2>
-        <span className="badge badge-blue">CRM1</span>
-      </div>
-      <p style={{ color: '#64748b', fontSize: '1rem', lineHeight: '1.6' }}>
-        Module registered. Pages built by Team CRM1 will automatically appear here once their pull requests merge.
-      </p>
-      <div style={{ marginTop: '1.5rem', padding: '1.25rem', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-        <h4 style={{ marginBottom: '0.5rem', color: '#0f172a' }}>Backend Service Integration:</h4>
-        <p style={{ fontSize: '0.875rem', color: '#64748b' }}>
-          Status Check: <code>/svc/crm1/api/health</code>
-        </p>
-      </div>
-    </div>
-  );
-}
-
+/**
+ * CRM-1 Sales Pipeline module registration.
+ * Registered routes for Issue [CRM1-C2]:
+ *   - /crm1/quotes: Quotations List page
+ *   - /crm1/quotes/new: Quote Builder screen
+ */
 export default {
   id: 'crm1',
   title: 'Sales',
@@ -27,8 +15,17 @@ export default {
   routes: [
     {
       path: '',
-      label: 'Coming soon',
-      element: <Placeholder />
+      element: <QuotesListPage />
+    },
+    {
+      path: 'quotes',
+      label: 'Quotes',
+      element: <QuotesListPage />
+    },
+    {
+      path: 'quotes/new',
+      label: 'New Quote',
+      element: <QuoteBuilderPage />
     }
   ]
 };

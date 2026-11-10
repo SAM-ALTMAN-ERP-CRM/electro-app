@@ -6,9 +6,14 @@ const PHONE_REGEX = /^\d{10}$/;
 const GSTIN_REGEX = /^[0-9A-Za-z]{15}$/;
 
 /**
- * CustomerForm Component
- * Supports creating and editing customers, including both billing and shipping addresses.
- * Includes "Same as billing address" checkbox to sync addresses automatically.
+ * CustomerForm Component (CRM3-A3 Validation rules)
+ *
+ * Implements client-side & inline validation:
+ * - Phone must be 10 digits
+ * - Email format validation
+ * - Email uniqueness (409 duplicate handling)
+ * - GSTIN required and 15 characters for corporate and dealer types
+ * - "Same as billing address" checkbox copies billing address to shipping address
  */
 export default function CustomerForm({ initialData = null, onSuccess, onCancel }) {
   const isEdit = Boolean(initialData && initialData.id);
@@ -36,7 +41,7 @@ export default function CustomerForm({ initialData = null, onSuccess, onCancel }
   const [submitting, setSubmitting] = useState(false);
   const [serverError, setServerError] = useState('');
 
-  // Sync shipping address when "Same as billing address" is checked
+  // When "Same as billing address" is checked, automatically sync shipping address
   useEffect(() => {
     if (sameAsBilling) {
       setFormData(prev => ({
@@ -46,6 +51,7 @@ export default function CustomerForm({ initialData = null, onSuccess, onCancel }
     }
   }, [sameAsBilling, formData.billing_address]);
 
+  // Client-side validation function for a single field or entire form
   const validateField = (name, value, currentType = formData.type) => {
     let error = '';
 
@@ -63,56 +69,38 @@ export default function CustomerForm({ initialData = null, onSuccess, onCancel }
         break;
 
       case 'phone': {
-        const cleaned = String(value || '').trim().replace(/\D/g, '');
-        if (!cleaned) {
-          error = 'Phone number is required and must be 10 digits';
-        } else if (!PHONE_REGEX.test(cleaned)) {
+        const trimmedPhone = String(value || '').trim();
+        if (!trimmedPhone) {
+          error = 'Phone number is required and must be exactly 10 digits';
+        } else if (!PHONE_REGEX.test(trimmedPhone)) {
           error = 'Phone number must be exactly 10 digits';
         }
         break;
       }
 
       case 'email': {
-        const cleanEmail = (value || '').trim();
-        if (!cleanEmail) {
+        const trimmedEmail = (value || '').trim();
+        if (!trimmedEmail) {
           error = 'Email address is required';
-        } else if (!EMAIL_REGEX.test(cleanEmail)) {
+        } else if (!EMAIL_REGEX.test(trimmedEmail)) {
           error = 'Invalid email format (e.g. name@example.com)';
         }
         break;
       }
 
       case 'gstin': {
-        const cleanGstin = (value || '').trim();
+        const trimmedGstin = (value || '').trim();
         if (currentType === 'corporate' || currentType === 'dealer') {
-          if (!cleanGstin) {
+          if (!trimmedGstin) {
             error = `GSTIN is required for ${currentType} customers`;
-          } else if (!GSTIN_REGEX.test(cleanGstin)) {
+          } else if (!GSTIN_REGEX.test(trimmedGstin)) {
             error = 'GSTIN must be exactly 15 alphanumeric characters';
           }
-        } else if (cleanGstin && !GSTIN_REGEX.test(cleanGstin)) {
+        } else if (trimmedGstin && !GSTIN_REGEX.test(trimmedGstin)) {
           error = 'GSTIN must be exactly 15 alphanumeric characters';
         }
         break;
       }
-
-      case 'billing_address':
-        if (!value || !value.trim()) {
-          error = 'Billing address is required';
-        }
-        break;
-
-      case 'shipping_address':
-        if (!sameAsBilling && (!value || !value.trim())) {
-          error = 'Shipping address is required';
-        }
-        break;
-
-      case 'city':
-        if (!value || !value.trim()) {
-          error = 'City is required';
-        }
-        break;
 
       default:
         break;
@@ -121,35 +109,51 @@ export default function CustomerForm({ initialData = null, onSuccess, onCancel }
     return error;
   };
 
+  const validateAll = (data) => {
+    const newErrors = {};
+    ['name', 'type', 'phone', 'email', 'gstin'].forEach(field => {
+      const fieldError = validateField(field, data[field], data.type);
+      if (fieldError) {
+        newErrors[field] = fieldError;
+      }
+    });
+    return newErrors;
+  };
+
   const handleChange = (e) => {
     const { name, value } = e.target;
-    const updated = { ...formData, [name]: value };
+    setFormData(prev => {
+      const next = { ...prev, [name]: value };
+      // If billing address changes and sameAsBilling is checked, update shipping
+      if (name === 'billing_address' && sameAsBilling) {
+        next.shipping_address = value;
+      }
+      return next;
+    });
 
-    if (name === 'billing_address' && sameAsBilling) {
-      updated.shipping_address = value;
-    }
-
-    setFormData(updated);
-
+    // Validate on change if touched
     if (touched[name]) {
-      const err = validateField(name, value, updated.type);
-      setErrors(prev => ({ ...prev, [name]: err }));
+      const error = validateField(name, value, name === 'type' ? value : formData.type);
+      setErrors(prev => ({ ...prev, [name]: error }));
     }
 
+    // If type changed, also re-validate GSTIN
     if (name === 'type') {
-      const gstinErr = validateField('gstin', updated.gstin, value);
-      setErrors(prev => ({ ...prev, gstin: gstinErr }));
+      const gstinError = validateField('gstin', formData.gstin, value);
+      setErrors(prev => ({ ...prev, gstin: gstinError }));
     }
+
+    setServerError('');
   };
 
   const handleBlur = (e) => {
     const { name, value } = e.target;
     setTouched(prev => ({ ...prev, [name]: true }));
-    const err = validateField(name, value, formData.type);
-    setErrors(prev => ({ ...prev, [name]: err }));
+    const error = validateField(name, value, formData.type);
+    setErrors(prev => ({ ...prev, [name]: error }));
   };
 
-  const handleCheckboxChange = (e) => {
+  const handleSameAsBillingChange = (e) => {
     const checked = e.target.checked;
     setSameAsBilling(checked);
     if (checked) {
@@ -157,53 +161,44 @@ export default function CustomerForm({ initialData = null, onSuccess, onCancel }
         ...prev,
         shipping_address: prev.billing_address
       }));
-      setErrors(prev => ({ ...prev, shipping_address: '' }));
     }
   };
 
-  const validateAll = () => {
-    const newErrors = {};
-    Object.keys(formData).forEach(key => {
-      const err = validateField(key, formData[key], formData.type);
-      if (err) newErrors[key] = err;
-    });
+  const handleSubmit = async (e) => {
+    e.preventDefault();
 
-    setErrors(newErrors);
+    // Mark all fields as touched
     setTouched({
       name: true,
       type: true,
-      email: true,
       phone: true,
+      email: true,
       gstin: true,
       billing_address: true,
       shipping_address: true,
       city: true
     });
 
-    return Object.keys(newErrors).length === 0;
-  };
+    const formErrors = validateAll(formData);
+    setErrors(formErrors);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setServerError('');
-
-    if (!validateAll()) {
+    if (Object.keys(formErrors).length > 0) {
+      setServerError('Please fix the validation errors below before submitting.');
       return;
     }
 
     setSubmitting(true);
+    setServerError('');
 
     try {
       const payload = {
         name: formData.name.trim(),
-        type: formData.type.trim().toLowerCase(),
-        email: formData.email.trim().toLowerCase(),
-        phone: formData.phone.trim().replace(/\D/g, ''),
-        gstin: formData.gstin.trim() ? formData.gstin.trim().toUpperCase() : null,
+        type: formData.type,
+        email: formData.email.trim(),
+        phone: formData.phone.trim(),
+        gstin: formData.gstin ? formData.gstin.trim().toUpperCase() : null,
         billing_address: formData.billing_address.trim(),
-        shipping_address: sameAsBilling
-          ? formData.billing_address.trim()
-          : (formData.shipping_address.trim() || formData.billing_address.trim()),
+        shipping_address: formData.shipping_address.trim(),
         city: formData.city.trim()
       };
 
@@ -224,37 +219,39 @@ export default function CustomerForm({ initialData = null, onSuccess, onCancel }
         onSuccess(result);
       }
     } catch (err) {
-      if (err.message && err.message.includes('already exists')) {
-        setServerError(err.message);
-        setErrors(prev => ({ ...prev, email: 'A customer with this email already exists' }));
+      // 409 Conflict: duplicate email error
+      if (err.status === 409) {
+        setErrors(prev => ({
+          ...prev,
+          email: err.data?.errors?.email || err.message || 'A customer with this email already exists'
+        }));
+        setServerError('Duplicate email error (409): A customer with this email already exists.');
+      } else if (err.data?.errors) {
+        setErrors(err.data.errors);
+        setServerError(err.message || 'Validation failed on server');
       } else {
-        setServerError(err.message || 'Failed to save customer');
+        setServerError(err.message || 'An error occurred while saving the customer.');
       }
     } finally {
       setSubmitting(false);
     }
   };
 
+  const isGstinRequired = formData.type === 'corporate' || formData.type === 'dealer';
+
   return (
-    <div style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '1.5rem', marginBottom: '1.5rem', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
+    <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '1.5rem', marginBottom: '2rem' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.75rem' }}>
-        <h3 style={{ fontSize: '1.2rem', fontWeight: 600, color: '#0f172a' }}>
+        <h3 style={{ margin: 0, color: '#0f172a' }}>
           {isEdit ? `Edit Customer (${initialData.id})` : 'Add New Customer'}
         </h3>
         {onCancel && (
           <button
             type="button"
             onClick={onCancel}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              fontSize: '1.25rem',
-              color: '#64748b',
-              cursor: 'pointer',
-              lineHeight: 1
-            }}
+            style={{ background: 'transparent', color: '#64748b', border: '1px solid #cbd5e1', padding: '0.35rem 0.75rem', borderRadius: '4px' }}
           >
-            ✕
+            Cancel
           </button>
         )}
       </div>
@@ -265,31 +262,32 @@ export default function CustomerForm({ initialData = null, onSuccess, onCancel }
         </div>
       )}
 
-      <form onSubmit={handleSubmit}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1.25rem', marginBottom: '1.25rem' }}>
+      <form onSubmit={handleSubmit} noValidate>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem', marginBottom: '1rem' }}>
           {/* Customer Name */}
           <div>
-            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#334155', marginBottom: '0.35rem' }}>
-              Customer / Company Name <span style={{ color: '#ef4444' }}>*</span>
+            <label htmlFor="customer-name" style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, color: '#334155', marginBottom: '0.35rem' }}>
+              Customer Name <span style={{ color: '#dc2626' }}>*</span>
             </label>
             <input
-              type="text"
+              id="customer-name"
               name="name"
+              type="text"
               value={formData.name}
               onChange={handleChange}
               onBlur={handleBlur}
               placeholder="e.g. Aarav Mehta / Sunrise Electronics"
               style={{
                 width: '100%',
-                padding: '0.55rem 0.75rem',
+                padding: '0.5rem 0.75rem',
                 borderRadius: '6px',
-                border: `1px solid ${errors.name ? '#ef4444' : '#cbd5e1'}`,
-                fontSize: '0.875rem',
-                outline: 'none'
+                border: `1px solid ${errors.name ? '#dc2626' : '#cbd5e1'}`,
+                outline: 'none',
+                fontSize: '0.9rem'
               }}
             />
             {errors.name && (
-              <span style={{ color: '#ef4444', fontSize: '0.75rem', marginTop: '0.25rem', display: 'block' }}>
+              <span style={{ color: '#dc2626', fontSize: '0.775rem', marginTop: '0.25rem', display: 'block' }}>
                 {errors.name}
               </span>
             )}
@@ -297,22 +295,23 @@ export default function CustomerForm({ initialData = null, onSuccess, onCancel }
 
           {/* Customer Type */}
           <div>
-            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#334155', marginBottom: '0.35rem' }}>
-              Customer Type <span style={{ color: '#ef4444' }}>*</span>
+            <label htmlFor="customer-type" style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, color: '#334155', marginBottom: '0.35rem' }}>
+              Customer Type <span style={{ color: '#dc2626' }}>*</span>
             </label>
             <select
+              id="customer-type"
               name="type"
               value={formData.type}
               onChange={handleChange}
               onBlur={handleBlur}
               style={{
                 width: '100%',
-                padding: '0.55rem 0.75rem',
+                padding: '0.5rem 0.75rem',
                 borderRadius: '6px',
-                border: `1px solid ${errors.type ? '#ef4444' : '#cbd5e1'}`,
-                fontSize: '0.875rem',
+                border: `1px solid ${errors.type ? '#dc2626' : '#cbd5e1'}`,
+                outline: 'none',
                 background: '#ffffff',
-                outline: 'none'
+                fontSize: '0.9rem'
               }}
             >
               <option value="retail">Retail</option>
@@ -320,216 +319,217 @@ export default function CustomerForm({ initialData = null, onSuccess, onCancel }
               <option value="dealer">Dealer</option>
             </select>
             {errors.type && (
-              <span style={{ color: '#ef4444', fontSize: '0.75rem', marginTop: '0.25rem', display: 'block' }}>
+              <span style={{ color: '#dc2626', fontSize: '0.775rem', marginTop: '0.25rem', display: 'block' }}>
                 {errors.type}
               </span>
             )}
           </div>
 
-          {/* Email */}
+          {/* Phone (10 digits) */}
           <div>
-            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#334155', marginBottom: '0.35rem' }}>
-              Email Address <span style={{ color: '#ef4444' }}>*</span>
+            <label htmlFor="customer-phone" style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, color: '#334155', marginBottom: '0.35rem' }}>
+              Phone (10 Digits) <span style={{ color: '#dc2626' }}>*</span>
             </label>
             <input
-              type="email"
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
-              onBlur={handleBlur}
-              placeholder="e.g. customer@example.com"
-              style={{
-                width: '100%',
-                padding: '0.55rem 0.75rem',
-                borderRadius: '6px',
-                border: `1px solid ${errors.email ? '#ef4444' : '#cbd5e1'}`,
-                fontSize: '0.875rem',
-                outline: 'none'
-              }}
-            />
-            {errors.email && (
-              <span style={{ color: '#ef4444', fontSize: '0.75rem', marginTop: '0.25rem', display: 'block' }}>
-                {errors.email}
-              </span>
-            )}
-          </div>
-
-          {/* Phone */}
-          <div>
-            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#334155', marginBottom: '0.35rem' }}>
-              Phone (10 digits) <span style={{ color: '#ef4444' }}>*</span>
-            </label>
-            <input
-              type="text"
+              id="customer-phone"
               name="phone"
+              type="tel"
+              maxLength={10}
               value={formData.phone}
               onChange={handleChange}
               onBlur={handleBlur}
               placeholder="e.g. 9820112345"
-              maxLength={10}
               style={{
                 width: '100%',
-                padding: '0.55rem 0.75rem',
+                padding: '0.5rem 0.75rem',
                 borderRadius: '6px',
-                border: `1px solid ${errors.phone ? '#ef4444' : '#cbd5e1'}`,
-                fontSize: '0.875rem',
-                outline: 'none'
+                border: `1px solid ${errors.phone ? '#dc2626' : '#cbd5e1'}`,
+                outline: 'none',
+                fontSize: '0.9rem'
               }}
             />
-            {errors.phone && (
-              <span style={{ color: '#ef4444', fontSize: '0.75rem', marginTop: '0.25rem', display: 'block' }}>
+            {errors.phone ? (
+              <span style={{ color: '#dc2626', fontSize: '0.775rem', marginTop: '0.25rem', display: 'block' }}>
                 {errors.phone}
+              </span>
+            ) : (
+              <span style={{ color: '#94a3b8', fontSize: '0.725rem', marginTop: '0.25rem', display: 'block' }}>
+                Must be exactly 10 digits
               </span>
             )}
           </div>
 
-          {/* GSTIN */}
+          {/* Email (Format & Unique) */}
           <div>
-            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#334155', marginBottom: '0.35rem' }}>
-              GSTIN {formData.type !== 'retail' ? <span style={{ color: '#ef4444' }}>*</span> : <span style={{ color: '#94a3b8', fontWeight: 400 }}>(Optional for retail)</span>}
+            <label htmlFor="customer-email" style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, color: '#334155', marginBottom: '0.35rem' }}>
+              Email Address <span style={{ color: '#dc2626' }}>*</span>
             </label>
             <input
-              type="text"
+              id="customer-email"
+              name="email"
+              type="email"
+              value={formData.email}
+              onChange={handleChange}
+              onBlur={handleBlur}
+              placeholder="e.g. aarav.mehta@example.com"
+              style={{
+                width: '100%',
+                padding: '0.5rem 0.75rem',
+                borderRadius: '6px',
+                border: `1px solid ${errors.email ? '#dc2626' : '#cbd5e1'}`,
+                outline: 'none',
+                fontSize: '0.9rem'
+              }}
+            />
+            {errors.email ? (
+              <span style={{ color: '#dc2626', fontSize: '0.775rem', marginTop: '0.25rem', display: 'block' }}>
+                {errors.email}
+              </span>
+            ) : (
+              <span style={{ color: '#94a3b8', fontSize: '0.725rem', marginTop: '0.25rem', display: 'block' }}>
+                Must be unique and valid format
+              </span>
+            )}
+          </div>
+
+          {/* GSTIN (Required 15 chars for Corporate & Dealer) */}
+          <div>
+            <label htmlFor="customer-gstin" style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, color: '#334155', marginBottom: '0.35rem' }}>
+              GSTIN {isGstinRequired && <span style={{ color: '#dc2626' }}>*</span>}
+              {!isGstinRequired && <span style={{ color: '#94a3b8', fontWeight: 400 }}> (Optional for Retail)</span>}
+            </label>
+            <input
+              id="customer-gstin"
               name="gstin"
+              type="text"
+              maxLength={15}
               value={formData.gstin}
               onChange={handleChange}
               onBlur={handleBlur}
-              placeholder="15-char GSTIN (e.g. 27AABCS1234F1Z5)"
-              maxLength={15}
+              placeholder="e.g. 27AABCS1234F1Z5"
               style={{
                 width: '100%',
-                padding: '0.55rem 0.75rem',
+                padding: '0.5rem 0.75rem',
                 borderRadius: '6px',
-                border: `1px solid ${errors.gstin ? '#ef4444' : '#cbd5e1'}`,
-                fontSize: '0.875rem',
+                border: `1px solid ${errors.gstin ? '#dc2626' : '#cbd5e1'}`,
+                outline: 'none',
                 textTransform: 'uppercase',
-                fontFamily: 'monospace',
-                outline: 'none'
+                fontSize: '0.9rem'
               }}
             />
-            {errors.gstin && (
-              <span style={{ color: '#ef4444', fontSize: '0.75rem', marginTop: '0.25rem', display: 'block' }}>
+            {errors.gstin ? (
+              <span style={{ color: '#dc2626', fontSize: '0.775rem', marginTop: '0.25rem', display: 'block' }}>
                 {errors.gstin}
+              </span>
+            ) : (
+              <span style={{ color: '#94a3b8', fontSize: '0.725rem', marginTop: '0.25rem', display: 'block' }}>
+                {isGstinRequired ? 'Required, exactly 15 characters' : 'Optional (15 characters if provided)'}
               </span>
             )}
           </div>
 
           {/* City */}
           <div>
-            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#334155', marginBottom: '0.35rem' }}>
-              City <span style={{ color: '#ef4444' }}>*</span>
+            <label htmlFor="customer-city" style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, color: '#334155', marginBottom: '0.35rem' }}>
+              City
             </label>
             <input
-              type="text"
+              id="customer-city"
               name="city"
+              type="text"
               value={formData.city}
               onChange={handleChange}
-              onBlur={handleBlur}
-              placeholder="e.g. Mumbai / Pune / Bengaluru"
+              placeholder="e.g. Mumbai, Pune, Delhi"
               style={{
                 width: '100%',
-                padding: '0.55rem 0.75rem',
+                padding: '0.5rem 0.75rem',
                 borderRadius: '6px',
-                border: `1px solid ${errors.city ? '#ef4444' : '#cbd5e1'}`,
-                fontSize: '0.875rem',
-                outline: 'none'
+                border: '1px solid #cbd5e1',
+                outline: 'none',
+                fontSize: '0.9rem'
               }}
             />
-            {errors.city && (
-              <span style={{ color: '#ef4444', fontSize: '0.75rem', marginTop: '0.25rem', display: 'block' }}>
-                {errors.city}
-              </span>
-            )}
           </div>
         </div>
 
-        {/* Addresses Section (Both Billing and Shipping) */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem', marginBottom: '1.25rem' }}>
+        {/* Addresses */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem', marginBottom: '1.25rem' }}>
           {/* Billing Address */}
           <div>
-            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#334155', marginBottom: '0.35rem' }}>
-              Billing Address <span style={{ color: '#ef4444' }}>*</span>
+            <label htmlFor="customer-billing" style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, color: '#334155', marginBottom: '0.35rem' }}>
+              Billing Address
             </label>
             <textarea
+              id="customer-billing"
               name="billing_address"
+              rows={3}
               value={formData.billing_address}
               onChange={handleChange}
-              onBlur={handleBlur}
-              placeholder="Full billing address with building, street, pincode..."
-              rows={3}
+              placeholder="Full billing address..."
               style={{
                 width: '100%',
-                padding: '0.55rem 0.75rem',
+                padding: '0.5rem 0.75rem',
                 borderRadius: '6px',
-                border: `1px solid ${errors.billing_address ? '#ef4444' : '#cbd5e1'}`,
-                fontSize: '0.875rem',
+                border: '1px solid #cbd5e1',
                 outline: 'none',
+                fontSize: '0.9rem',
                 resize: 'vertical'
               }}
             />
-            {errors.billing_address && (
-              <span style={{ color: '#ef4444', fontSize: '0.75rem', marginTop: '0.25rem', display: 'block' }}>
-                {errors.billing_address}
-              </span>
-            )}
           </div>
 
           {/* Shipping Address */}
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
-              <label style={{ fontSize: '0.85rem', fontWeight: 600, color: '#334155' }}>
-                Shipping Address <span style={{ color: '#ef4444' }}>*</span>
+              <label htmlFor="customer-shipping" style={{ fontSize: '0.875rem', fontWeight: 600, color: '#334155' }}>
+                Shipping Address
               </label>
               <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.8rem', color: '#2563eb', cursor: 'pointer' }}>
                 <input
                   type="checkbox"
+                  id="sameAsBilling"
                   checked={sameAsBilling}
-                  onChange={handleCheckboxChange}
-                  style={{ cursor: 'pointer' }}
+                  onChange={handleSameAsBillingChange}
                 />
                 Same as billing address
               </label>
             </div>
             <textarea
+              id="customer-shipping"
               name="shipping_address"
+              rows={3}
               value={formData.shipping_address}
               onChange={handleChange}
-              onBlur={handleBlur}
               disabled={sameAsBilling}
-              placeholder="Full delivery/warehouse shipping address..."
-              rows={3}
+              placeholder="Full shipping address..."
               style={{
                 width: '100%',
-                padding: '0.55rem 0.75rem',
+                padding: '0.5rem 0.75rem',
                 borderRadius: '6px',
-                border: `1px solid ${errors.shipping_address ? '#ef4444' : '#cbd5e1'}`,
-                fontSize: '0.875rem',
+                border: '1px solid #cbd5e1',
                 outline: 'none',
+                fontSize: '0.9rem',
                 resize: 'vertical',
-                background: sameAsBilling ? '#f8fafc' : '#ffffff'
+                backgroundColor: sameAsBilling ? '#f1f5f9' : '#ffffff',
+                color: sameAsBilling ? '#64748b' : '#0f172a'
               }}
             />
-            {errors.shipping_address && (
-              <span style={{ color: '#ef4444', fontSize: '0.75rem', marginTop: '0.25rem', display: 'block' }}>
-                {errors.shipping_address}
-              </span>
-            )}
           </div>
         </div>
 
         {/* Buttons */}
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1.5rem', borderTop: '1px solid #f1f5f9', paddingTop: '1rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
           {onCancel && (
             <button
               type="button"
               onClick={onCancel}
+              disabled={submitting}
               style={{
-                padding: '0.55rem 1.25rem',
-                borderRadius: '6px',
-                border: '1px solid #cbd5e1',
-                background: '#ffffff',
+                background: '#f8fafc',
                 color: '#475569',
-                fontSize: '0.875rem',
+                border: '1px solid #cbd5e1',
+                padding: '0.5rem 1rem',
+                borderRadius: '6px',
                 cursor: 'pointer'
               }}
             >
@@ -539,10 +539,17 @@ export default function CustomerForm({ initialData = null, onSuccess, onCancel }
           <button
             type="submit"
             disabled={submitting}
-            className="btn"
-            style={{ padding: '0.55rem 1.5rem', fontSize: '0.875rem' }}
+            style={{
+              backgroundColor: submitting ? '#93c5fd' : '#2563eb',
+              color: '#ffffff',
+              border: 'none',
+              padding: '0.5rem 1.25rem',
+              borderRadius: '6px',
+              fontWeight: 600,
+              cursor: submitting ? 'not-allowed' : 'pointer'
+            }}
           >
-            {submitting ? 'Saving Customer...' : isEdit ? 'Update Customer' : 'Save Customer'}
+            {submitting ? 'Saving...' : (isEdit ? 'Update Customer' : 'Create Customer')}
           </button>
         </div>
       </form>

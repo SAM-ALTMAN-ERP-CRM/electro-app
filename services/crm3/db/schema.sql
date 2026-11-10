@@ -1,5 +1,5 @@
 -- Database schema for CRM-3 Customer 360 (Port 5103)
--- Customer Master Directory, Contacts, Segments & Customer Tags
+-- Customer Master Directory, Contacts & Unified Event Timeline
 
 CREATE SEQUENCE IF NOT EXISTS customers_seq START WITH 1;
 
@@ -28,21 +28,15 @@ CREATE TABLE IF NOT EXISTS contacts (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE SEQUENCE IF NOT EXISTS segments_seq START WITH 1;
+-- Member 3 (CRM3-C1): Segments sequence and table
+CREATE SEQUENCE IF NOT EXISTS segment_id_seq START WITH 1;
 
 CREATE TABLE IF NOT EXISTS segments (
-  id VARCHAR(20) PRIMARY KEY,
+  id VARCHAR(20) PRIMARY KEY DEFAULT ('SEG-' || LPAD(nextval('segment_id_seq')::TEXT, 4, '0')),
   name VARCHAR(255) NOT NULL,
-  customer_type VARCHAR(50),
+  customer_type VARCHAR(50) CHECK (customer_type IS NULL OR customer_type IN ('retail', 'corporate', 'dealer')),
   city VARCHAR(100),
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE TABLE IF NOT EXISTS customer_tags (
-  customer_id VARCHAR(20) NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
-  tag VARCHAR(100) NOT NULL,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (customer_id, tag)
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE INDEX IF NOT EXISTS idx_customers_type ON customers(type);
@@ -51,5 +45,3 @@ CREATE INDEX IF NOT EXISTS idx_customers_email ON customers(email);
 CREATE INDEX IF NOT EXISTS idx_contacts_customer_id ON contacts(customer_id);
 CREATE INDEX IF NOT EXISTS idx_segments_customer_type ON segments(customer_type);
 CREATE INDEX IF NOT EXISTS idx_segments_city ON segments(city);
-CREATE INDEX IF NOT EXISTS idx_customer_tags_customer_id ON customer_tags(customer_id);
-CREATE INDEX IF NOT EXISTS idx_customer_tags_tag ON customer_tags(tag);
