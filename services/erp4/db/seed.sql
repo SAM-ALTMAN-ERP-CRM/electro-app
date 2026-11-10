@@ -1,6 +1,7 @@
 -- Database seed for ERP-4: Sales Orders & Dispatch
 
 -- Clear existing data cleanly (re-runnable script)
+DELETE FROM reservations;
 DELETE FROM so_items;
 DELETE FROM sales_orders;
 
@@ -22,5 +23,15 @@ VALUES
   ('SO-0004', 'SKU-0001', '55-inch 4K Smart TV', 1, 42990.00),
   ('SO-0005', 'SKU-0001', '55-inch 4K Smart TV', 1, 42990.00);
 
--- Update sequence counter so newly created orders begin at SO-0006
+-- Seed reservations for SO-0001 to SO-0005 (reserved per shared seed contract)
+INSERT INTO reservations (id, so_id, sku, quantity, status, created_at)
+VALUES
+  ('RES-0001', 'SO-0001', 'SKU-0001', 1, 'reserved', '2026-10-01 10:05:00+05:30'),
+  ('RES-0002', 'SO-0002', 'SKU-0001', 1, 'reserved', '2026-10-05 11:35:00+05:30'),
+  ('RES-0003', 'SO-0003', 'SKU-0001', 1, 'reserved', '2026-10-10 14:20:00+05:30'),
+  ('RES-0004', 'SO-0004', 'SKU-0001', 1, 'reserved', '2026-10-15 16:50:00+05:30'),
+  ('RES-0005', 'SO-0005', 'SKU-0001', 1, 'reserved', '2026-10-20 09:25:00+05:30');
+
+-- Update sequence counters so new records begin at SO-0006 and RES-0006
 SELECT setval('so_id_seq', 5, true);
+SELECT setval('res_id_seq', 5, true);
