@@ -202,3 +202,55 @@ Base URL: `http://localhost:5101/api`
     - `{ "error": "items must be a non-empty array of quote items" }`
     - `{ "error": "Item 1: quantity must be a positive integer" }`
     - `{ "error": "discount_percent must be a number between 0 and 100" }`
+
+---
+
+### 4. Update Quote Status ([CRM1-C3])
+- **Method**: `PATCH`
+- **Path**: `/api/quotes/:id/status`
+- **Headers**:
+  - `Content-Type: application/json`
+  - `Authorization: Bearer <token>`
+- **Request Body**:
+```json
+{
+  "status": "sent",
+  "rejection_reason": "Optional text if rejecting"
+}
+```
+- **Allowed Transitions**:
+  - `draft` $\rightarrow$ `sent`: Blocked with `400` if `discount_percent > 5` (or `needs_approval = true`) unless `approved = true`.
+  - `sent` $\rightarrow$ `accepted`: Triggers asynchronous side effects to create sales order in ERP-4 (`POST /api/sales-orders`) and customer timeline event in CRM-3 (`POST /api/interactions/from-event`).
+  - `sent` $\rightarrow$ `rejected`: Stores `rejection_reason`.
+- **Response**: `200 OK`
+```json
+{
+  "data": {
+    "id": "QUO-0002",
+    "opportunity_id": "OPP-0002",
+    "customer_id": "CUST-0004",
+    "dealer_id": "DLR-0001",
+    "sales_rep_id": "EMP-0002",
+    "status": "accepted",
+    "discount_percent": 5.0,
+    "needs_approval": false,
+    "approved": false,
+    "rejection_reason": null,
+    "created_at": "2026-11-06T11:30:00.000Z",
+    "subtotal": 67960.0,
+    "discount_amount": 3398.0,
+    "taxable_value": 64562.0,
+    "gst": 11621.16,
+    "total": 76183.16,
+    "items": [ ... ]
+  }
+}
+```
+- **Error Responses**:
+  - `400 Bad Request`:
+    - `{ "error": "Quote requires approval before it can be sent (discount exceeds 5%)" }`
+    - `{ "error": "Quotes in 'draft' status must be moved to 'sent' before being accepted or rejected" }`
+    - `{ "error": "Quotes in 'sent' status can only be moved to 'accepted' or 'rejected'" }`
+    - `{ "error": "Cannot change status of a quote that is already 'accepted'" }`
+  - `404 Not Found`:
+    - `{ "error": "Quote with ID 'QUO-9999' not found" }`
