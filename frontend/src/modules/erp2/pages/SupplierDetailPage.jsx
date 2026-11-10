@@ -5,6 +5,7 @@ import { api } from '../../../api';
 export default function SupplierDetailPage() {
   const { id } = useParams();
   const [supplier, setSupplier] = useState(null);
+  const [ratings, setRatings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [notification, setNotification] = useState('');
@@ -16,21 +17,30 @@ export default function SupplierDetailPage() {
   const [comment, setComment] = useState('');
   const [submittingRating, setSubmittingRating] = useState(false);
 
-  useEffect(() => {
-    async function loadSupplier() {
-      setLoading(true);
-      setError('');
+  const loadSupplierData = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const data = await api('erp2', `/api/suppliers/${id}`);
+      setSupplier(data);
+
       try {
-        const data = await api('erp2', `/api/suppliers/${id}`);
-        setSupplier(data);
-      } catch (err) {
-        setError(err.message || `Failed to load details for supplier ${id}`);
-      } finally {
-        setLoading(false);
+        const ratingsData = await api('erp2', `/api/suppliers/${id}/ratings`);
+        setRatings(Array.isArray(ratingsData) ? ratingsData : []);
+      } catch (rErr) {
+        // Non-blocking for page load
+        console.warn('Could not load ratings list:', rErr.message);
       }
+    } catch (err) {
+      setError(err.message || `Failed to load details for supplier ${id}`);
+    } finally {
+      setLoading(false);
     }
+  };
+
+  useEffect(() => {
     if (id) {
-      loadSupplier();
+      loadSupplierData();
     }
   }, [id]);
 
@@ -48,9 +58,9 @@ export default function SupplierDetailPage() {
       });
       setNotification('Supplier evaluation recorded and average score updated.');
       setShowRatingForm(false);
-      // Reload updated supplier
-      const updated = await api('erp2', `/api/suppliers/${id}`);
-      setSupplier(updated);
+      setComment('');
+      // Reload updated supplier & ratings
+      await loadSupplierData();
       setTimeout(() => setNotification(''), 5000);
     } catch (err) {
       setError(err.message || 'Error submitting supplier rating');
@@ -280,6 +290,63 @@ export default function SupplierDetailPage() {
           </form>
         </div>
       )}
+
+      {/* Ratings History Section */}
+      <div style={{
+        background: '#ffffff',
+        borderRadius: '8px',
+        border: '1px solid #e2e8f0',
+        padding: '1.5rem',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+      }}>
+        <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#0f172a', marginBottom: '1rem' }}>
+          Vendor Performance History & Feedback ({ratings.length})
+        </h3>
+
+        {ratings.length === 0 ? (
+          <p style={{ color: '#64748b', fontSize: '0.9rem', fontStyle: 'italic' }}>
+            No performance ratings recorded yet. Use the button above to rate this supplier.
+          </p>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            {ratings.map(r => (
+              <div
+                key={r.id}
+                style={{
+                  padding: '0.75rem 1rem',
+                  background: '#f8fafc',
+                  borderRadius: '6px',
+                  border: '1px solid #e2e8f0',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  flexWrap: 'wrap',
+                  gap: '0.5rem'
+                }}
+              >
+                <div>
+                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                    <span style={{ fontWeight: 600, color: '#d97706' }}>
+                      ★ {(((Number(r.delivery_score) || 0) + (Number(r.quality_score) || 0)) / 2).toFixed(1)}
+                    </span>
+                    <span style={{ fontSize: '0.8rem', color: '#64748b' }}>
+                      (Delivery: {r.delivery_score}/5 · Quality: {r.quality_score}/5)
+                    </span>
+                  </div>
+                  {r.comment && (
+                    <p style={{ fontSize: '0.85rem', color: '#334155', marginTop: '0.25rem' }}>
+                      "{r.comment}"
+                    </p>
+                  )}
+                </div>
+                <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+                  {r.created_at ? new Date(r.created_at).toLocaleDateString() : 'Recent'}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

@@ -192,3 +192,93 @@ describe('ERP-2 Suppliers HTTP Routes Integration Tests ([ERP2-A1] / #74)', () =
     assert.ok(res.body.data.message);
   });
 });
+
+describe('ERP-2 Supplier Rating & Top Suppliers Tests ([ERP2-A3] / #76)', () => {
+
+  it('returns top 3 suppliers via GET /suppliers/top', async () => {
+    const res = await dispatch(suppliersRouter, {
+      method: 'GET',
+      url: '/suppliers/top'
+    });
+    assert.equal(res.status, 200);
+    assert.ok(Array.isArray(res.body.data));
+    assert.equal(res.body.data.length, 3);
+    // Verified sorted in descending order of rating
+    assert.ok(Number(res.body.data[0].rating) >= Number(res.body.data[1].rating));
+    assert.ok(Number(res.body.data[1].rating) >= Number(res.body.data[2].rating));
+  });
+
+  it('fetches rating history for a supplier via GET /suppliers/:id/ratings', async () => {
+    const res = await dispatch(suppliersRouter, {
+      method: 'GET',
+      url: '/suppliers/SUP-0001/ratings',
+      params: { id: 'SUP-0001' }
+    });
+    assert.equal(res.status, 200);
+    assert.ok(Array.isArray(res.body.data));
+    assert.ok(res.body.data.length >= 1);
+    assert.equal(res.body.data[0].supplier_id, 'SUP-0001');
+  });
+
+  it('records rating and recalculates supplier average via POST /suppliers/:id/ratings', async () => {
+    // Current rating of SUP-0002 is 4.5 from initial seed
+    const res = await dispatch(suppliersRouter, {
+      method: 'POST',
+      url: '/suppliers/SUP-0002/ratings',
+      params: { id: 'SUP-0002' },
+      body: {
+        delivery_score: 5,
+        quality_score: 5,
+        comment: 'Outstanding delivery speed and chip purity'
+      }
+    });
+
+    assert.equal(res.status, 201);
+    assert.ok(res.body.data);
+    assert.ok(res.body.data.id.startsWith('RAT-'));
+    assert.equal(res.body.data.delivery_score, 5);
+    assert.equal(res.body.data.quality_score, 5);
+    // Check that new average rating is calculated and updated
+    assert.ok(res.body.data.new_average_rating !== undefined);
+    assert.ok(Number(res.body.data.new_average_rating) >= 4.5);
+  });
+
+  it('rejects POST /suppliers/:id/ratings with invalid scores below 1 or above 5', async () => {
+    const resLow = await dispatch(suppliersRouter, {
+      method: 'POST',
+      url: '/suppliers/SUP-0001/ratings',
+      params: { id: 'SUP-0001' },
+      body: {
+        delivery_score: 0,
+        quality_score: 4
+      }
+    });
+    assert.equal(resLow.status, 400);
+    assert.ok(resLow.body.error.includes('delivery_score'));
+
+    const resHigh = await dispatch(suppliersRouter, {
+      method: 'POST',
+      url: '/suppliers/SUP-0001/ratings',
+      params: { id: 'SUP-0001' },
+      body: {
+        delivery_score: 4,
+        quality_score: 6
+      }
+    });
+    assert.equal(resHigh.status, 400);
+    assert.ok(resHigh.body.error.includes('quality_score'));
+  });
+
+  it('returns 404 when rating a nonexistent supplier', async () => {
+    const res = await dispatch(suppliersRouter, {
+      method: 'POST',
+      url: '/suppliers/SUP-UNKNOWN/ratings',
+      params: { id: 'SUP-UNKNOWN' },
+      body: {
+        delivery_score: 4,
+        quality_score: 4
+      }
+    });
+    assert.equal(res.status, 404);
+  });
+});

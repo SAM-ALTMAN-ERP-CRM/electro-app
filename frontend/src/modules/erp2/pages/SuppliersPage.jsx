@@ -4,6 +4,7 @@ import { api } from '../../../api';
 
 export default function SuppliersPage() {
   const [suppliers, setSuppliers] = useState([]);
+  const [topSuppliers, setTopSuppliers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
@@ -37,6 +38,14 @@ export default function SuppliersPage() {
       const qs = queryParams.toString() ? `?${queryParams.toString()}` : '';
       const data = await api('erp2', `/api/suppliers${qs}`);
       setSuppliers(Array.isArray(data) ? data : []);
+
+      // Fetch top 3 suppliers (ERP2-A3)
+      try {
+        const topData = await api('erp2', '/api/suppliers/top');
+        setTopSuppliers(Array.isArray(topData) ? topData : []);
+      } catch (tErr) {
+        console.warn('Could not load top suppliers:', tErr.message);
+      }
     } catch (err) {
       setError(err.message || 'Failed to load suppliers from ERP-2 service');
     } finally {
@@ -171,6 +180,65 @@ export default function SuppliersPage() {
           + Add Supplier
         </button>
       </div>
+
+      {/* Top 3 Best-Rated Suppliers Banner (ERP2-A3) */}
+      {topSuppliers.length > 0 && (
+        <div style={{ marginBottom: '1.5rem' }}>
+          <div style={{ fontSize: '0.85rem', fontWeight: 700, textTransform: 'uppercase', color: '#64748b', marginBottom: '0.5rem', letterSpacing: '0.05em' }}>
+            ★ Top 3 Best-Rated Suppliers (ERP2-A3)
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem' }}>
+            {topSuppliers.map((topSup, index) => (
+              <div
+                key={topSup.id}
+                style={{
+                  background: '#ffffff',
+                  padding: '1rem',
+                  borderRadius: '8px',
+                  border: '1px solid #e2e8f0',
+                  boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center'
+                }}
+              >
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <span style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      width: '22px',
+                      height: '22px',
+                      borderRadius: '50%',
+                      background: index === 0 ? '#fef3c7' : (index === 1 ? '#e2e8f0' : '#ffedd5'),
+                      color: index === 0 ? '#b45309' : (index === 1 ? '#475569' : '#c2410c'),
+                      fontWeight: 700,
+                      fontSize: '0.75rem'
+                    }}>
+                      #{index + 1}
+                    </span>
+                    <Link to={`/erp2/suppliers/${topSup.id}`} style={{ fontWeight: 600, color: '#0f172a', textDecoration: 'none', fontSize: '0.95rem' }}>
+                      {topSup.name}
+                    </Link>
+                  </div>
+                  <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '0.2rem' }}>
+                    {topSup.id} · {topSup.city || 'India'}
+                  </div>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontWeight: 700, color: '#d97706', fontSize: '1.1rem' }}>
+                    ★ {Number(topSup.rating || 0).toFixed(1)}
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                    Rating Score
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Notifications and Errors */}
       {notification && (

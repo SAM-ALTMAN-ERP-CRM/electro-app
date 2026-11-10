@@ -10,18 +10,29 @@ const pool = makePool('erp2_db');
 // All supplier endpoints require authentication
 router.use(requireAuth);
 
-// In-memory fallback store loaded from mocks for offline / test environments
+// In-memory fallback stores loaded from mocks for offline / test environments
 let inMemorySuppliers = [];
 try {
-  const mockPath = path.resolve(__dirname, '../mocks/suppliers.json');
-  if (fs.existsSync(mockPath)) {
-    inMemorySuppliers = JSON.parse(fs.readFileSync(mockPath, 'utf-8'));
+  const mockSuppliersPath = path.resolve(__dirname, '../mocks/suppliers.json');
+  if (fs.existsSync(mockSuppliersPath)) {
+    inMemorySuppliers = JSON.parse(fs.readFileSync(mockSuppliersPath, 'utf-8'));
   }
 } catch (err) {
   console.warn('[erp2] Could not pre-load mock suppliers:', err.message);
 }
 
+let inMemoryRatings = [];
+try {
+  const mockRatingsPath = path.resolve(__dirname, '../mocks/ratings.json');
+  if (fs.existsSync(mockRatingsPath)) {
+    inMemoryRatings = JSON.parse(fs.readFileSync(mockRatingsPath, 'utf-8'));
+  }
+} catch (err) {
+  console.warn('[erp2] Could not pre-load mock ratings:', err.message);
+}
+
 let mockSupplierIdCounter = inMemorySuppliers.length + 1;
+let mockRatingIdCounter = inMemoryRatings.length + 1;
 
 /**
  * Executes a PostgreSQL query safely; returns null if the database is offline.
@@ -33,6 +44,37 @@ async function safeQuery(text, params) {
     return null;
   }
 }
+
+/**
+ * GET /api/suppliers/top
+ * Issue: [ERP2-A3]
+ * Returns the top 3 best rated suppliers
+ * NOTE: Must be mounted before /api/suppliers/:id to avoid parameter collision
+ */
+router.get('/suppliers/top', async (req, res) => {
+  try {
+    const queryText = `
+      SELECT id, name, contact_person, phone, email, city, gstin, payment_terms, rating, active, created_at
+      FROM suppliers
+      ORDER BY rating DESC, id ASC
+      LIMIT 3
+    `;
+
+    const dbRes = await safeQuery(queryText);
+    if (dbRes && dbRes.rows) {
+      return res.json({ data: dbRes.rows });
+    }
+
+    // Fallback in-memory sorting
+    const topThree = [...inMemorySuppliers]
+      .sort((a, b) => (Number(b.rating) || 0) - (Number(a.rating) || 0))
+      .slice(0, 3);
+
+    return res.json({ data: topThree });
+  } catch (err) {
+    return res.status(500).json({ error: err.message || 'Internal server error' });
+  }
+});
 
 /**
  * GET /api/suppliers
@@ -138,6 +180,157 @@ router.get('/suppliers/:id', async (req, res) => {
       return res.status(404).json({ error: `Supplier with ID '${id}' not found` });
     }
     return res.json({ data: found });
+  } catch (err) {
+    return res.status(500).json({ error: err.message || 'Internal server error' });
+  }
+});
+
+/**
+ * GET /api/suppliers/:id/ratings
+ * Issue: [ERP2-A3]
+ * List ratings for a specific supplier
+ */
+router.get('/suppliers/:id/ratings', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const dbRes = await safeQuery(
+      'SELECT * FROM supplier_ratings WHERE supplier_id = $1 ORDER BY created_at DESC',
+      [id]
+    );
+    if (dbRes && dbRes.rows) {
+      return res.json({ data: dbRes.rows });
+    }
+
+    // Fallback in-memory
+    const filtered = inMemoryRatings
+      .filter(r => r.supplier_id === id)
+      .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+    return res.json({ data: filtered });
+  } catch (err) {
+    return res.status(500).json({ error: err.message || 'Internal server error' });
+  }
+});
+
+/**
+ * POST /api/suppliers/:id/ratings
+ * Issue: [ERP2-A3]
+ * Stores a supplier rating and recalculates suppliers.rating as the average of all scores
+ * Body: { delivery_score, quality_score, comment }
+ */
+router.post('/suppliers/:id/ratings', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { delivery_score, quality_score, comment = '' } = req.body || {};
+
+    // 1. Validation
+    const delivery = Number(delivery_score);
+    const quality = Number(quality_score);
+
+    if (isNaN(delivery) || delivery < 1 || delivery > 5) {
+      return res.status(400).json({
+        error: 'Validation error: delivery_score must be a numeric score between 1 and 5'
+      });
+    }
+
+    if (isNaN(quality) || quality < 1 || quality > 5) {
+      return res.status(400).json({
+        error: 'Validation error: quality_score must be a numeric score between 1 and 5'
+      });
+    }
+
+    // 2. Check supplier exists
+    const checkSup = await safeQuery('SELECT * FROM suppliers WHERE id = $1', [id]);
+    const mockSup = inMemorySuppliers.find(s => s.id === id);
+
+    if (checkSup && checkSup.rows && checkSup.rows.length === 0) {
+      return res.status(404).json({ error: `Supplier with ID '${id}' not found` });
+    }
+    if (!checkSup && !mockSup) {
+      return res.status(404).json({ error: `Supplier with ID '${id}' not found` });
+    }
+
+    // 3. Generate Rating ID
+    const seqRes = await safeQuery("SELECT nextval('supplier_ratings_seq') AS n");
+    let ratingId;
+    if (seqRes && seqRes.rows && seqRes.rows[0]) {
+      ratingId = 'RAT-' + String(seqRes.rows[0].n).padStart(4, '0');
+    } else {
+      ratingId = 'RAT-' + String(mockRatingIdCounter++).padStart(4, '0');
+    }
+
+    // 4. Insert into supplier_ratings
+    const insertQuery = `
+      INSERT INTO supplier_ratings (id, supplier_id, delivery_score, quality_score, comment)
+      VALUES ($1, $2, $3, $4, $5)
+      RETURNING *
+    `;
+    const insertRes = await safeQuery(insertQuery, [
+      ratingId,
+      id,
+      delivery,
+      quality,
+      comment ? String(comment).trim() : null
+    ]);
+
+    // In-memory store update
+    const newRatingRecord = {
+      id: ratingId,
+      supplier_id: id,
+      delivery_score: delivery,
+      quality_score: quality,
+      comment: comment ? String(comment).trim() : null,
+      created_at: new Date().toISOString()
+    };
+    inMemoryRatings.push(newRatingRecord);
+
+    // 5. Recalculate average rating of all scores for this supplier
+    let updatedAverage = 0;
+    let updatedSupplier = null;
+
+    if (insertRes && insertRes.rows && insertRes.rows[0]) {
+      const avgQuery = `
+        SELECT ROUND(AVG((delivery_score + quality_score) / 2.0), 2) AS avg_score
+        FROM supplier_ratings
+        WHERE supplier_id = $1
+      `;
+      const avgRes = await safeQuery(avgQuery, [id]);
+      if (avgRes && avgRes.rows && avgRes.rows[0]) {
+        updatedAverage = Number(avgRes.rows[0].avg_score);
+      }
+
+      const updateSupRes = await safeQuery(
+        'UPDATE suppliers SET rating = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 RETURNING *',
+        [updatedAverage, id]
+      );
+      if (updateSupRes && updateSupRes.rows && updateSupRes.rows[0]) {
+        updatedSupplier = updateSupRes.rows[0];
+      }
+    }
+
+    // Fallback recalculation
+    const supRatings = inMemoryRatings.filter(r => r.supplier_id === id);
+    const sumScores = supRatings.reduce((acc, r) => acc + (Number(r.delivery_score) + Number(r.quality_score)) / 2.0, 0);
+    const inMemAvg = Math.round((sumScores / supRatings.length) * 100) / 100;
+
+    if (mockSup) {
+      mockSup.rating = inMemAvg;
+      if (!updatedSupplier) {
+        updatedSupplier = mockSup;
+      }
+    }
+    if (!updatedAverage) {
+      updatedAverage = inMemAvg;
+    }
+
+    return res.status(201).json({
+      data: {
+        ...(insertRes && insertRes.rows && insertRes.rows[0] ? insertRes.rows[0] : newRatingRecord),
+        new_average_rating: updatedAverage,
+        supplier: updatedSupplier
+      }
+    });
   } catch (err) {
     return res.status(500).json({ error: err.message || 'Internal server error' });
   }
