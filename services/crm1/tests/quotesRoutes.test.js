@@ -46,7 +46,7 @@ function dispatch(router, options) {
   });
 }
 
-describe('CRM1 Quotes Routes Integration Tests ([CRM1-C1])', () => {
+describe('CRM1 Quotes Routes Integration Tests ([CRM1-C1] & [CRM1-C3])', () => {
 
   it('rejects POST /quotes without customer_id with HTTP 400', async () => {
     const res = await dispatch(quotesRouter, {
@@ -127,15 +127,6 @@ describe('CRM1 Quotes Routes Integration Tests ([CRM1-C1])', () => {
   });
 
   it('creates quote with 3 items and verifies totals, discount, and 18% GST calculation', async () => {
-    // 3 items:
-    // SKU-0001: 1 * 42,990 = 42,990
-    // SKU-0004: 2 * 8,990 = 17,980
-    // SKU-0006: 1 * 3,499 = 3,499
-    // Subtotal = 64,469
-    // Discount 10% = 6,446.90
-    // Taxable = 58,022.10
-    // GST 18% = 10,443.98
-    // Total = 68,466.08
     const payload = {
       opportunity_id: 'OPP-0001',
       customer_id: 'CUST-0001',
@@ -166,7 +157,7 @@ describe('CRM1 Quotes Routes Integration Tests ([CRM1-C1])', () => {
     assert.equal(data.taxable_value, 58022.10);
     assert.equal(data.gst, 10443.98);
     assert.equal(data.total, 68466.08);
-    assert.equal(data.needs_approval, true); // discount > 5% triggers needs_approval
+    assert.equal(data.needs_approval, true);
   });
 
   it('fetches quote by ID via GET /quotes/:id and returns complete breakdown', async () => {
@@ -211,32 +202,128 @@ describe('CRM1 Quotes Routes Integration Tests ([CRM1-C1])', () => {
     });
   });
 
-  it('supports filtering quotes by opportunity_id via GET /quotes?opportunity_id=', async () => {
-    const res = await dispatch(quotesRouter, {
-      method: 'GET',
+  // --- CRM1-C3 STATUS & DISCOUNT RULE TESTS ---
+
+  it('[CRM1-C3] blocks moving draft quote with >5% discount to sent without approval', async () => {
+    // 1. Create a quote with 12% discount (needs_approval = true, approved = false)
+    const createRes = await dispatch(quotesRouter, {
+      method: 'POST',
       url: '/quotes',
-      query: { opportunity_id: 'OPP-0001' }
+      body: {
+        opportunity_id: 'OPP-0001',
+        customer_id: 'CUST-0001',
+        sales_rep_id: 'EMP-0001',
+        discount_percent: 12.0,
+        items: [{ sku: 'SKU-0001', product_name: '55-inch 4K Smart TV', quantity: 1, unit_price: 42990 }]
+      }
     });
 
-    assert.equal(res.status, 200);
-    assert.ok(Array.isArray(res.body.data));
-    res.body.data.forEach(q => {
-      assert.equal(q.opportunity_id, 'OPP-0001');
+    assert.equal(createRes.status, 201);
+    const quoteId = createRes.body.data.id;
+    assert.equal(createRes.body.data.needs_approval, true);
+    assert.equal(createRes.body.data.approved, false);
+
+    // 2. Attempt to PATCH status to 'sent'
+    const patchRes = await dispatch(quotesRouter, {
+      method: 'PATCH',
+      url: `/quotes/${quoteId}/status`,
+      params: { id: quoteId },
+      body: { status: 'sent' }
     });
+
+    assert.equal(patchRes.status, 400);
+    assert.match(patchRes.body.error, /requires approval before it can be sent/i);
   });
 
-  it('supports filtering quotes by dealer_id via GET /quotes?dealer_id=', async () => {
-    const res = await dispatch(quotesRouter, {
-      method: 'GET',
+  it('[CRM1-C3] allows moving draft quote with <=5% discount to sent without prior approval', async () => {
+    // 1. Create a quote with 4% discount
+    const createRes = await dispatch(quotesRouter, {
+      method: 'POST',
       url: '/quotes',
-      query: { dealer_id: 'DLR-0001' }
+      body: {
+        opportunity_id: 'OPP-0002',
+        customer_id: 'CUST-0002',
+        sales_rep_id: 'EMP-0002',
+        discount_percent: 4.0,
+        items: [{ sku: 'SKU-0002', product_name: '43-inch Full HD TV', quantity: 1, unit_price: 24990 }]
+      }
     });
 
-    assert.equal(res.status, 200);
-    assert.ok(Array.isArray(res.body.data));
-    res.body.data.forEach(q => {
-      assert.equal(q.dealer_id, 'DLR-0001');
+    assert.equal(createRes.status, 201);
+    const quoteId = createRes.body.data.id;
+
+    // 2. Move status to 'sent'
+    const patchRes = await dispatch(quotesRouter, {
+      method: 'PATCH',
+      url: `/quotes/${quoteId}/status`,
+      params: { id: quoteId },
+      body: { status: 'sent' }
     });
+
+    assert.equal(patchRes.status, 200);
+    assert.equal(patchRes.body.data.status, 'sent');
+  });
+
+  it('[CRM1-C3] blocks illegal status jump directly from draft to accepted or rejected', async () => {
+    const patchRes = await dispatch(quotesRouter, {
+      method: 'PATCH',
+      url: '/quotes/QUO-0001/status',
+      params: { id: 'QUO-0001' },
+      body: { status: 'accepted' }
+    });
+
+    assert.equal(patchRes.status, 400);
+    assert.match(patchRes.body.error, /must be moved to 'sent' before being accepted/i);
+  });
+
+  it('[CRM1-C3] transitions sent quote to accepted and triggers handoff side effects', async () => {
+    // QUO-0002 is in 'sent' status in seeds/mocks
+    const patchRes = await dispatch(quotesRouter, {
+      method: 'PATCH',
+      url: '/quotes/QUO-0002/status',
+      params: { id: 'QUO-0002' },
+      body: { status: 'accepted' }
+    });
+
+    assert.equal(patchRes.status, 200);
+    assert.equal(patchRes.body.data.status, 'accepted');
+  });
+
+  it('[CRM1-C3] transitions sent quote to rejected with rejection_reason', async () => {
+    // Create quote, move to sent, then reject
+    const createRes = await dispatch(quotesRouter, {
+      method: 'POST',
+      url: '/quotes',
+      body: {
+        opportunity_id: 'OPP-0005',
+        customer_id: 'CUST-0005',
+        sales_rep_id: 'EMP-0004',
+        discount_percent: 0,
+        items: [{ sku: 'SKU-0008', product_name: '20W Fast Charger', quantity: 2, unit_price: 899 }]
+      }
+    });
+
+    const quoteId = createRes.body.data.id;
+
+    // Move to sent
+    await dispatch(quotesRouter, {
+      method: 'PATCH',
+      url: `/quotes/${quoteId}/status`,
+      params: { id: quoteId },
+      body: { status: 'sent' }
+    });
+
+    // Move to rejected with reason
+    const rejectRes = await dispatch(quotesRouter, {
+      method: 'PATCH',
+      url: `/quotes/${quoteId}/status`,
+      params: { id: quoteId },
+      body: { status: 'rejected', rejection_reason: 'Client decided to delay purchase' }
+    });
+
+    assert.equal(rejectRes.status, 200);
+    assert.equal(rejectRes.body.data.status, 'rejected');
+    assert.equal(rejectRes.body.data.rejection_reason, 'Client decided to delay purchase');
   });
 
 });

@@ -4,6 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const { requireAuth } = require('../../_shared/auth');
 const { makePool } = require('../../_shared/db');
+const { callService } = require('../../_shared/callService');
 
 const pool = makePool('crm1_db');
 
@@ -244,16 +245,6 @@ router.get('/quotes/:id', async (req, res, next) => {
 /**
  * POST /api/quotes
  * Creates a quote with line items in one atomic transaction.
- * Request body:
- * {
- *   opportunity_id,
- *   customer_id,
- *   dealer_id,
- *   sales_rep_id,
- *   discount_percent,
- *   status,
- *   items: [{ sku, product_name, quantity, unit_price }]
- * }
  */
 router.post('/quotes', async (req, res, next) => {
   try {
@@ -321,7 +312,7 @@ router.post('/quotes', async (req, res, next) => {
       }
     }
 
-    // Determine approval requirements: discounts above 5% need approval
+    // Determine approval requirements: discounts above 5% need approval ([CRM1-C3])
     const needsApproval = discountPercentVal > 5 || Boolean(req.body.needs_approval);
     const approved = Boolean(req.body.approved);
     const rejectionReason = req.body.rejection_reason || null;
@@ -467,6 +458,205 @@ router.post('/quotes', async (req, res, next) => {
         created_at: savedQuote.created_at,
         ...financials,
         items: savedItems
+      }
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * PATCH /api/quotes/:id/status
+ * Updates quote status following stage progression & discount rules ([CRM1-C3]).
+ * Body: { status, rejection_reason? }
+ *
+ * Rules:
+ * 1. Allowed target statuses: 'sent', 'accepted', 'rejected'.
+ * 2. Progression:
+ *    - 'draft' -> 'sent' (blocked if needs_approval && !approved)
+ *    - 'sent' -> 'accepted' or 'rejected'
+ * 3. Side effects when status becomes 'accepted':
+ *    (1) POST to ERP-4 /api/sales-orders
+ *    (2) POST to CRM-3 /api/interactions/from-event
+ */
+router.patch('/quotes/:id/status', async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { status: targetStatus, rejection_reason } = req.body;
+
+    // 1. Validate target status
+    const allowedTargets = ['sent', 'accepted', 'rejected'];
+    if (!targetStatus || !allowedTargets.includes(targetStatus)) {
+      return res.status(400).json({
+        error: `Target status must be one of: ${allowedTargets.join(', ')}`
+      });
+    }
+
+    // 2. Fetch existing quote and items
+    let currentQuote = null;
+    let quoteItems = [];
+
+    try {
+      const qRes = await safeQuery('SELECT * FROM quotes WHERE id = $1', [id]);
+      if (qRes && qRes.rows.length > 0) {
+        currentQuote = qRes.rows[0];
+        const itmRes = await safeQuery(
+          'SELECT id, quote_id, sku, product_name, quantity, unit_price FROM quote_items WHERE quote_id = $1 ORDER BY id ASC',
+          [id]
+        );
+        quoteItems = itmRes ? itmRes.rows.map(item => ({
+          ...item,
+          quantity: parseInt(item.quantity, 10),
+          unit_price: parseFloat(item.unit_price)
+        })) : [];
+      }
+    } catch (err) {
+      console.warn(`[crm1] DB query error on PATCH /quotes/${id}/status:`, err.message);
+    }
+
+    if (!currentQuote) {
+      // In-memory fallback
+      const found = inMemoryQuotes.find(q => q.id === id);
+      if (found) {
+        currentQuote = found;
+        quoteItems = found.items || [];
+      }
+    }
+
+    if (!currentQuote) {
+      return res.status(404).json({ error: `Quote with ID '${id}' not found` });
+    }
+
+    // 3. Status transition rules
+    const currentStatus = currentQuote.status;
+
+    if (currentStatus === 'draft') {
+      if (targetStatus !== 'sent') {
+        return res.status(400).json({
+          error: `Quotes in 'draft' status must be moved to 'sent' before being accepted or rejected`
+        });
+      }
+
+      // Check discount approval: if discount > 5% or needs_approval, must be approved first
+      const isHighDiscount = parseFloat(currentQuote.discount_percent) > 5;
+      const requiresApproval = currentQuote.needs_approval || isHighDiscount;
+      if (requiresApproval && !currentQuote.approved) {
+        return res.status(400).json({
+          error: 'Quote requires approval before it can be sent (discount exceeds 5%)'
+        });
+      }
+    } else if (currentStatus === 'sent') {
+      if (targetStatus !== 'accepted' && targetStatus !== 'rejected') {
+        return res.status(400).json({
+          error: `Quotes in 'sent' status can only be moved to 'accepted' or 'rejected'`
+        });
+      }
+    } else {
+      // Status is already 'accepted' or 'rejected'
+      return res.status(400).json({
+        error: `Cannot change status of a quote that is already '${currentStatus}'`
+      });
+    }
+
+    // 4. Update the quote in Database
+    let updatedQuote = null;
+    try {
+      const updateRes = await safeQuery(
+        `UPDATE quotes
+         SET status = $1,
+             rejection_reason = CASE WHEN $1 = 'rejected' THEN COALESCE($2, rejection_reason) ELSE rejection_reason END
+         WHERE id = $3
+         RETURNING *`,
+        [targetStatus, rejection_reason || null, id]
+      );
+      if (updateRes && updateRes.rows.length > 0) {
+        updatedQuote = updateRes.rows[0];
+      }
+    } catch (dbErr) {
+      console.warn('[crm1] Failed to update quote status in DB:', dbErr.message);
+    }
+
+    // Update in-memory record
+    const memIdx = inMemoryQuotes.findIndex(q => q.id === id);
+    if (memIdx !== -1) {
+      inMemoryQuotes[memIdx] = {
+        ...inMemoryQuotes[memIdx],
+        status: targetStatus,
+        rejection_reason: targetStatus === 'rejected' ? (rejection_reason || inMemoryQuotes[memIdx].rejection_reason) : inMemoryQuotes[memIdx].rejection_reason
+      };
+      if (!updatedQuote) {
+        updatedQuote = inMemoryQuotes[memIdx];
+      }
+    } else if (!updatedQuote) {
+      updatedQuote = {
+        ...currentQuote,
+        status: targetStatus,
+        rejection_reason: targetStatus === 'rejected' ? (rejection_reason || currentQuote.rejection_reason) : currentQuote.rejection_reason
+      };
+      inMemoryQuotes.push(updatedQuote);
+    }
+
+    // 5. Side effects when status becomes 'accepted' ([CRM1-C3])
+    if (targetStatus === 'accepted') {
+      // (1) Handoff to ERP-4 (/api/sales-orders)
+      try {
+        await callService('erp4', '/api/sales-orders', {
+          method: 'POST',
+          body: {
+            quote_id: updatedQuote.id,
+            customer_id: updatedQuote.customer_id,
+            sales_rep_id: updatedQuote.sales_rep_id,
+            items: quoteItems.map(itm => ({
+              sku: itm.sku,
+              product_name: itm.product_name,
+              quantity: parseInt(itm.quantity, 10),
+              unit_price: parseFloat(itm.unit_price)
+            }))
+          },
+          mock: 'sales-orders'
+        });
+      } catch (err) {
+        if (err.status === 409) {
+          console.log(`[crm1] Order already exists in ERP-4 for quote ${updatedQuote.id} (HTTP 409)`);
+        } else {
+          console.error('[integration-error] ERP-4 order handoff failed:', err.message);
+        }
+      }
+
+      // (2) Customer 360 Timeline event (CRM-3)
+      try {
+        await callService('crm3', '/api/interactions/from-event', {
+          method: 'POST',
+          body: {
+            customer_id: updatedQuote.customer_id,
+            type: 'order',
+            summary: `Quote ${updatedQuote.id} accepted.`,
+            source_team: 'CRM-1'
+          },
+          mock: 'timeline-event'
+        });
+      } catch (err) {
+        console.error('[integration-error] CRM-3 timeline event failed:', err.message);
+      }
+    }
+
+    const financials = calculateQuoteFinancials(quoteItems, parseFloat(updatedQuote.discount_percent));
+
+    return res.json({
+      data: {
+        id: updatedQuote.id,
+        opportunity_id: updatedQuote.opportunity_id,
+        customer_id: updatedQuote.customer_id,
+        dealer_id: updatedQuote.dealer_id,
+        sales_rep_id: updatedQuote.sales_rep_id,
+        status: updatedQuote.status,
+        discount_percent: parseFloat(updatedQuote.discount_percent),
+        needs_approval: updatedQuote.needs_approval,
+        approved: updatedQuote.approved,
+        rejection_reason: updatedQuote.rejection_reason,
+        created_at: updatedQuote.created_at,
+        ...financials,
+        items: quoteItems
       }
     });
   } catch (err) {
