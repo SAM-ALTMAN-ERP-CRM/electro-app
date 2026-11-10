@@ -1,4 +1,5 @@
 import React from 'react';
+import { Orders, NewOrder, OrderDetails } from './pages/PurchaseOrders';
 
 function Placeholder() {
   return (
@@ -29,6 +30,9 @@ export default {
       path: '',
       label: 'Coming soon',
       element: <Placeholder />
-    }
+    },
+    { path: 'orders', label: 'Purchase orders', element: <Orders /> },
+    { path: 'orders/new', element: <NewOrder /> },
+    { path: 'orders/:id', element: <OrderDetails /> }
   ]
 };
