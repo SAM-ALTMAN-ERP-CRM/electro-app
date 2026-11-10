@@ -14,6 +14,10 @@ function validDate(value) {
   return !Number.isNaN(date.valueOf()) && date.toISOString().slice(0, 10) === value;
 }
 
+function validOrder(supplier, date, items) {
+  return typeof supplier === 'string' && !!supplier.trim() && validDate(date) && Array.isArray(items) && items.length > 0 && items.every(item => item && typeof item.sku === 'string' && item.sku.trim() && typeof item.product_name === 'string' && item.product_name.trim() && Number.isSafeInteger(item.quantity) && item.quantity > 0 && item.quantity <= 2147483647 && typeof item.unit_cost === 'number' && Number.isFinite(item.unit_cost) && item.unit_cost > 0 && item.unit_cost < 10000000000 && Math.abs(item.unit_cost * 100 - Math.round(item.unit_cost * 100)) < 1e-7);
+}
+
 router.get('/purchase-orders', async (req, res, next) => {
   try {
     const { status } = req.query;
@@ -69,6 +73,41 @@ router.post('/purchase-orders', async (req, res, next) => {
     if (err.code === '22003') return res.status(400).json({ error: 'Order total is too large' });
     next(err);
   } finally { if (client) client.release(); }
+});
+
+// Lock the order while changing its items so sending and editing cannot overlap.
+router.put('/purchase-orders/:id', async (req, res, next) => {
+  const { supplier_id, expected_date, items } = req.body || {};
+  if (!validOrder(supplier_id, expected_date, items)) return res.status(400).json({ error: 'Provide a supplier, valid date, and valid items with positive quantities and costs' });
+  let client;
+  try {
+    client = await pool.connect();
+    await client.query('BEGIN');
+    const found = await client.query('SELECT status FROM purchase_orders WHERE id = $1 FOR UPDATE', [req.params.id]);
+    if (!found.rowCount || found.rows[0].status !== 'draft') {
+      await client.query('ROLLBACK');
+      return res.status(found.rowCount ? 400 : 404).json({ error: found.rowCount ? 'Only draft orders can be edited' : 'Purchase order not found' });
+    }
+    await client.query('DELETE FROM po_items WHERE po_id = $1', [req.params.id]);
+    for (const item of items) await client.query('INSERT INTO po_items (po_id, sku, product_name, quantity, unit_cost) VALUES ($1, $2, $3, $4, $5)', [req.params.id, item.sku.trim(), item.product_name.trim(), item.quantity, item.unit_cost]);
+    const result = await client.query(`UPDATE purchase_orders SET supplier_id = $1, expected_date = $2, total_amount = (SELECT sum(quantity * unit_cost) FROM po_items WHERE po_id = $3) WHERE id = $3 RETURNING id, supplier_id, status, to_char(expected_date, 'YYYY-MM-DD') AS expected_date, total_amount, sent_at, created_at`, [supplier_id.trim(), expected_date || null, req.params.id]);
+    const saved = await client.query('SELECT * FROM po_items WHERE po_id = $1 ORDER BY id', [req.params.id]);
+    await client.query('COMMIT');
+    res.json({ data: { ...result.rows[0], items: saved.rows } });
+  } catch (err) {
+    if (client) await client.query('ROLLBACK');
+    if (err.code === '22003') return res.status(400).json({ error: 'Order total is too large' });
+    next(err);
+  } finally { if (client) client.release(); }
+});
+
+router.delete('/purchase-orders/:id', async (req, res, next) => {
+  try {
+    const deleted = await pool.query("DELETE FROM purchase_orders WHERE id = $1 AND status = 'draft' RETURNING id", [req.params.id]);
+    if (deleted.rowCount) return res.json({ data: deleted.rows[0] });
+    const found = await pool.query('SELECT id FROM purchase_orders WHERE id = $1', [req.params.id]);
+    return res.status(found.rowCount ? 400 : 404).json({ error: found.rowCount ? 'Only draft orders can be deleted' : 'Purchase order not found' });
+  } catch (err) { next(err); }
 });
 
 router.patch('/purchase-orders/:id/status', async (req, res, next) => {

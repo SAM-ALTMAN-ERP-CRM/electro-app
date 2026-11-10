@@ -1,0 +1,9 @@
+@media print {
+  body:has(.erp2-print-order) .sidebar,
+  body:has(.erp2-print-order) .top-bar,
+  .erp2-print-order .erp2-no-print { display: none !important; }
+  body:has(.erp2-print-order) .main-content { margin: 0; width: 100%; }
+  .erp2-print-order { color: #000; }
+  .erp2-print-order table { width: 100%; border-collapse: collapse; }
+  .erp2-print-order th, .erp2-print-order td { border: 1px solid #777; padding: 6px; text-align: left; }
+}

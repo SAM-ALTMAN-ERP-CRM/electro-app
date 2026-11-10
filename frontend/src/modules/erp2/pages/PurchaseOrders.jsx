@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { api } from '../../../api';
+import './purchase-order-print.css';
 
 const money = value => `₹${Number(value || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const emptyItem = () => ({ sku: '', product_name: '', quantity: '', unit_cost: '' });
@@ -73,21 +74,30 @@ export function OrderDetails() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
+  const [supplierDetails, setSupplierDetails] = useState(null);
   useEffect(() => {
     setLoading(true);
     api('erp2', `/api/purchase-orders/${encodeURIComponent(id)}`).then(setOrder).catch(() => setError('Could not load this purchase order.')).finally(() => setLoading(false));
   }, [id]);
+  useEffect(() => {
+    if (!order?.supplier_id) return;
+    setSupplierDetails(null);
+    api('erp2', `/api/suppliers/${encodeURIComponent(order.supplier_id)}`).then(setSupplierDetails).catch(() => setSupplierDetails(null));
+  }, [order?.supplier_id]);
   async function changeStatus(status) {
     setSaving(true); setError('');
     try { const updated = await api('erp2', `/api/purchase-orders/${encodeURIComponent(id)}/status`, { method: 'PATCH', body: { status } }); setOrder(current => ({ ...current, ...updated })); }
     catch (err) { setError(err.message || 'Could not update the order.'); }
     finally { setSaving(false); }
   }
-  return <section><p><Link to="/erp2/orders">Back to orders</Link></p>{loading ? <p>Loading purchase order…</p> : !order ? <p role="alert">{error || 'Purchase order not found.'}</p> : <>
+  return <section className="erp2-print-order"><p className="erp2-no-print"><Link to="/erp2/orders">Back to orders</Link></p>{loading ? <p>Loading purchase order…</p> : !order ? <p role="alert">{error || 'Purchase order not found.'}</p> : <>
     <h1>Purchase order {order.id}</h1>{error && <p role="alert">{error}</p>}
-    <p>Supplier: {order.supplier_id}</p><p>Expected date: {order.expected_date || '—'}</p><p>Status: <Status value={order.status} /></p>
-    {order.status === 'draft' && <p><button disabled={saving} onClick={() => changeStatus('sent')}>Send</button>{' '}<button disabled={saving} onClick={() => changeStatus('cancelled')}>Cancel order</button></p>}
+    <p>Supplier: {supplierDetails?.name || order.supplier_id} ({order.supplier_id})</p>
+    {supplierDetails && <p>Contact: {supplierDetails.contact_person || '—'} · {supplierDetails.phone || '—'} · {supplierDetails.email || '—'}<br />City: {supplierDetails.city || '—'} · GSTIN: {supplierDetails.gstin || '—'}</p>}
+    {!supplierDetails && <p>Supplier details are currently unavailable.</p>}
+    <p>Expected date: {order.expected_date || '—'}</p><p>Status: <Status value={order.status} /></p>
+    {order.status === 'draft' && <p className="erp2-no-print"><button disabled={saving} onClick={() => changeStatus('sent')}>Send</button>{' '}<button disabled={saving} onClick={() => changeStatus('cancelled')}>Cancel order</button></p>}
     <h2>Items</h2>{!order.items?.length ? <p>No items in this order.</p> : <table><thead><tr><th>SKU</th><th>Product</th><th>Quantity</th><th>Unit cost</th></tr></thead><tbody>{order.items.map(item => <tr key={item.id}><td>{item.sku}</td><td>{item.product_name}</td><td>{item.quantity}</td><td>{money(item.unit_cost)}</td></tr>)}</tbody></table>}
-    <p><strong>Total: {money(order.total_amount)}</strong></p>
+    <p><strong>Total: {money(order.total_amount)}</strong></p><p className="erp2-no-print"><button onClick={() => window.print()} disabled={!supplierDetails}>Print purchase order</button></p>
   </>}</section>;
 }
