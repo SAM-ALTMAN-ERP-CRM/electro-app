@@ -1,5 +1,6 @@
 import React from 'react';
 import WorkOrdersPage from './pages/WorkOrdersPage';
+import WorkOrderDetailPage from './pages/WorkOrderDetailPage';
 
 /**
  * ERP-3 Production and Quality module registration.
@@ -11,6 +12,7 @@ import WorkOrdersPage from './pages/WorkOrdersPage';
  * - Routes:
  *   - /erp3 (Default view: Work Orders)
  *   - /erp3/work-orders (Work Orders Tracker screen)
+ *   - /erp3/work-orders/:id (Work Order Detail & Materials screen [ERP3-B3])
  * - No internal BrowserRouter or navbar: handled by shared shell
  */
 export default {
@@ -27,6 +29,11 @@ export default {
       path: 'work-orders',
       label: 'Work Orders',
       element: <WorkOrdersPage />,
+      roles: ['admin', 'warehouse']
+    },
+    {
+      path: 'work-orders/:id',
+      element: <WorkOrderDetailPage />,
       roles: ['admin', 'warehouse']
     }
   ]

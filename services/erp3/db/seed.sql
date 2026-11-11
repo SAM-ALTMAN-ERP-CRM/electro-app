@@ -1,16 +1,18 @@
 -- Database seed for ERP3
 -- Re-runnable: delete existing seed rows first so running twice doesn't error.
 
+DELETE FROM work_order_materials;
 DELETE FROM qc_checks;
 DELETE FROM work_orders;
 DELETE FROM bom_items;
 DELETE FROM boms;
 
 -- Reset sequences so IDs are always predictable
-ALTER SEQUENCE boms_seq        RESTART WITH 1;
-ALTER SEQUENCE bom_items_seq   RESTART WITH 1;
-ALTER SEQUENCE work_orders_seq RESTART WITH 1;
-ALTER SEQUENCE qc_checks_seq   RESTART WITH 1;
+ALTER SEQUENCE boms_seq                  RESTART WITH 1;
+ALTER SEQUENCE bom_items_seq             RESTART WITH 1;
+ALTER SEQUENCE work_orders_seq           RESTART WITH 1;
+ALTER SEQUENCE qc_checks_seq             RESTART WITH 1;
+ALTER SEQUENCE work_order_materials_seq  RESTART WITH 1;
 
 -- BOM-0001: 55-inch TV (SKU-0001)
 INSERT INTO boms (product_sku, product_name, version, active)
@@ -55,3 +57,46 @@ INSERT INTO qc_checks (id, wo_id, inspector, checked_qty, passed_qty, failed_qty
   ('QC-0005', 'WO-0005', 'EMP-0006', 15, 13, 2,  'wrong label',  'rework', '2026-11-08 16:20:00+00');
 
 SELECT setval('qc_checks_seq', 5);
+
+-- Work Order Materials: 25 seed rows copying BOM requirements for WO-0001..WO-0005 [ERP3-B3]
+-- WO-0001: 50 units of BOM-0001 (planned, 0 issued)
+INSERT INTO work_order_materials (id, wo_id, component_sku, required_qty, issued_qty) VALUES
+  ('WOM-0001', 'WO-0001', 'SKU-0101', 50, 0),
+  ('WOM-0002', 'WO-0001', 'SKU-0102', 50, 0),
+  ('WOM-0003', 'WO-0001', 'SKU-0103', 50, 0),
+  ('WOM-0004', 'WO-0001', 'SKU-0104', 50, 0),
+  ('WOM-0005', 'WO-0001', 'SKU-0105', 50, 0);
+
+-- WO-0002: 25 units of BOM-0001 (in_progress, 25 issued)
+INSERT INTO work_order_materials (id, wo_id, component_sku, required_qty, issued_qty) VALUES
+  ('WOM-0006', 'WO-0002', 'SKU-0101', 25, 25),
+  ('WOM-0007', 'WO-0002', 'SKU-0102', 25, 25),
+  ('WOM-0008', 'WO-0002', 'SKU-0103', 25, 25),
+  ('WOM-0009', 'WO-0002', 'SKU-0104', 25, 25),
+  ('WOM-0010', 'WO-0002', 'SKU-0105', 25, 25);
+
+-- WO-0003: 30 units of BOM-0002 (completed, 30 issued)
+INSERT INTO work_order_materials (id, wo_id, component_sku, required_qty, issued_qty) VALUES
+  ('WOM-0011', 'WO-0003', 'SKU-0101', 30, 30),
+  ('WOM-0012', 'WO-0003', 'SKU-0102', 30, 30),
+  ('WOM-0013', 'WO-0003', 'SKU-0103', 30, 30),
+  ('WOM-0014', 'WO-0003', 'SKU-0104', 30, 30),
+  ('WOM-0015', 'WO-0003', 'SKU-0105', 30, 30);
+
+-- WO-0004: 10 units of BOM-0001 (cancelled, 0 issued)
+INSERT INTO work_order_materials (id, wo_id, component_sku, required_qty, issued_qty) VALUES
+  ('WOM-0016', 'WO-0004', 'SKU-0101', 10, 0),
+  ('WOM-0017', 'WO-0004', 'SKU-0102', 10, 0),
+  ('WOM-0018', 'WO-0004', 'SKU-0103', 10, 0),
+  ('WOM-0019', 'WO-0004', 'SKU-0104', 10, 0),
+  ('WOM-0020', 'WO-0004', 'SKU-0105', 10, 0);
+
+-- WO-0005: 15 units of BOM-0002 (shortage, 0 issued)
+INSERT INTO work_order_materials (id, wo_id, component_sku, required_qty, issued_qty) VALUES
+  ('WOM-0021', 'WO-0005', 'SKU-0101', 15, 0),
+  ('WOM-0022', 'WO-0005', 'SKU-0102', 15, 0),
+  ('WOM-0023', 'WO-0005', 'SKU-0103', 15, 0),
+  ('WOM-0024', 'WO-0005', 'SKU-0104', 15, 0),
+  ('WOM-0025', 'WO-0005', 'SKU-0105', 15, 0);
+
+SELECT setval('work_order_materials_seq', 25);
