@@ -14,6 +14,10 @@ const PRIORITIES = ['low', 'medium', 'high'];
 const CUSTOMER_ID = /^CUST-\d{4}$/;
 const EMPLOYEE_ID = /^EMP-\d{4}$/;
 
+// [CRM2-A3] SLA: hours allowed to resolve a ticket, by priority
+const SLA_HOURS = { high: 4, medium: 24, low: 72 };
+const MAX_COMMENT_LENGTH = 2000;
+
 // Every ticket route needs a logged-in user
 router.use('/tickets', requireAuth);
 
@@ -76,7 +80,20 @@ router.get('/tickets', async (req, res, next) => {
   }
 });
 
-// (CRM2-A3 will add GET /api/tickets/overdue here, before the :id route)
+// [CRM2-A3] GET /api/tickets/overdue  -> past due and not resolved/closed, most overdue first
+// (registered before /tickets/:id so "overdue" is not read as a ticket ID)
+router.get('/tickets/overdue', async (req, res, next) => {
+  try {
+    const result = await pool.query(
+      `SELECT * FROM tickets
+        WHERE due_at < now() AND status NOT IN ('resolved', 'closed')
+        ORDER BY due_at ASC`
+    );
+    res.json({ data: result.rows });
+  } catch (err) {
+    next(err);
+  }
+});
 
 // GET /api/tickets/:id  -> one ticket
 router.get('/tickets/:id', async (req, res, next) => {
@@ -98,10 +115,11 @@ router.post('/tickets', async (req, res, next) => {
     const problem = validateTicket(body, true);
     if (problem) return res.status(400).json({ error: problem });
 
-    // SLA: CRM2-A3 will set due_at here from the priority (high 4h, medium 24h, low 72h)
+    // [CRM2-A3] SLA: due_at = created_at + 4 h (high), 24 h (medium), 72 h (low)
+    const priority = body.priority || 'medium';
     const result = await pool.query(
-      `INSERT INTO tickets (customer_id, customer_name, serial_number, subject, description, priority, assigned_to)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)
+      `INSERT INTO tickets (customer_id, customer_name, serial_number, subject, description, priority, assigned_to, created_at, due_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, now(), now() + make_interval(hours => $8))
        RETURNING *`,
       [
         String(body.customer_id).trim(),
@@ -109,8 +127,9 @@ router.post('/tickets', async (req, res, next) => {
         emptyToNull(body.serial_number),
         String(body.subject).trim(),
         emptyToNull(body.description),
-        body.priority || 'medium',
-        emptyToNull(body.assigned_to)
+        priority,
+        emptyToNull(body.assigned_to),
+        SLA_HOURS[priority]
       ]
     );
     const ticket = result.rows[0];
@@ -159,6 +178,11 @@ router.put('/tickets/:id', async (req, res, next) => {
     if (sets.length === 0) {
       return res.status(400).json({ error: `Send at least one of: ${editable.join(', ')}` });
     }
+    // [CRM2-A3] A new priority means a new SLA: due_at = created_at + hours for that priority
+    if (body.priority !== undefined) {
+      values.push(SLA_HOURS[body.priority]);
+      sets.push(`due_at = created_at + make_interval(hours => $${values.length})`);
+    }
 
     values.push(req.params.id);
     const result = await pool.query(
@@ -199,6 +223,53 @@ router.patch('/tickets/:id/status', async (req, res, next) => {
       return res.status(404).json({ error: `Ticket ${req.params.id} not found` });
     }
     res.json({ data: result.rows[0] });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ---------- [CRM2-A3] Ticket comments ----------
+
+// GET /api/tickets/:id/comments  -> comments on one ticket, oldest first
+router.get('/tickets/:id/comments', async (req, res, next) => {
+  try {
+    const ticket = await pool.query('SELECT id FROM tickets WHERE id = $1', [req.params.id]);
+    if (ticket.rows.length === 0) {
+      return res.status(404).json({ error: `Ticket ${req.params.id} not found` });
+    }
+    const result = await pool.query(
+      'SELECT * FROM ticket_comments WHERE ticket_id = $1 ORDER BY created_at ASC, id ASC',
+      [req.params.id]
+    );
+    res.json({ data: result.rows });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /api/tickets/:id/comments  body { text }
+// The author is always the logged-in user's name (never taken from the request body).
+router.post('/tickets/:id/comments', async (req, res, next) => {
+  try {
+    const text = String((req.body || {}).text || '').trim();
+    if (!text) {
+      return res.status(400).json({ error: 'Comment text is required' });
+    }
+    if (text.length > MAX_COMMENT_LENGTH) {
+      return res.status(400).json({ error: `Comment must be ${MAX_COMMENT_LENGTH} characters or fewer` });
+    }
+
+    const ticket = await pool.query('SELECT id FROM tickets WHERE id = $1', [req.params.id]);
+    if (ticket.rows.length === 0) {
+      return res.status(404).json({ error: `Ticket ${req.params.id} not found` });
+    }
+
+    const author = (req.user && req.user.name) || 'Unknown user';
+    const result = await pool.query(
+      'INSERT INTO ticket_comments (ticket_id, author, text) VALUES ($1, $2, $3) RETURNING *',
+      [req.params.id, author, text]
+    );
+    res.status(201).json({ data: result.rows[0] });
   } catch (err) {
     next(err);
   }

@@ -6,6 +6,7 @@ import {
   STATUSES,
   StatusBadge,
   PriorityBadge,
+  SlaBadge,
   prettyLabel,
   loadEngineers,
   engineerName,
@@ -22,7 +23,13 @@ export default function TicketDetailPage() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
 
-  // Load the ticket, and the engineer list for the "Assigned to" dropdown
+  // [CRM2-A3] comments
+  const [comments, setComments] = useState([]);
+  const [commentsError, setCommentsError] = useState('');
+  const [newComment, setNewComment] = useState('');
+  const [posting, setPosting] = useState(false);
+
+  // Load the ticket, its comments, and the engineer list for the "Assigned to" dropdown
   useEffect(() => {
     setLoading(true);
     setError('');
@@ -30,8 +37,28 @@ export default function TicketDetailPage() {
       .then(setTicket)
       .catch(err => setError(err.message))
       .finally(() => setLoading(false));
+    api('crm2', `/api/tickets/${id}/comments`)
+      .then(rows => setComments(Array.isArray(rows) ? rows : []))
+      .catch(err => setCommentsError(err.message));
     loadEngineers().then(setEngineers);
   }, [id]);
+
+  // [CRM2-A3] Add a comment; the server fills the author from the logged-in user
+  async function addComment(e) {
+    e.preventDefault();
+    if (!newComment.trim()) return setCommentsError('Please write a comment first.');
+    setPosting(true);
+    setCommentsError('');
+    try {
+      const created = await api('crm2', `/api/tickets/${id}/comments`, { method: 'POST', body: { text: newComment } });
+      setComments(prev => [...prev, created]);
+      setNewComment('');
+    } catch (err) {
+      setCommentsError(err.message);
+    } finally {
+      setPosting(false);
+    }
+  }
 
   // Status dropdown: saves straight away with PATCH /api/tickets/:id/status
   async function changeStatus(newStatus) {
@@ -98,6 +125,7 @@ export default function TicketDetailPage() {
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
             <h2>{ticket.id}</h2>
             <StatusBadge status={ticket.status} />
+            <SlaBadge ticket={ticket} />
           </div>
           <p style={{ fontSize: '1.05rem', marginTop: '0.25rem' }}>{ticket.subject}</p>
         </div>
@@ -146,6 +174,37 @@ export default function TicketDetailPage() {
         <p style={{ whiteSpace: 'pre-wrap', color: ticket.description ? '#0f172a' : '#64748b' }}>
           {ticket.description || 'No description.'}
         </p>
+      </div>
+
+      {/* [CRM2-A3] Comments */}
+      <div style={styles.card}>
+        <h3 style={{ marginBottom: '0.75rem' }}>Comments ({comments.length})</h3>
+        {comments.length === 0 ? (
+          <p style={styles.muted}>No comments yet.</p>
+        ) : (
+          comments.map(c => (
+            <div key={c.id} style={{ borderBottom: '1px solid #e2e8f0', padding: '0.6rem 0' }}>
+              <div style={{ fontSize: '0.8rem', color: '#64748b' }}>
+                <strong style={{ color: '#0f172a' }}>{c.author}</strong> · {formatDateTime(c.created_at)}
+              </div>
+              <p style={{ whiteSpace: 'pre-wrap', marginTop: '0.25rem' }}>{c.text}</p>
+            </div>
+          ))
+        )}
+        <form onSubmit={addComment} style={{ marginTop: '1rem' }}>
+          {commentsError && <div style={styles.error}>{commentsError}</div>}
+          <textarea
+            value={newComment}
+            onChange={e => setNewComment(e.target.value)}
+            rows={3}
+            maxLength={2000}
+            placeholder="Add a note for the team…"
+            style={styles.input}
+          />
+          <button type="submit" className="btn" disabled={posting} style={{ marginTop: '0.5rem' }}>
+            {posting ? 'Adding…' : 'Add comment'}
+          </button>
+        </form>
       </div>
     </div>
   );
