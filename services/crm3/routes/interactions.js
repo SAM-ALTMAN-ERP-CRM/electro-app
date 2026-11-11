@@ -184,6 +184,165 @@ async function listInteractions(req, res, next, fixedCustomerId = null) {
 }
 
 /**
+ * Persists a validated interaction record in PostgreSQL or in-memory fallback.
+ */
+async function createInteractionRecord({
+  customerId,
+  type,
+  summary,
+  sourceTeam,
+  createdBy,
+  createdAt
+}) {
+  const seqRes = await safeQuery("SELECT nextval('interactions_seq') AS n");
+  const nextNum = seqRes?.rows?.[0]?.n || nextInteractionSeq++;
+  const interactionId = `INT-${String(nextNum).padStart(4, '0')}`;
+
+  try {
+    const insertRes = await safeQuery(
+      `INSERT INTO interactions (id, customer_id, type, summary, source_team, created_by, created_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
+       RETURNING id, customer_id, type, summary, source_team, created_by, created_at`,
+      [interactionId, customerId, type, summary, sourceTeam, createdBy, createdAt]
+    );
+
+    if (insertRes && insertRes.rows.length > 0) {
+      return { record: insertRes.rows[0] };
+    }
+  } catch (dbErr) {
+    if (dbErr.code === '23503') {
+      return { notFoundError: `Customer '${customerId}' not found` };
+    }
+    throw dbErr;
+  }
+
+  const newInteraction = {
+    id: interactionId,
+    customer_id: customerId,
+    type,
+    summary,
+    source_team: sourceTeam,
+    created_by: createdBy,
+    created_at: createdAt
+  };
+  memoryInteractions.unshift(newInteraction);
+  return { record: newInteraction };
+}
+
+/**
+ * Finds an exact matching cross-team event recorded within the same minute (60s window
+ * or current calendar minute) so retries from other teams stay idempotent.
+ */
+async function findRecentDuplicateEvent({ customerId, type, summary, sourceTeam }) {
+  const dupRes = await safeQuery(
+    `SELECT id, customer_id, type, summary, source_team, created_by, created_at
+     FROM interactions
+     WHERE LOWER(customer_id) = LOWER($1)
+       AND LOWER(type) = LOWER($2)
+       AND summary = $3
+       AND LOWER(source_team) = LOWER($4)
+       AND (
+         created_at >= NOW() - INTERVAL '1 minute'
+         OR date_trunc('minute', created_at) = date_trunc('minute', NOW())
+       )
+     ORDER BY created_at DESC
+     LIMIT 1`,
+    [customerId, type, summary, sourceTeam]
+  );
+
+  if (dupRes) {
+    return dupRes.rows[0] || null;
+  }
+
+  const nowMs = Date.now();
+  const oneMinuteAgoMs = nowMs - 60 * 1000;
+  const currentMinutePrefix = new Date(nowMs).toISOString().slice(0, 16);
+
+  return (
+    memoryInteractions.find((item) => {
+      const itemTime = new Date(item.created_at).getTime();
+      const itemMinutePrefix = new Date(item.created_at).toISOString().slice(0, 16);
+      const sameMinuteWindow = itemTime >= oneMinuteAgoMs || itemMinutePrefix === currentMinutePrefix;
+
+      return (
+        sameMinuteWindow &&
+        item.customer_id.toLowerCase() === customerId.toLowerCase() &&
+        item.type.toLowerCase() === type &&
+        item.summary === summary &&
+        item.source_team.toLowerCase() === sourceTeam.toLowerCase()
+      );
+    }) || null
+  );
+}
+
+/**
+ * POST /api/interactions/from-event
+ * Receives cross-team timeline events from CRM-1, CRM-2, CRM-4, ERP-4, etc.
+ * Ignores exact duplicates sent within the same minute and returns 201.
+ */
+router.post('/interactions/from-event', async (req, res, next) => {
+  try {
+    const { customer_id, type, summary, source_team } = req.body || {};
+
+    if (!customer_id || typeof customer_id !== 'string' || !customer_id.trim()) {
+      return res.status(400).json({ error: 'customer_id is required' });
+    }
+
+    const normalizedType = type ? String(type).trim().toLowerCase() : '';
+    if (!normalizedType || !ALLOWED_TYPES.includes(normalizedType)) {
+      return res.status(400).json({
+        error: `type is required and must be one of: ${ALLOWED_TYPES.join(', ')}`
+      });
+    }
+
+    if (!summary || typeof summary !== 'string' || !summary.trim()) {
+      return res.status(400).json({ error: 'summary is required' });
+    }
+
+    if (!source_team || typeof source_team !== 'string' || !source_team.trim()) {
+      return res.status(400).json({ error: 'source_team is required' });
+    }
+
+    const cleanCustomerId = customer_id.trim();
+    const cleanSummary = summary.trim();
+    const cleanSourceTeam = source_team.trim();
+
+    const duplicate = await findRecentDuplicateEvent({
+      customerId: cleanCustomerId,
+      type: normalizedType,
+      summary: cleanSummary,
+      sourceTeam: cleanSourceTeam
+    });
+
+    if (duplicate) {
+      return res.status(201).json({
+        data: duplicate,
+        duplicate: true,
+        message: 'Duplicate event ignored (exact duplicate sent within the same minute)'
+      });
+    }
+
+    const createdBy = req.user?.employee_id || req.user?.email || req.user?.id || cleanSourceTeam;
+    const { record, notFoundError } = await createInteractionRecord({
+      customerId: cleanCustomerId,
+      type: normalizedType,
+      summary: cleanSummary,
+      sourceTeam: cleanSourceTeam,
+      createdBy,
+      createdAt: new Date().toISOString()
+    });
+
+    if (notFoundError) {
+      return res.status(404).json({ error: notFoundError });
+    }
+
+    return res.status(201).json({ data: record });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
  * GET /api/customers/:id/interactions
  * Returns customer timeline interactions newest first with ?type= and ?from=&to= filters.
  */
@@ -272,7 +431,6 @@ router.post('/interactions', async (req, res, next) => {
     }
 
     const cleanCustomerId = customer_id.trim();
-    const cleanSummary = summary.trim();
     const resolvedSourceTeam =
       source_team && typeof source_team === 'string' && source_team.trim()
         ? source_team.trim()
@@ -282,48 +440,20 @@ router.post('/interactions', async (req, res, next) => {
         ? created_by.trim()
         : req.user?.employee_id || req.user?.email || req.user?.id || 'EMP-0001';
 
-    const seqRes = await safeQuery("SELECT nextval('interactions_seq') AS n");
-    const nextNum = seqRes?.rows?.[0]?.n || nextInteractionSeq++;
-    const interactionId = `INT-${String(nextNum).padStart(4, '0')}`;
+    const { record, notFoundError } = await createInteractionRecord({
+      customerId: cleanCustomerId,
+      type: normalizedType,
+      summary: summary.trim(),
+      sourceTeam: resolvedSourceTeam,
+      createdBy: resolvedCreatedBy,
+      createdAt: resolvedCreatedAt
+    });
 
-    try {
-      const insertRes = await safeQuery(
-        `INSERT INTO interactions (id, customer_id, type, summary, source_team, created_by, created_at)
-         VALUES ($1, $2, $3, $4, $5, $6, $7)
-         RETURNING id, customer_id, type, summary, source_team, created_by, created_at`,
-        [
-          interactionId,
-          cleanCustomerId,
-          normalizedType,
-          cleanSummary,
-          resolvedSourceTeam,
-          resolvedCreatedBy,
-          resolvedCreatedAt
-        ]
-      );
-
-      if (insertRes && insertRes.rows.length > 0) {
-        return res.status(201).json({ data: insertRes.rows[0] });
-      }
-    } catch (dbErr) {
-      if (dbErr.code === '23503') {
-        return res.status(404).json({ error: `Customer '${cleanCustomerId}' not found` });
-      }
-      throw dbErr;
+    if (notFoundError) {
+      return res.status(404).json({ error: notFoundError });
     }
 
-    const newInteraction = {
-      id: interactionId,
-      customer_id: cleanCustomerId,
-      type: normalizedType,
-      summary: cleanSummary,
-      source_team: resolvedSourceTeam,
-      created_by: resolvedCreatedBy,
-      created_at: resolvedCreatedAt
-    };
-
-    memoryInteractions.unshift(newInteraction);
-    return res.status(201).json({ data: newInteraction });
+    return res.status(201).json({ data: record });
   } catch (err) {
     next(err);
   }
