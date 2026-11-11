@@ -1,5 +1,7 @@
 import React from 'react';
 import CustomersPage from './pages/CustomersPage';
+import CustomerDetailPage from './pages/CustomerDetailPage';
+import CustomerTimeline from './pages/CustomerTimeline';
 import SegmentsPage from './pages/SegmentsPage';
 import SegmentDetailPage from './pages/SegmentDetailPage';
 
@@ -12,6 +14,14 @@ export default {
       path: '',
       label: 'Customers',
       element: <CustomersPage />
+    },
+    {
+      path: 'customers/:id',
+      element: <CustomerDetailPage />
+    },
+    {
+      path: 'customers/:id/timeline',
+      element: <CustomerTimeline />
     },
     {
       path: 'segments',
