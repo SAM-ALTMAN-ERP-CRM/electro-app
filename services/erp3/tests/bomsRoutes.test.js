@@ -285,4 +285,147 @@ describe('ERP3 BOM Routes [ERP3-A1]', () => {
 
   });
 
+  // ── GET /api/boms/:id/requirements [ERP3-A3] ────────────────────────────────
+  describe('GET /api/boms/:id/requirements [ERP3-A3]', () => {
+
+    it('returns scaled requirements and shortage detection for 20 units', async () => {
+      const id = bomStore[0]?.id;
+      assert.ok(id, 'BOM must exist in store');
+
+      const res = await dispatch(bomsRouter, {
+        method: 'GET',
+        url: `/boms/${id}/requirements`,
+        query: { qty: '20' }
+      });
+
+      assert.equal(res.status, 200);
+      assert.ok(res.body.data, 'response should contain data');
+      assert.equal(res.body.data.target_qty, 20);
+      assert.equal(res.body.data.items.length, 5);
+
+      // Verify scaling for all components
+      res.body.data.items.forEach(item => {
+        assert.equal(item.required_qty, 20, `required_qty for ${item.component_sku} should be 20`);
+      });
+
+      // Verify that SKU-0102 has shortfall under 20-unit demand per issue spec
+      const mainBoard = res.body.data.items.find(i => i.component_sku === 'SKU-0102');
+      assert.ok(mainBoard, 'SKU-0102 must be in component list');
+      assert.equal(mainBoard.available, false, 'SKU-0102 should have available=false for 20 units');
+      assert.equal(mainBoard.shortfall, 8, 'shortfall for SKU-0102 should be 8 units (20 required - 12 available)');
+
+      // Other components should be available
+      const panel = res.body.data.items.find(i => i.component_sku === 'SKU-0101');
+      assert.ok(panel, 'SKU-0101 must be in component list');
+      assert.equal(panel.available, true, 'SKU-0101 should be available');
+      assert.equal(panel.shortfall, 0);
+    });
+
+    it('returns requirements scaling to 1 unit where all components are available', async () => {
+      const id = bomStore[0]?.id;
+      const res = await dispatch(bomsRouter, {
+        method: 'GET',
+        url: `/boms/${id}/requirements`,
+        query: { qty: '1' }
+      });
+
+      assert.equal(res.status, 200);
+      assert.equal(res.body.data.target_qty, 1);
+      res.body.data.items.forEach(item => {
+        assert.equal(item.required_qty, 1);
+        assert.equal(item.available, true);
+        assert.equal(item.shortfall, 0);
+      });
+    });
+
+    it('returns 400 when qty query param is negative or zero', async () => {
+      const id = bomStore[0]?.id;
+      const res = await dispatch(bomsRouter, {
+        method: 'GET',
+        url: `/boms/${id}/requirements`,
+        query: { qty: '-5' }
+      });
+      assert.equal(res.status, 400);
+      assert.ok(res.body.error);
+    });
+
+    it('returns 400 when qty query param is non-numeric', async () => {
+      const id = bomStore[0]?.id;
+      const res = await dispatch(bomsRouter, {
+        method: 'GET',
+        url: `/boms/${id}/requirements`,
+        query: { qty: 'abc' }
+      });
+      assert.equal(res.status, 400);
+      assert.ok(res.body.error);
+    });
+
+    it('returns 404 when BOM does not exist', async () => {
+      const res = await dispatch(bomsRouter, {
+        method: 'GET',
+        url: '/boms/BOM-9999/requirements',
+        query: { qty: '10' }
+      });
+      assert.equal(res.status, 404);
+      assert.ok(res.body.error);
+    });
+
+  });
+
+  // ── POST /api/boms/:id/purchase-request [ERP3-A3] ───────────────────────────
+  describe('POST /api/boms/:id/purchase-request [ERP3-A3]', () => {
+
+    it('creates a shortage purchase request and returns 201', async () => {
+      const id = bomStore[0]?.id;
+      const res = await dispatch(bomsRouter, {
+        method: 'POST',
+        url: `/boms/${id}/purchase-request`,
+        body: {
+          sku: 'SKU-0102',
+          product_name: 'Main Board',
+          quantity: 8,
+          requested_by: 'ERP-3 production',
+          reason: 'Work order shortage'
+        }
+      });
+
+      assert.equal(res.status, 201);
+      assert.ok(res.body.data, 'response should have data');
+      assert.equal(res.body.data.sku, 'SKU-0102');
+      assert.equal(res.body.data.quantity, 8);
+      assert.equal(res.body.data.requested_by, 'ERP-3 production');
+      assert.equal(res.body.data.status, 'pending');
+    });
+
+    it('returns 400 when sku is missing', async () => {
+      const id = bomStore[0]?.id;
+      const res = await dispatch(bomsRouter, {
+        method: 'POST',
+        url: `/boms/${id}/purchase-request`,
+        body: {
+          product_name: 'Main Board',
+          quantity: 8
+        }
+      });
+      assert.equal(res.status, 400);
+      assert.ok(res.body.error);
+    });
+
+    it('returns 400 when quantity is zero or negative', async () => {
+      const id = bomStore[0]?.id;
+      const res = await dispatch(bomsRouter, {
+        method: 'POST',
+        url: `/boms/${id}/purchase-request`,
+        body: {
+          sku: 'SKU-0102',
+          product_name: 'Main Board',
+          quantity: 0
+        }
+      });
+      assert.equal(res.status, 400);
+      assert.ok(res.body.error);
+    });
+
+  });
+
 });
