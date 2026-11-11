@@ -106,6 +106,9 @@ router.get('/customers', async (req, res, next) => {
 router.get('/customers/:id', async (req, res, next) => {
   try {
     const { id } = req.params;
+    if (id === 'duplicates' || id === 'merge') {
+      return next();
+    }
     const pgResult = await safeQuery(
       `SELECT id, name, type, email, phone, gstin, billing_address, shipping_address, city, created_at
        FROM customers

@@ -39,9 +39,34 @@ CREATE TABLE IF NOT EXISTS segments (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Member B (CRM3-B1): Interactions sequence and table
+CREATE SEQUENCE IF NOT EXISTS interactions_seq START WITH 1;
+
+CREATE TABLE IF NOT EXISTS interactions (
+  id VARCHAR(20) PRIMARY KEY DEFAULT ('INT-' || LPAD(nextval('interactions_seq')::TEXT, 4, '0')),
+  customer_id VARCHAR(20) NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
+  type VARCHAR(50) NOT NULL CHECK (type IN ('call', 'email', 'meeting', 'ticket', 'order', 'note')),
+  summary TEXT NOT NULL,
+  source_team VARCHAR(20) NOT NULL DEFAULT 'CRM-3',
+  created_by VARCHAR(100) DEFAULT 'EMP-0001',
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Member C (CRM3-C3) & Member D (CRM3-D1): Customer Tags table
+CREATE TABLE IF NOT EXISTS customer_tags (
+  customer_id VARCHAR(20) NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
+  tag VARCHAR(100) NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (customer_id, tag)
+);
+
 CREATE INDEX IF NOT EXISTS idx_customers_type ON customers(type);
 CREATE INDEX IF NOT EXISTS idx_customers_city ON customers(city);
+CREATE INDEX IF NOT EXISTS idx_customers_phone ON customers(phone);
 CREATE INDEX IF NOT EXISTS idx_customers_email ON customers(email);
 CREATE INDEX IF NOT EXISTS idx_contacts_customer_id ON contacts(customer_id);
 CREATE INDEX IF NOT EXISTS idx_segments_customer_type ON segments(customer_type);
 CREATE INDEX IF NOT EXISTS idx_segments_city ON segments(city);
+CREATE INDEX IF NOT EXISTS idx_interactions_customer_id ON interactions(customer_id);
+CREATE INDEX IF NOT EXISTS idx_customer_tags_customer_id ON customer_tags(customer_id);
+CREATE INDEX IF NOT EXISTS idx_customer_tags_tag ON customer_tags(tag);

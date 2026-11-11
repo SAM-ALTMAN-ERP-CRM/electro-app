@@ -114,14 +114,17 @@ describe('CRM3 Customers HTTP Routes Integration Tests', () => {
   });
 
   it('creates customer successfully when all validation rules pass', async () => {
+    const timestamp = Date.now();
+    const uniqueEmail = `valid.retail.${timestamp}@example.com`;
+    const uniquePhone = `98${timestamp.toString().slice(-8)}`;
     const res = await dispatch(customersRouter, {
       method: 'POST',
       url: '/customers',
       body: {
         name: 'Valid Retail Customer',
         type: 'retail',
-        email: 'valid.retail@example.com',
-        phone: '9876543210',
+        email: uniqueEmail,
+        phone: uniquePhone,
         billing_address: '123 Market St',
         shipping_address: '123 Market St',
         city: 'Mumbai'
@@ -131,7 +134,7 @@ describe('CRM3 Customers HTTP Routes Integration Tests', () => {
     assert.ok(res.body.data);
     assert.ok(res.body.data.id.startsWith('CUST-'));
     assert.equal(res.body.data.name, 'Valid Retail Customer');
-    assert.equal(res.body.data.email, 'valid.retail@example.com');
+    assert.equal(res.body.data.email, uniqueEmail);
   });
 
   it('validates customer payload via POST /customers/validate without saving', async () => {

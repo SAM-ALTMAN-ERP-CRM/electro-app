@@ -58,7 +58,41 @@ ON CONFLICT (id) DO UPDATE SET
   customer_type = EXCLUDED.customer_type,
   city = EXCLUDED.city;
 
+-- Member B (CRM3-B1): Seed sample interactions across customers
+INSERT INTO interactions (id, customer_id, type, summary, source_team, created_by, created_at)
+VALUES
+  ('INT-0001', 'CUST-0001', 'call', 'Initial discovery call for retail electronics catalog', 'CRM-3', 'EMP-0001', NOW() - INTERVAL '5 days'),
+  ('INT-0002', 'CUST-0001', 'email', 'Product brochure sent for 55-inch 4K Smart TV', 'CRM-3', 'EMP-0001', NOW() - INTERVAL '3 days'),
+  ('INT-0003', 'CUST-0002', 'meeting', 'Commercial terms review for Q4 corporate procurement', 'CRM-3', 'EMP-0002', NOW() - INTERVAL '4 days'),
+  ('INT-0004', 'CUST-0009', 'call', 'Branch enquiry regarding bulk order discount', 'CRM-3', 'EMP-0001', NOW() - INTERVAL '2 days'),
+  ('INT-0005', 'CUST-0010', 'email', 'Branch procurement requirements follow-up', 'CRM-3', 'EMP-0002', NOW() - INTERVAL '1 day')
+ON CONFLICT (id) DO UPDATE SET
+  customer_id = EXCLUDED.customer_id,
+  type = EXCLUDED.type,
+  summary = EXCLUDED.summary,
+  source_team = EXCLUDED.source_team,
+  created_by = EXCLUDED.created_by,
+  created_at = EXCLUDED.created_at;
+
+-- Member C (CRM3-C3) & Member D (CRM3-D1): Seed customer tags
+-- Includes duplicate tag 'Priority Support' for CUST-0001 and CUST-0009 to test merge tag deduplication
+-- Includes duplicate tag 'High Value' for CUST-0002 and CUST-0010 to test merge tag deduplication
+INSERT INTO customer_tags (customer_id, tag)
+VALUES
+  ('CUST-0001', 'VIP'),
+  ('CUST-0001', 'Priority Support'),
+  ('CUST-0009', 'Priority Support'),
+  ('CUST-0009', 'Branch Customer'),
+  ('CUST-0002', 'Corporate Account'),
+  ('CUST-0002', 'High Value'),
+  ('CUST-0010', 'High Value'),
+  ('CUST-0010', 'Regional Branch'),
+  ('CUST-0003', 'Loyal'),
+  ('CUST-0004', 'Tier 1 Dealer')
+ON CONFLICT (customer_id, tag) DO NOTHING;
+
 -- Advance sequences
 SELECT setval('customers_seq', (SELECT COALESCE(MAX(CAST(SUBSTRING(id FROM 6) AS INTEGER)), 0) FROM customers));
 SELECT setval('contacts_seq', (SELECT COALESCE(MAX(CAST(SUBSTRING(id FROM 5) AS INTEGER)), 0) FROM contacts));
 SELECT setval('segment_id_seq', (SELECT COALESCE(MAX(CAST(SUBSTRING(id FROM 5) AS INTEGER)), 0) FROM segments));
+SELECT setval('interactions_seq', (SELECT COALESCE(MAX(CAST(SUBSTRING(id FROM 5) AS INTEGER)), 0) FROM interactions));
