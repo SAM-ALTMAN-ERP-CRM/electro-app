@@ -1,0 +1,37 @@
+[
+  {
+    "id": "MI-0001",
+    "wo_id": "WO-0002",
+    "component_sku": "SKU-0101",
+    "qty": 25,
+    "issued_at": "2026-11-05T10:00:00.000Z"
+  },
+  {
+    "id": "MI-0002",
+    "wo_id": "WO-0002",
+    "component_sku": "SKU-0102",
+    "qty": 25,
+    "issued_at": "2026-11-05T10:05:00.000Z"
+  },
+  {
+    "id": "MI-0003",
+    "wo_id": "WO-0002",
+    "component_sku": "SKU-0103",
+    "qty": 25,
+    "issued_at": "2026-11-05T10:10:00.000Z"
+  },
+  {
+    "id": "MI-0004",
+    "wo_id": "WO-0003",
+    "component_sku": "SKU-0101",
+    "qty": 30,
+    "issued_at": "2026-10-20T09:00:00.000Z"
+  },
+  {
+    "id": "MI-0005",
+    "wo_id": "WO-0003",
+    "component_sku": "SKU-0102",
+    "qty": 30,
+    "issued_at": "2026-10-20T09:05:00.000Z"
+  }
+]

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import { api } from '../../../api';
 
 // Realistic Section 5 seed work orders for offline/fallback mode
@@ -654,8 +655,14 @@ export default function WorkOrdersPage() {
                 return (
                   <tr key={wo.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                     {/* Order ID */}
-                    <td style={{ padding: '0.75rem 1rem', fontFamily: 'monospace', fontWeight: 700, color: '#0f172a' }}>
-                      {wo.id}
+                    <td style={{ padding: '0.75rem 1rem', fontFamily: 'monospace', fontWeight: 700 }}>
+                      <Link
+                        to={`/erp3/work-orders/${wo.id}`}
+                        style={{ color: '#2563eb', textDecoration: 'none' }}
+                        title="View work order and materials detail"
+                      >
+                        {wo.id}
+                      </Link>
                     </td>
 
                     {/* BOM & SKU */}
@@ -695,57 +702,68 @@ export default function WorkOrdersPage() {
                       )}
                     </td>
 
-                    {/* Action Buttons: Start / Complete / Cancel */}
+                    {/* Action Buttons: View / Start / Complete / Cancel */}
                     <td style={{ padding: '0.75rem 1rem', textAlign: 'center' }}>
-                      {s === 'planned' && (
-                        <div style={{ display: 'inline-flex', gap: '0.4rem' }}>
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
+                        <Link
+                          to={`/erp3/work-orders/${wo.id}`}
+                          className="btn"
+                          style={{ background: '#f8fafc', color: '#334155', border: '1px solid #cbd5e1', padding: '0.3rem 0.65rem', fontSize: '0.75rem', textDecoration: 'none' }}
+                          title="View work order details and BOM materials"
+                        >
+                          View
+                        </Link>
+
+                        {s === 'planned' && (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => handleTransition(wo.id, 'in_progress')}
+                              disabled={isWorking}
+                              className="btn btn-primary"
+                              style={{ padding: '0.3rem 0.65rem', fontSize: '0.75rem' }}
+                              title="Start Work Order execution"
+                            >
+                              {isWorking ? '...' : 'Start'}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleTransition(wo.id, 'cancelled')}
+                              disabled={isWorking}
+                              className="btn"
+                              style={{ background: '#fee2e2', color: '#b91c1c', border: '1px solid #fca5a5', padding: '0.3rem 0.65rem', fontSize: '0.75rem' }}
+                              title="Cancel Work Order (allowed only from planned)"
+                            >
+                              {isWorking ? '...' : 'Cancel'}
+                            </button>
+                          </>
+                        )}
+
+                        {s === 'in_progress' && (
                           <button
                             type="button"
-                            onClick={() => handleTransition(wo.id, 'in_progress')}
-                            disabled={isWorking}
-                            className="btn btn-primary"
-                            style={{ padding: '0.3rem 0.65rem', fontSize: '0.75rem' }}
-                            title="Start Work Order execution"
-                          >
-                            {isWorking ? '...' : 'Start'}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleTransition(wo.id, 'cancelled')}
+                            onClick={() => handleTransition(wo.id, 'completed')}
                             disabled={isWorking}
                             className="btn"
-                            style={{ background: '#fee2e2', color: '#b91c1c', border: '1px solid #fca5a5', padding: '0.3rem 0.65rem', fontSize: '0.75rem' }}
-                            title="Cancel Work Order (allowed only from planned)"
+                            style={{ background: '#16a34a', color: '#ffffff', padding: '0.3rem 0.75rem', fontSize: '0.75rem', fontWeight: 600 }}
+                            title="Complete Work Order assembly"
                           >
-                            {isWorking ? '...' : 'Cancel'}
+                            {isWorking ? '...' : 'Complete'}
                           </button>
-                        </div>
-                      )}
+                        )}
 
-                      {s === 'in_progress' && (
-                        <button
-                          type="button"
-                          onClick={() => handleTransition(wo.id, 'completed')}
-                          disabled={isWorking}
-                          className="btn"
-                          style={{ background: '#16a34a', color: '#ffffff', padding: '0.3rem 0.75rem', fontSize: '0.75rem', fontWeight: 600 }}
-                          title="Complete Work Order assembly"
-                        >
-                          {isWorking ? '...' : 'Complete'}
-                        </button>
-                      )}
+                        {s === 'completed' && (
+                          <span style={{ color: '#15803d', fontSize: '0.8rem', fontWeight: 600 }}>
+                            ✓ Done
+                          </span>
+                        )}
 
-                      {s === 'completed' && (
-                        <span style={{ color: '#15803d', fontSize: '0.8rem', fontWeight: 600 }}>
-                          ✓ Completed
-                        </span>
-                      )}
-
-                      {s === 'cancelled' && (
-                        <span style={{ color: '#94a3b8', fontSize: '0.8rem', fontStyle: 'italic' }}>
-                          Cancelled
-                        </span>
-                      )}
+                        {s === 'cancelled' && (
+                          <span style={{ color: '#94a3b8', fontSize: '0.8rem', fontStyle: 'italic' }}>
+                            Cancelled
+                          </span>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 );

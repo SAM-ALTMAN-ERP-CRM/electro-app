@@ -2,26 +2,87 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { api } from '../../../api';
 
-const DEFAULT_BOM_DATA = {
-  id: 'BOM-0001',
-  product_sku: 'SKU-0001',
-  product_name: '55-Inch LED Smart TV',
-  version: 1,
-  active: true,
-  items: [
-    { component_sku: 'SKU-0101', component_name: 'Display Panel', qty_per_unit: 1 },
-    { component_sku: 'SKU-0102', component_name: 'Main Board', qty_per_unit: 1 },
-    { component_sku: 'SKU-0103', component_name: 'Power Supply Unit', qty_per_unit: 1 },
-    { component_sku: 'SKU-0104', component_name: 'Remote Control', qty_per_unit: 1 },
-    { component_sku: 'SKU-0105', component_name: 'Packaging Box', qty_per_unit: 1 }
-  ]
+// Five realistic seed fallback BOMs adhering to Section 5 shared catalog IDs
+const SEED_BOM_MAP = {
+  'BOM-0001': {
+    id: 'BOM-0001',
+    product_sku: 'SKU-0001',
+    product_name: '55-Inch LED Smart TV',
+    version: 1,
+    active: true,
+    items: [
+      { component_sku: 'SKU-0101', component_name: 'Display Panel', qty_per_unit: 1 },
+      { component_sku: 'SKU-0102', component_name: 'Main Board', qty_per_unit: 1 },
+      { component_sku: 'SKU-0103', component_name: 'Power Supply Unit', qty_per_unit: 1 },
+      { component_sku: 'SKU-0104', component_name: 'Remote Control', qty_per_unit: 1 },
+      { component_sku: 'SKU-0105', component_name: 'Packaging Box', qty_per_unit: 1 }
+    ]
+  },
+  'BOM-0002': {
+    id: 'BOM-0002',
+    product_sku: 'SKU-0003',
+    product_name: '65-Inch OLED Smart TV',
+    version: 1,
+    active: true,
+    items: [
+      { component_sku: 'SKU-0101', component_name: 'OLED Display Panel', qty_per_unit: 1 },
+      { component_sku: 'SKU-0102', component_name: 'Main Board', qty_per_unit: 1 },
+      { component_sku: 'SKU-0103', component_name: 'Power Supply Unit', qty_per_unit: 1 },
+      { component_sku: 'SKU-0104', component_name: 'Remote Control', qty_per_unit: 1 },
+      { component_sku: 'SKU-0105', component_name: 'Packaging Box', qty_per_unit: 1 }
+    ]
+  },
+  'BOM-0003': {
+    id: 'BOM-0003',
+    product_sku: 'SKU-0002',
+    product_name: '43-Inch LED TV',
+    version: 1,
+    active: true,
+    items: [
+      { component_sku: 'SKU-0101', component_name: 'Display Panel Module', qty_per_unit: 1 },
+      { component_sku: 'SKU-0102', component_name: 'Smart TV Mainboard', qty_per_unit: 1 },
+      { component_sku: 'SKU-0103', component_name: 'Power Supply Module', qty_per_unit: 1 },
+      { component_sku: 'SKU-0104', component_name: 'Remote Control', qty_per_unit: 1 },
+      { component_sku: 'SKU-0105', component_name: 'Packaging Box', qty_per_unit: 1 }
+    ]
+  },
+  'BOM-0004': {
+    id: 'BOM-0004',
+    product_sku: 'SKU-0004',
+    product_name: '32-Inch HD LED TV',
+    version: 1,
+    active: true,
+    items: [
+      { component_sku: 'SKU-0101', component_name: 'HD Display Panel', qty_per_unit: 1 },
+      { component_sku: 'SKU-0102', component_name: 'Smart TV Mainboard', qty_per_unit: 1 },
+      { component_sku: 'SKU-0103', component_name: 'Power Supply Module', qty_per_unit: 1 },
+      { component_sku: 'SKU-0104', component_name: 'Remote Control', qty_per_unit: 1 },
+      { component_sku: 'SKU-0105', component_name: 'Packaging Box', qty_per_unit: 1 }
+    ]
+  },
+  'BOM-0005': {
+    id: 'BOM-0005',
+    product_sku: 'SKU-0005',
+    product_name: '75-Inch QLED TV',
+    version: 1,
+    active: true,
+    items: [
+      { component_sku: 'SKU-0101', component_name: 'QLED Display Panel', qty_per_unit: 1 },
+      { component_sku: 'SKU-0102', component_name: 'High-Performance Mainboard', qty_per_unit: 1 },
+      { component_sku: 'SKU-0103', component_name: 'Heavy Duty Power Supply', qty_per_unit: 1 },
+      { component_sku: 'SKU-0104', component_name: 'Voice Remote Control', qty_per_unit: 1 },
+      { component_sku: 'SKU-0105', component_name: 'Reinforced Packaging Box', qty_per_unit: 1 }
+    ]
+  }
 };
 
 export default function BOMDetailPage() {
   const { id } = useParams();
   const bomId = id || 'BOM-0001';
 
-  const [bom, setBom] = useState(DEFAULT_BOM_DATA);
+  // State for loaded BOM header and its items
+  const fallbackBom = SEED_BOM_MAP[bomId] || SEED_BOM_MAP['BOM-0001'];
+  const [bom, setBom] = useState(fallbackBom);
   const [loading, setLoading] = useState(true);
   const [targetQty, setTargetQty] = useState(20);
   const [checking, setChecking] = useState(false);
@@ -32,6 +93,7 @@ export default function BOMDetailPage() {
   const [notification, setNotification] = useState('');
   const [error, setError] = useState('');
 
+  // Fetch BOM details and items from GET /api/boms/:id
   useEffect(() => {
     async function loadBom() {
       try {
@@ -41,7 +103,7 @@ export default function BOMDetailPage() {
           setBom(data);
         }
       } catch (err) {
-        console.info(`Using fallback BOM data for ${bomId}:`, err.message);
+        console.info(`Using seed BOM fallback for ${bomId}:`, err.message);
       } finally {
         setLoading(false);
       }
@@ -49,6 +111,7 @@ export default function BOMDetailPage() {
     loadBom();
   }, [bomId]);
 
+  // Check material requirements against ERP-1 warehouse stock (ERP3-A3)
   const handleCheckMaterials = async () => {
     setChecking(true);
     setError('');
@@ -73,6 +136,7 @@ export default function BOMDetailPage() {
     }
   };
 
+  // Submit shortage purchase request to ERP-2 Purchasing (ERP3-A3)
   const handleRequestPurchase = async (compSku, compName, shortfall) => {
     setRequestingSkus(prev => ({ ...prev, [compSku]: true }));
     setError('');
@@ -126,7 +190,11 @@ export default function BOMDetailPage() {
             <h2 style={{ margin: 0, fontSize: '1.6rem', fontWeight: 700, color: '#0f172a' }}>
               {bom.id}: {bom.product_name}
             </h2>
-            <span className="badge badge-green">{bom.active !== false ? 'active' : 'inactive'}</span>
+            {bom.active ? (
+              <span className="badge badge-green">active</span>
+            ) : (
+              <span className="badge badge-amber">inactive</span>
+            )}
           </div>
           <p style={{ color: '#64748b', fontSize: '0.875rem', marginTop: '0.25rem' }}>
             Finished Good SKU: <span style={{ fontFamily: 'monospace', color: '#2563eb' }}>{bom.product_sku}</span> | Version: {bom.version}

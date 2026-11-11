@@ -1,5 +1,5 @@
 // services/erp3/tests/workOrdersRoutes.test.js
-// Tests for [ERP3-B1] Work Orders API
+// Tests for [ERP3-B1] & [ERP3-B3] Work Orders API
 // Uses Node's built-in test runner (node:test) — no external test libraries required.
 
 'use strict';
@@ -12,20 +12,47 @@ process.env.AUTH_REQUIRED = 'false';
 
 // ── 2. Mock PG Pool BEFORE router is loaded ──────────────────────────────────
 let woStore = [];
+let womStore = [];
 let woSeq = 0;
+let womSeq = 0;
 
 function nextWoId() {
   return `WO-${String(++woSeq).padStart(4, '0')}`;
 }
 
+function nextWomId() {
+  return `WOM-${String(++womSeq).padStart(4, '0')}`;
+}
+
 const fakePool = {
   connect: async () => ({
-    query: async () => ({ rows: [] }),
+    query: async (sql, params = []) => {
+      if (/BEGIN|COMMIT|ROLLBACK/.test(sql)) {
+        return { rows: [] };
+      }
+      return fakePool.query(sql, params);
+    },
     release: () => {}
   }),
   query: async (sql, params = []) => {
+    // Active BOM lookup: SELECT id FROM boms WHERE product_sku = $1 AND active = TRUE
+    if (/FROM boms WHERE product_sku = \$1 AND active = TRUE/i.test(sql)) {
+      const sku = params[0];
+      if (sku === 'SKU-0001') return { rows: [{ id: 'BOM-0001' }] };
+      if (sku === 'SKU-0003') return { rows: [{ id: 'BOM-0002' }] };
+      return { rows: [] };
+    }
+
+    // Single BOM lookup: SELECT id, product_sku FROM boms WHERE id = $1
+    if (/FROM boms WHERE id = \$1/i.test(sql)) {
+      const id = params[0];
+      if (id === 'BOM-0001') return { rows: [{ id: 'BOM-0001', product_sku: 'SKU-0001' }] };
+      if (id === 'BOM-0002') return { rows: [{ id: 'BOM-0002', product_sku: 'SKU-0003' }] };
+      return { rows: [] };
+    }
+
     // INSERT INTO work_orders
-    if (/INSERT INTO work_orders/.test(sql)) {
+    if (/INSERT INTO work_orders/i.test(sql)) {
       const [bom_id, product_sku, quantity, source, planned_start, planned_end] = params;
       const row = {
         id: nextWoId(),
@@ -43,14 +70,46 @@ const fakePool = {
       return { rows: [row] };
     }
 
+    // INSERT INTO work_order_materials ... SELECT ... FROM bom_items
+    if (/INSERT INTO work_order_materials/i.test(sql)) {
+      const [woId, qty] = params;
+      const components = [
+        { component_sku: 'SKU-0101', component_name: 'Display Panel' },
+        { component_sku: 'SKU-0102', component_name: 'Main Board' },
+        { component_sku: 'SKU-0103', component_name: 'Power Supply Unit' },
+        { component_sku: 'SKU-0104', component_name: 'Remote Control' },
+        { component_sku: 'SKU-0105', component_name: 'Packaging Box' }
+      ];
+      const inserted = components.map(c => {
+        const item = {
+          id: nextWomId(),
+          wo_id: woId,
+          component_sku: c.component_sku,
+          component_name: c.component_name,
+          required_qty: Number(qty),
+          issued_qty: 0
+        };
+        womStore.push(item);
+        return item;
+      });
+      return { rows: inserted };
+    }
+
+    // SELECT work_order_materials
+    if (/FROM work_order_materials/i.test(sql)) {
+      const woId = params[0];
+      const found = womStore.filter(m => m.wo_id === woId);
+      return { rows: found };
+    }
+
     // SELECT work_orders WHERE id = $1
-    if (/FROM work_orders\s+WHERE id = \$1/.test(sql)) {
+    if (/FROM work_orders\s+WHERE id = \$1/i.test(sql)) {
       const found = woStore.find(w => w.id === params[0]);
       return { rows: found ? [found] : [] };
     }
 
     // SELECT work_orders with optional filters
-    if (/FROM work_orders/.test(sql)) {
+    if (/FROM work_orders/i.test(sql)) {
       let rows = [...woStore];
       let pIdx = 0;
       if (/LOWER\(status\)/.test(sql)) {
@@ -65,7 +124,7 @@ const fakePool = {
     }
 
     // UPDATE work_orders SET status = $1 ... WHERE id = $2
-    if (/UPDATE work_orders\s+SET status = \$1/.test(sql)) {
+    if (/UPDATE work_orders\s+SET status = \$1/i.test(sql)) {
       const [nextStatus, id] = params;
       const wo = woStore.find(w => w.id === id);
       if (!wo) return { rows: [] };
@@ -77,9 +136,10 @@ const fakePool = {
     }
 
     // DELETE FROM work_orders WHERE id = $1
-    if (/DELETE FROM work_orders/.test(sql)) {
+    if (/DELETE FROM work_orders/i.test(sql)) {
       const idx = woStore.findIndex(w => w.id === params[0]);
       if (idx !== -1) woStore.splice(idx, 1);
+      womStore = womStore.filter(m => m.wo_id !== params[0]);
       return { rows: [] };
     }
 
@@ -129,7 +189,7 @@ function dispatch(router, options) {
 }
 
 // ── 5. Test Suite ────────────────────────────────────────────────────────────
-describe('ERP3 Work Orders Routes [ERP3-B1]', () => {
+describe('ERP3 Work Orders Routes [ERP3-B1 & ERP3-B3]', () => {
   beforeEach(() => {
     woStore = [
       {
@@ -193,11 +253,19 @@ describe('ERP3 Work Orders Routes [ERP3-B1]', () => {
         completed_at: null
       }
     ];
+    womStore = [
+      { id: 'WOM-0001', wo_id: 'WO-0001', component_sku: 'SKU-0101', component_name: 'Display Panel', required_qty: 50, issued_qty: 0 },
+      { id: 'WOM-0002', wo_id: 'WO-0001', component_sku: 'SKU-0102', component_name: 'Main Board', required_qty: 50, issued_qty: 0 },
+      { id: 'WOM-0003', wo_id: 'WO-0001', component_sku: 'SKU-0103', component_name: 'Power Supply Unit', required_qty: 50, issued_qty: 0 },
+      { id: 'WOM-0004', wo_id: 'WO-0001', component_sku: 'SKU-0104', component_name: 'Remote Control', required_qty: 50, issued_qty: 0 },
+      { id: 'WOM-0005', wo_id: 'WO-0001', component_sku: 'SKU-0105', component_name: 'Packaging Box', required_qty: 50, issued_qty: 0 }
+    ];
     woSeq = 5;
+    womSeq = 5;
   });
 
-  describe('POST /work-orders', () => {
-    it('creates a work order and returns 201', async () => {
+  describe('POST /work-orders [ERP3-B1 & ERP3-B3]', () => {
+    it('creates a work order and auto-fills its materials [ERP3-B3]', async () => {
       const res = await dispatch(workOrdersRouter, {
         method: 'POST',
         url: '/work-orders',
@@ -215,16 +283,40 @@ describe('ERP3 Work Orders Routes [ERP3-B1]', () => {
       assert.ok(res.body.data.id.startsWith('WO-'));
       assert.equal(res.body.data.status, 'planned');
       assert.equal(res.body.data.quantity, 20);
+      assert.ok(Array.isArray(res.body.data.materials));
+      assert.equal(res.body.data.materials.length, 5);
+      assert.equal(res.body.data.materials[0].required_qty, 20);
+      assert.equal(res.body.data.materials[0].issued_qty, 0);
     });
 
-    it('returns 400 when bom_id is missing', async () => {
+    it('creates a shortage-style request without bom_id by resolving active BOM [ERP3-B3]', async () => {
       const res = await dispatch(workOrdersRouter, {
         method: 'POST',
         url: '/work-orders',
-        body: { product_sku: 'SKU-0001', quantity: 10 }
+        body: {
+          product_sku: 'SKU-0001',
+          quantity: 15,
+          source: 'shortage'
+        }
+      });
+
+      assert.equal(res.status, 201);
+      assert.ok(res.body.data.id.startsWith('WO-'));
+      assert.equal(res.body.data.bom_id, 'BOM-0001');
+      assert.equal(res.body.data.source, 'shortage');
+      assert.equal(res.body.data.quantity, 15);
+      assert.ok(Array.isArray(res.body.data.materials));
+      assert.equal(res.body.data.materials.length, 5);
+    });
+
+    it('returns 400 when product_sku has no active BOM', async () => {
+      const res = await dispatch(workOrdersRouter, {
+        method: 'POST',
+        url: '/work-orders',
+        body: { product_sku: 'SKU-9999', quantity: 10, source: 'shortage' }
       });
       assert.equal(res.status, 400);
-      assert.match(res.body.error, /bom_id is required/);
+      assert.match(res.body.error, /No active BOM found for product SKU-9999/);
     });
 
     it('returns 400 when product_sku is missing', async () => {
@@ -290,8 +382,8 @@ describe('ERP3 Work Orders Routes [ERP3-B1]', () => {
     });
   });
 
-  describe('GET /work-orders/:id', () => {
-    it('returns a single work order for valid id', async () => {
+  describe('GET /work-orders/:id [ERP3-B3 materials included]', () => {
+    it('returns a single work order with materials for valid id', async () => {
       const res = await dispatch(workOrdersRouter, {
         method: 'GET',
         url: '/work-orders/WO-0001',
@@ -299,6 +391,9 @@ describe('ERP3 Work Orders Routes [ERP3-B1]', () => {
       });
       assert.equal(res.status, 200);
       assert.equal(res.body.data.id, 'WO-0001');
+      assert.ok(Array.isArray(res.body.data.materials));
+      assert.equal(res.body.data.materials.length, 5);
+      assert.equal(res.body.data.materials[0].component_sku, 'SKU-0101');
     });
 
     it('returns 404 for non-existent id', async () => {
@@ -412,4 +507,3 @@ describe('ERP3 Work Orders Routes [ERP3-B1]', () => {
     });
   });
 });
-
