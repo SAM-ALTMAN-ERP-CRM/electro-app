@@ -79,7 +79,7 @@ ON CONFLICT (id) DO UPDATE SET
   created_by = EXCLUDED.created_by,
   created_at = EXCLUDED.created_at;
 
--- Member 3 (CRM3-C3): Seed Customer Tags
+-- Member 3 (CRM3-C3) & Member 4 (CRM3-D1): Seed Customer Tags
 INSERT INTO customer_tags (customer_id, tag)
 VALUES
   ('CUST-0001', 'VIP'),
@@ -88,7 +88,11 @@ VALUES
   ('CUST-0002', 'High Value'),
   ('CUST-0003', 'Loyal'),
   ('CUST-0004', 'Tier 1 Dealer'),
-  ('CUST-0006', 'Enterprise')
+  ('CUST-0006', 'Enterprise'),
+  ('CUST-0009', 'Priority Support'),
+  ('CUST-0009', 'Branch Customer'),
+  ('CUST-0010', 'High Value'),
+  ('CUST-0010', 'Regional Branch')
 ON CONFLICT (customer_id, tag) DO NOTHING;
 
 -- Advance sequences

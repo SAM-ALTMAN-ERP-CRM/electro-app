@@ -719,5 +719,6 @@ async function closePool() {
 }
 
 module.exports = router;
+module.exports.pool = pool;
 module.exports.resetInMemoryData = resetInMemoryData;
 module.exports.closePool = closePool;
