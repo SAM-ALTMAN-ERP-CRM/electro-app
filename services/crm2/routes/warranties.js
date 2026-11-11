@@ -1,7 +1,11 @@
 // [CRM2-B1] Warranty table and lookup API
+// [CRM2-B3] Sync warranties from dispatch
 // Handles warranty records, validation, calculations for expires_on and active/expired status.
 const express = require('express');
+const fs = require('fs');
+const path = require('path');
 const { requireAuth } = require('../../_shared/auth');
+const { callService } = require('../../_shared/callService');
 const { makePool } = require('../../_shared/db');
 
 const router = express.Router();
@@ -156,6 +160,85 @@ router.get('/warranties', async (req, res, next) => {
       .sort((a, b) => b.purchase_date.localeCompare(a.purchase_date));
 
     res.json({ data: computed });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * POST /api/warranty/sync
+ * [CRM2-B3] Fetches dispatched items from ERP-4 GET /api/dispatches (or local mock fallback)
+ * and registers any newly dispatched serials into warranties table.
+ * Idempotent: duplicate serials are safely ignored via ON CONFLICT DO NOTHING.
+ */
+router.post('/warranty/sync', async (req, res, next) => {
+  try {
+    let dispatches = [];
+
+    // Try calling ERP-4 dispatches endpoint; fallback to mock when offline
+    try {
+      const response = await callService('erp4', '/api/dispatches');
+      if (Array.isArray(response)) {
+        dispatches = response;
+      } else if (response && Array.isArray(response.data)) {
+        dispatches = response.data;
+      }
+    } catch (serviceErr) {
+      if (process.env.USE_MOCKS !== 'false') {
+        const mockPath = path.join(__dirname, '../mocks/dispatches.json');
+        if (fs.existsSync(mockPath)) {
+          console.log('[mock] used for dispatches');
+          dispatches = JSON.parse(fs.readFileSync(mockPath, 'utf-8'));
+        }
+      } else {
+        throw serviceErr;
+      }
+    }
+
+    let addedCount = 0;
+
+    for (const item of dispatches) {
+      if (!item.serial_number) continue;
+
+      const serial = String(item.serial_number).trim();
+      const sku = String(item.sku || 'SKU-0001').trim();
+      const customerId = String(item.customer_id || 'CUST-0001').trim();
+      const shipDate = String(item.ship_date || item.purchase_date || new Date().toISOString().split('T')[0]).split('T')[0];
+      const prodName = sku === 'SKU-0001' ? '55-inch 4K Smart TV' : (item.product_name || sku);
+
+      const queryRes = await safeQuery(
+        `INSERT INTO warranties (serial_number, sku, product_name, customer_id, purchase_date, warranty_months)
+         VALUES ($1, $2, $3, $4, $5, $6)
+         ON CONFLICT (serial_number) DO NOTHING
+         RETURNING serial_number`,
+        [serial, sku, prodName, customerId, shipDate, 12]
+      );
+
+      if (queryRes) {
+        if (queryRes.rows && queryRes.rows.length > 0) {
+          addedCount++;
+        }
+      } else {
+        // In-memory fallback
+        const exists = inMemoryWarranties.some(
+          (w) => w.serial_number.toUpperCase() === serial.toUpperCase()
+        );
+        if (!exists) {
+          inMemoryWarranties.push({
+            serial_number: serial,
+            sku,
+            product_name: prodName,
+            customer_id: customerId,
+            purchase_date: shipDate,
+            warranty_months: 12,
+            created_at: new Date().toISOString()
+          });
+          addedCount++;
+        }
+      }
+    }
+
+    res.json({ data: { added: addedCount } });
   } catch (err) {
     next(err);
   }
