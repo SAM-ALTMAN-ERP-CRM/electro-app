@@ -12,6 +12,7 @@ import QCPage from './pages/QCPage';
  *
  * Rules:
  * - Module id: erp3
+ * - Title: Production
  * - Roles: admin, warehouse
  * - Routes:
  *   - /erp3 (Overview / Production Dashboard)
