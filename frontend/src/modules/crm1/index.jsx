@@ -1,25 +1,20 @@
 import React from 'react';
+import LeadsPage from './pages/LeadsPage';
+import PipelinePage from './pages/PipelinePage';
+import QuotesListPage from './pages/QuotesListPage';
+import QuoteBuilderPage from './pages/QuoteBuilderPage';
+import DealersPage from './pages/DealersPage';
+import ApprovalsPage from './pages/ApprovalsPage';
 
-function Placeholder() {
-  return (
-    <div style={{ padding: '2rem', maxWidth: '800px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
-        <h2>Sales</h2>
-        <span className="badge badge-blue">CRM1</span>
-      </div>
-      <p style={{ color: '#64748b', fontSize: '1rem', lineHeight: '1.6' }}>
-        Module registered. Pages built by Team CRM1 will automatically appear here once their pull requests merge.
-      </p>
-      <div style={{ marginTop: '1.5rem', padding: '1.25rem', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-        <h4 style={{ marginBottom: '0.5rem', color: '#0f172a' }}>Backend Service Integration:</h4>
-        <p style={{ fontSize: '0.875rem', color: '#64748b' }}>
-          Status Check: <code>/svc/crm1/api/health</code>
-        </p>
-      </div>
-    </div>
-  );
-}
-
+/**
+ * CRM-1 Sales Pipeline module registration.
+ *
+ * Rules:
+ * - Module accessible to roles: admin, sales
+ * - All standard routes accessible to: admin, sales
+ * - Manager approvals route restricted to: admin
+ * - No internal BrowserRouter or navbar: handled by shared shell
+ */
 export default {
   id: 'crm1',
   title: 'Sales',
@@ -27,8 +22,43 @@ export default {
   routes: [
     {
       path: '',
-      label: 'Coming soon',
-      element: <Placeholder />
+      element: <QuotesListPage />
+    },
+    {
+      path: 'leads',
+      label: 'Leads',
+      element: <LeadsPage />,
+      roles: ['admin', 'sales']
+    },
+    {
+      path: 'pipeline',
+      label: 'Pipeline',
+      element: <PipelinePage />,
+      roles: ['admin', 'sales']
+    },
+    {
+      path: 'quotes',
+      label: 'Quotes',
+      element: <QuotesListPage />,
+      roles: ['admin', 'sales']
+    },
+    {
+      path: 'quotes/new',
+      label: 'New Quote',
+      element: <QuoteBuilderPage />,
+      roles: ['admin', 'sales']
+    },
+    {
+      path: 'dealers',
+      label: 'Dealers',
+      element: <DealersPage />,
+      roles: ['admin', 'sales']
+    },
+    {
+      path: 'approvals',
+      label: 'Approvals',
+      element: <ApprovalsPage />,
+      roles: ['admin']
     }
   ]
 };
