@@ -11,6 +11,26 @@ export default function QCPage() {
   const [checks, setChecks] = useState(INITIAL_QC_CHECKS);
   const [loading, setLoading] = useState(false);
 
+  // Fetch live inspection records from backend API [ERP3-D2]
+  const fetchChecks = async () => {
+    setLoading(true);
+    try {
+      const res = await api('erp3', '/api/qc');
+      const items = res?.data || res;
+      if (Array.isArray(items) && items.length > 0) {
+        setChecks(items);
+      }
+    } catch (err) {
+      console.warn('[erp3/qc] Failed to fetch live QC checks, using fallback:', err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchChecks();
+  }, []);
+
   // Form State
   const [woId, setWoId] = useState('WO-0001');
   const [inspector, setInspector] = useState('EMP-0005');
@@ -84,16 +104,18 @@ export default function QCPage() {
     };
 
     try {
-      await api('erp3', '/api/qc', {
+      const res = await api('erp3', '/api/qc', {
         method: 'POST',
         body: newCheck
       });
+      const created = res?.data || newCheck;
+      setChecks(prev => [created, ...prev]);
+      setSuccess(`Inspection ${created.id} recorded with result: ${calculated.toUpperCase()}.`);
     } catch (err) {
       console.info('Simulated QC submit fallback:', err.message);
+      setChecks(prev => [newCheck, ...prev]);
+      setSuccess(`Inspection ${newCheck.id} recorded with result: ${calculated.toUpperCase()}.`);
     }
-
-    setChecks(prev => [newCheck, ...prev]);
-    setSuccess(`Inspection ${newCheck.id} recorded with result: ${calculated.toUpperCase()}.`);
   };
 
   // Metrics (ERP3-D3)
@@ -328,25 +350,39 @@ export default function QCPage() {
             </tr>
           </thead>
           <tbody>
-            {checks.map((chk) => (
-              <tr key={chk.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                <td style={{ padding: '0.75rem 1rem', fontFamily: 'monospace', fontWeight: 600, color: '#0f172a' }}>{chk.id}</td>
-                <td style={{ padding: '0.75rem 1rem', fontFamily: 'monospace', color: '#2563eb' }}>{chk.wo_id}</td>
-                <td style={{ padding: '0.75rem 1rem', fontFamily: 'monospace' }}>{chk.inspector}</td>
-                <td style={{ padding: '0.75rem 1rem', textAlign: 'right', fontFamily: 'monospace' }}>{chk.checked_qty}</td>
-                <td style={{ padding: '0.75rem 1rem', textAlign: 'right', fontFamily: 'monospace', color: '#16a34a', fontWeight: 600 }}>{chk.passed_qty}</td>
-                <td style={{ padding: '0.75rem 1rem', textAlign: 'right', fontFamily: 'monospace', color: chk.failed_qty > 0 ? '#dc2626' : '#64748b' }}>{chk.failed_qty}</td>
-                <td style={{ padding: '0.75rem 1rem', color: chk.defect_reason ? '#b45309' : '#94a3b8', textTransform: 'capitalize' }}>
-                  {chk.defect_reason || '—'}
-                </td>
-                <td style={{ padding: '0.75rem 1rem', textAlign: 'center' }}>
-                  {getResultBadge(chk.result)}
-                </td>
-                <td style={{ padding: '0.75rem 1rem', color: '#64748b', fontSize: '0.8rem' }}>
-                  {chk.checked_at}
+            {loading ? (
+              <tr>
+                <td colSpan="9" style={{ padding: '2rem', textAlign: 'center', color: '#64748b' }}>
+                  Loading quality inspection records...
                 </td>
               </tr>
-            ))}
+            ) : checks.length === 0 ? (
+              <tr>
+                <td colSpan="9" style={{ padding: '2rem', textAlign: 'center', color: '#64748b' }}>
+                  No quality checks recorded yet.
+                </td>
+              </tr>
+            ) : (
+              checks.map((chk) => (
+                <tr key={chk.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                  <td style={{ padding: '0.75rem 1rem', fontFamily: 'monospace', fontWeight: 600, color: '#0f172a' }}>{chk.id}</td>
+                  <td style={{ padding: '0.75rem 1rem', fontFamily: 'monospace', color: '#2563eb' }}>{chk.wo_id}</td>
+                  <td style={{ padding: '0.75rem 1rem', fontFamily: 'monospace' }}>{chk.inspector}</td>
+                  <td style={{ padding: '0.75rem 1rem', textAlign: 'right', fontFamily: 'monospace' }}>{chk.checked_qty}</td>
+                  <td style={{ padding: '0.75rem 1rem', textAlign: 'right', fontFamily: 'monospace', color: '#16a34a', fontWeight: 600 }}>{chk.passed_qty}</td>
+                  <td style={{ padding: '0.75rem 1rem', textAlign: 'right', fontFamily: 'monospace', color: chk.failed_qty > 0 ? '#dc2626' : '#64748b' }}>{chk.failed_qty}</td>
+                  <td style={{ padding: '0.75rem 1rem', color: chk.defect_reason ? '#b45309' : '#94a3b8', textTransform: 'capitalize' }}>
+                    {chk.defect_reason || '—'}
+                  </td>
+                  <td style={{ padding: '0.75rem 1rem', textAlign: 'center' }}>
+                    {getResultBadge(chk.result)}
+                  </td>
+                  <td style={{ padding: '0.75rem 1rem', color: '#64748b', fontSize: '0.8rem' }}>
+                    {chk.checked_at}
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>
