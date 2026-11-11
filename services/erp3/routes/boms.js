@@ -15,9 +15,9 @@ router.use(requireAuth);
 
 // ─── POST /api/boms ───────────────────────────────────────────────────────────
 // Create a new BOM together with its component items in one request.
-// Body: { product_sku, product_name, version?, items: [{ component_sku, component_name, qty_per_unit }] }
+// Body: { product_sku, product_name, version?, active?, items: [{ component_sku, component_name, qty_per_unit }] }
 router.post('/boms', async (req, res) => {
-  const { product_sku, product_name, version = 1, items } = req.body;
+  const { product_sku, product_name, version = 1, active = true, items } = req.body;
 
   // Validate required fields
   if (!product_sku || !product_name) {
@@ -44,10 +44,10 @@ router.post('/boms', async (req, res) => {
 
     // Insert the BOM header; Postgres assigns the BOM-XXXX id via the sequence default
     const bomResult = await client.query(
-      `INSERT INTO boms (product_sku, product_name, version)
-       VALUES ($1, $2, $3)
+      `INSERT INTO boms (product_sku, product_name, version, active)
+       VALUES ($1, $2, $3, $4)
        RETURNING *`,
-      [product_sku, product_name, version]
+      [product_sku, product_name, version, active]
     );
     const bom = bomResult.rows[0];
 
@@ -83,21 +83,25 @@ router.post('/boms', async (req, res) => {
 
 // ─── GET /api/boms ────────────────────────────────────────────────────────────
 // List all BOMs.  Optional query param: ?product_sku=SKU-0001
-// Returns header rows only (no items detail) — use GET /api/boms/:id for items.
+// Returns header rows with components_count — use GET /api/boms/:id for full items detail.
 router.get('/boms', async (req, res) => {
   const { product_sku } = req.query;
 
   try {
-    let query  = 'SELECT * FROM boms';
+    let query = `
+      SELECT b.*, COALESCE(COUNT(bi.id), 0)::int AS components_count
+      FROM boms b
+      LEFT JOIN bom_items bi ON bi.bom_id = b.id
+    `;
     const params = [];
 
     if (product_sku) {
       // Filter by product SKU when the query param is supplied
-      query += ' WHERE product_sku = $1';
+      query += ' WHERE b.product_sku = $1';
       params.push(product_sku);
     }
 
-    query += ' ORDER BY created_at DESC';
+    query += ' GROUP BY b.id ORDER BY b.created_at DESC';
 
     const result = await pool.query(query, params);
     return res.json({ data: result.rows });

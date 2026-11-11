@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../../../api';
 
+// Five realistic initial BOMs conforming to Section 5 shared catalog IDs
 const INITIAL_BOMS = [
   {
     id: 'BOM-0001',
@@ -18,24 +19,52 @@ const INITIAL_BOMS = [
     version: 1,
     active: true,
     components_count: 5
+  },
+  {
+    id: 'BOM-0003',
+    product_sku: 'SKU-0002',
+    product_name: '43-Inch LED TV',
+    version: 1,
+    active: true,
+    components_count: 5
+  },
+  {
+    id: 'BOM-0004',
+    product_sku: 'SKU-0004',
+    product_name: '32-Inch HD LED TV',
+    version: 1,
+    active: true,
+    components_count: 5
+  },
+  {
+    id: 'BOM-0005',
+    product_sku: 'SKU-0005',
+    product_name: '75-Inch QLED TV',
+    version: 1,
+    active: true,
+    components_count: 5
   }
 ];
 
 export default function BOMsPage() {
+  // State for BOM headers list
   const [boms, setBoms] = useState(INITIAL_BOMS);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filterActive, setFilterActive] = useState('all');
+  const [infoMessage, setInfoMessage] = useState('');
 
+  // Fetch live BOMs from ERP-3 backend on component mount
   useEffect(() => {
     async function fetchBoms() {
       try {
         const data = await api('erp3', '/api/boms');
-        if (Array.isArray(data) && data.length > 0) {
-          setBoms(data);
+        if (Array.isArray(data)) {
+          setBoms(data.length > 0 ? data : []);
         }
       } catch (err) {
-        console.info('Using seed BOMs:', err.message);
+        console.info('ERP-3 backend offline or mock mode:', err.message);
+        setInfoMessage('Loaded seed BOM recipes (database service currently offline).');
       } finally {
         setLoading(false);
       }
@@ -43,11 +72,15 @@ export default function BOMsPage() {
     fetchBoms();
   }, []);
 
-  const filteredBoms = boms.filter(bom => {
+  // Filter BOMs by SKU, product name, or BOM ID, plus active status
+  const filteredBoms = boms.filter((bom) => {
+    const sku = bom.product_sku || '';
+    const name = bom.product_name || '';
+    const id = bom.id || '';
     const matchesSearch =
-      bom.product_sku.toLowerCase().includes(search.toLowerCase()) ||
-      bom.product_name.toLowerCase().includes(search.toLowerCase()) ||
-      bom.id.toLowerCase().includes(search.toLowerCase());
+      sku.toLowerCase().includes(search.toLowerCase()) ||
+      name.toLowerCase().includes(search.toLowerCase()) ||
+      id.toLowerCase().includes(search.toLowerCase());
 
     const matchesActive =
       filterActive === 'all' ||
@@ -59,7 +92,7 @@ export default function BOMsPage() {
 
   return (
     <div style={{ maxWidth: '1200px', margin: '0 auto', paddingBottom: '3rem' }}>
-      {/* Header */}
+      {/* Page Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
@@ -79,7 +112,14 @@ export default function BOMsPage() {
         </div>
       </div>
 
-      {/* Filter / Search Bar */}
+      {/* Info notice if backend is offline */}
+      {infoMessage && (
+        <div style={{ background: '#f8fafc', border: '1px solid #cbd5e1', color: '#475569', padding: '0.6rem 1rem', borderRadius: '6px', marginBottom: '1.25rem', fontSize: '0.85rem' }}>
+          ℹ {infoMessage}
+        </div>
+      )}
+
+      {/* Filter & Search Bar */}
       <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
         <input
           type="text"
@@ -112,9 +152,12 @@ export default function BOMsPage() {
         </select>
       </div>
 
-      {/* Loading & Empty States */}
-      {loading && <p style={{ color: '#64748b' }}>Loading Bills of Materials...</p>}
+      {/* Loading state */}
+      {loading && (
+        <p style={{ color: '#64748b', fontSize: '0.9rem' }}>Loading Bills of Materials...</p>
+      )}
 
+      {/* Empty State */}
       {!loading && filteredBoms.length === 0 && (
         <div style={{ textAlign: 'center', padding: '3rem', background: '#ffffff', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
           <p style={{ color: '#64748b', margin: 0 }}>No matching bills of materials found.</p>
@@ -152,7 +195,7 @@ export default function BOMsPage() {
                     v{bom.version || 1}
                   </td>
                   <td style={{ padding: '0.75rem 1rem', color: '#475569' }}>
-                    {bom.components_count || 5} components
+                    {bom.components_count !== undefined ? bom.components_count : 5} components
                   </td>
                   <td style={{ padding: '0.75rem 1rem' }}>
                     {bom.active ? (
