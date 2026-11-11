@@ -1,10 +1,23 @@
-const { describe, it } = require('node:test');
+const { describe, it, before, after, beforeEach } = require('node:test');
 const assert = require('node:assert/strict');
 
 // Set dummy auth bypass for testing
 process.env.AUTH_REQUIRED = 'false';
 
 const customersRouter = require('../routes/customers');
+
+async function cleanupTestCustomer() {
+  try {
+    const { makePool } = require('../../_shared/db');
+    const pool = makePool('crm3_db');
+    await pool.query("DELETE FROM customers WHERE email = 'valid.retail@example.com'");
+  } catch (err) {
+    // DB not available, ignore
+  }
+  if (typeof customersRouter._resetInMemoryCustomers === 'function') {
+    customersRouter._resetInMemoryCustomers();
+  }
+}
 
 /**
  * Pure in-memory dispatcher for Express router (no network sockets required).
@@ -47,6 +60,10 @@ function dispatch(router, options) {
 }
 
 describe('CRM3 Customers HTTP Routes Integration Tests', () => {
+
+  before(cleanupTestCustomer);
+  after(cleanupTestCustomer);
+  beforeEach(cleanupTestCustomer);
 
   it('rejects POST /customers with phone < 10 digits', async () => {
     const res = await dispatch(customersRouter, {
