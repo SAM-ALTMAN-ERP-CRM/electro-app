@@ -1,0 +1,47 @@
+[
+  {
+    "id": "OPP-0001",
+    "lead_id": "LEAD-0001",
+    "customer_id": "CUST-0001",
+    "title": "Smart TV Corporate Setup",
+    "expected_value": 51980.00,
+    "stage": "prospect",
+    "sales_rep_id": "EMP-0001"
+  },
+  {
+    "id": "OPP-0002",
+    "lead_id": "LEAD-0004",
+    "customer_id": "CUST-0004",
+    "title": "Dealer Bulk Appliances",
+    "expected_value": 67960.00,
+    "stage": "proposal",
+    "sales_rep_id": "EMP-0002"
+  },
+  {
+    "id": "OPP-0003",
+    "lead_id": "LEAD-0002",
+    "customer_id": "CUST-0003",
+    "title": "Premium Home Theatre OLED",
+    "expected_value": 112980.00,
+    "stage": "negotiation",
+    "sales_rep_id": "EMP-0003"
+  },
+  {
+    "id": "OPP-0004",
+    "lead_id": "LEAD-0003",
+    "customer_id": "CUST-0002",
+    "title": "Office Soundbar Integration",
+    "expected_value": 45000.00,
+    "stage": "won",
+    "sales_rep_id": "EMP-0001"
+  },
+  {
+    "id": "OPP-0005",
+    "lead_id": "LEAD-0005",
+    "customer_id": "CUST-0005",
+    "title": "Audio Accessories Inquiries",
+    "expected_value": 12000.00,
+    "stage": "lost",
+    "sales_rep_id": "EMP-0004"
+  }
+]

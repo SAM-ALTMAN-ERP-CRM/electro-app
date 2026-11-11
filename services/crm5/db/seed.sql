@@ -9,3 +9,12 @@ VALUES
   ('SNP-0004', NOW() - INTERVAL '1 day', '{"total_leads": 10, "open_opportunities": 6, "won_value": 150000.00, "quotes_accepted": 3, "opportunities_by_stage": {"prospect": 3, "proposal": 2, "negotiation": 1, "won": 3, "lost": 1}}'::jsonb),
   ('SNP-0005', NOW(), '{"total_leads": 12, "open_opportunities": 7, "won_value": 209970.00, "quotes_accepted": 4, "opportunities_by_stage": {"prospect": 3, "proposal": 2, "negotiation": 2, "won": 4, "lost": 1}}'::jsonb)
 ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO forecasts (id, month, target_amount, notes)
+VALUES
+  ('FCST-0001', '2026-08', 120000.00, 'Q3 August baseline sales target'),
+  ('FCST-0002', '2026-09', 150000.00, 'Festival season kickoff campaign target'),
+  ('FCST-0003', '2026-10', 180000.00, 'Diwali promotional retail push'),
+  ('FCST-0004', '2026-11', 150000.00, 'Post-festival corporate accounts target (Current Month)'),
+  ('FCST-0005', '2026-12', 200000.00, 'Year-end enterprise closure and institutional renewals')
+ON CONFLICT (month) DO NOTHING;

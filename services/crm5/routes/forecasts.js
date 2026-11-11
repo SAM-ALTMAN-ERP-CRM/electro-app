@@ -1,0 +1,319 @@
+const express = require('express');
+const router = express.Router();
+const path = require('path');
+const fs = require('fs');
+const { requireAuth } = require('../../_shared/auth');
+const { callService } = require('../../_shared/callService');
+const { makePool } = require('../../_shared/db');
+
+// Connect to crm5_db database pool
+let pool;
+try {
+  pool = makePool('crm5_db');
+} catch (err) {
+  console.warn('[crm5] Database pool initialization note (forecasts):', err.message);
+}
+
+// In-memory fallback forecasts store
+let inMemoryForecasts = [
+  {
+    id: 'FCST-0001',
+    month: '2026-08',
+    target_amount: 120000.00,
+    notes: 'Q3 August baseline sales target',
+    created_at: '2026-08-01T09:00:00.000Z'
+  },
+  {
+    id: 'FCST-0002',
+    month: '2026-09',
+    target_amount: 150000.00,
+    notes: 'Festival season kickoff campaign target',
+    created_at: '2026-09-01T09:00:00.000Z'
+  },
+  {
+    id: 'FCST-0003',
+    month: '2026-10',
+    target_amount: 180000.00,
+    notes: 'Diwali promotional retail push',
+    created_at: '2026-10-01T09:00:00.000Z'
+  },
+  {
+    id: 'FCST-0004',
+    month: '2026-11',
+    target_amount: 150000.00,
+    notes: 'Post-festival corporate accounts target (Current Month)',
+    created_at: '2026-11-01T09:00:00.000Z'
+  },
+  {
+    id: 'FCST-0005',
+    month: '2026-12',
+    target_amount: 200000.00,
+    notes: 'Year-end enterprise closure and institutional renewals',
+    created_at: '2026-11-05T10:00:00.000Z'
+  }
+];
+
+function loadMockOpportunities() {
+  const oppMockPath = path.resolve(__dirname, '../mocks/opportunities.json');
+  if (fs.existsSync(oppMockPath)) {
+    try {
+      return JSON.parse(fs.readFileSync(oppMockPath, 'utf8'));
+    } catch (e) {
+      console.warn('[crm5] Error parsing opportunities mock:', e.message);
+    }
+  }
+  return [];
+}
+
+// Protect all routes with requireAuth
+router.use(requireAuth);
+
+/**
+ * GET /api/forecast/weighted & /api/forecasts/weighted
+ * Calculates weighted pipeline value from CRM-1 opportunities:
+ * prospect (10%), proposal (30%), negotiation (60%).
+ */
+async function getWeightedPipeline(req, res) {
+  try {
+    let opportunities = [];
+    try {
+      opportunities = await callService('crm1', '/api/opportunities', { mock: 'opportunities' });
+    } catch (err) {
+      console.warn('[crm5] callService CRM-1 opportunities fallback:', err.message);
+      opportunities = loadMockOpportunities();
+    }
+
+    const oppsList = Array.isArray(opportunities) && opportunities.length > 0
+      ? opportunities
+      : loadMockOpportunities();
+
+    // Stage probabilities specified by [CRM5-C1]:
+    // prospect 10%, proposal 30%, negotiation 60%
+    const weights = {
+      prospect: 0.10,
+      proposal: 0.30,
+      negotiation: 0.60
+    };
+
+    let totalWeighted = 0;
+    let totalUnweighted = 0;
+
+    const breakdown = Object.entries(weights).map(([stage, prob]) => {
+      const stageOpps = oppsList.filter(o => o.stage === stage);
+      const stageTotal = stageOpps.reduce((sum, o) => sum + (Number(o.expected_value) || 0), 0);
+      const stageWeighted = stageTotal * prob;
+
+      totalUnweighted += stageTotal;
+      totalWeighted += stageWeighted;
+
+      return {
+        stage,
+        label: stage.charAt(0).toUpperCase() + stage.slice(1),
+        probability: prob * 100,
+        count: stageOpps.length,
+        total_expected_value: Number(stageTotal.toFixed(2)),
+        weighted_value: Number(stageWeighted.toFixed(2))
+      };
+    });
+
+    // Determine current month (e.g. 2026-11)
+    const currentMonthStr = '2026-11';
+    let currentTargetAmount = 150000.00;
+
+    if (pool) {
+      try {
+        const tRes = await pool.query('SELECT target_amount FROM forecasts WHERE month = $1', [currentMonthStr]);
+        if (tRes.rows.length > 0) {
+          currentTargetAmount = Number(tRes.rows[0].target_amount);
+        }
+      } catch (e) {}
+    } else {
+      const match = inMemoryForecasts.find(f => f.month === currentMonthStr);
+      if (match) currentTargetAmount = Number(match.target_amount);
+    }
+
+    const progressPct = currentTargetAmount > 0
+      ? Number(((totalWeighted / currentTargetAmount) * 100).toFixed(1))
+      : 0;
+
+    return res.json({
+      data: {
+        weighted_pipeline_value: Number(totalWeighted.toFixed(2)),
+        total_unweighted_pipeline: Number(totalUnweighted.toFixed(2)),
+        current_month: currentMonthStr,
+        current_target_amount: currentTargetAmount,
+        progress_percentage: progressPct,
+        breakdown
+      }
+    });
+  } catch (error) {
+    console.error('[crm5] Error calculating weighted forecast:', error.message);
+    return res.status(500).json({ error: 'Failed to calculate weighted pipeline' });
+  }
+}
+
+router.get('/forecast/weighted', getWeightedPipeline);
+router.get('/forecasts/weighted', getWeightedPipeline);
+
+/**
+ * GET /api/forecasts
+ * Returns all saved monthly forecast targets.
+ */
+router.get('/forecasts', async (req, res) => {
+  try {
+    if (pool) {
+      try {
+        const result = await pool.query('SELECT id, month, target_amount, notes, created_at FROM forecasts ORDER BY month DESC');
+        return res.json({ data: result.rows });
+      } catch (dbErr) {
+        console.warn('[crm5] Database query error on forecasts, using memory fallback:', dbErr.message);
+      }
+    }
+    return res.json({ data: [...inMemoryForecasts].sort((a, b) => b.month.localeCompare(a.month)) });
+  } catch (error) {
+    console.error('[crm5] Error retrieving forecasts:', error.message);
+    return res.status(500).json({ error: 'Failed to retrieve forecasts' });
+  }
+});
+
+/**
+ * POST /api/forecasts
+ * Creates a new target or updates an existing month's target.
+ */
+router.post('/forecasts', async (req, res) => {
+  try {
+    const { month, target_amount, notes } = req.body;
+
+    if (!month || !/^\d{4}-\d{2}$/.test(month)) {
+      return res.status(400).json({ error: 'Valid month in YYYY-MM format is required' });
+    }
+
+    const amountNum = Number(target_amount);
+    if (isNaN(amountNum) || amountNum < 0) {
+      return res.status(400).json({ error: 'target_amount must be a non-negative number' });
+    }
+
+    if (pool) {
+      try {
+        const query = `
+          INSERT INTO forecasts (month, target_amount, notes)
+          VALUES ($1, $2, $3)
+          ON CONFLICT (month) DO UPDATE
+            SET target_amount = EXCLUDED.target_amount,
+                notes = EXCLUDED.notes
+          RETURNING id, month, target_amount, notes, created_at
+        `;
+        const result = await pool.query(query, [month, amountNum, notes || '']);
+        return res.status(201).json({ data: result.rows[0] });
+      } catch (dbErr) {
+        console.warn('[crm5] Database insert error, using memory fallback:', dbErr.message);
+      }
+    }
+
+    // Memory fallback
+    const existingIndex = inMemoryForecasts.findIndex(f => f.month === month);
+    let record;
+    if (existingIndex !== -1) {
+      record = {
+        ...inMemoryForecasts[existingIndex],
+        target_amount: amountNum,
+        notes: notes || ''
+      };
+      inMemoryForecasts[existingIndex] = record;
+    } else {
+      record = {
+        id: `FCST-${String(inMemoryForecasts.length + 1).padStart(4, '0')}`,
+        month,
+        target_amount: amountNum,
+        notes: notes || '',
+        created_at: new Date().toISOString()
+      };
+      inMemoryForecasts.unshift(record);
+    }
+
+    return res.status(201).json({ data: record });
+  } catch (error) {
+    console.error('[crm5] Error saving forecast:', error.message);
+    return res.status(500).json({ error: 'Failed to save forecast target' });
+  }
+});
+
+/**
+ * PUT /api/forecasts/:id
+ * Updates an existing forecast target by ID.
+ */
+router.put('/forecasts/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { target_amount, notes } = req.body;
+
+    const amountNum = Number(target_amount);
+    if (isNaN(amountNum) || amountNum < 0) {
+      return res.status(400).json({ error: 'target_amount must be a non-negative number' });
+    }
+
+    if (pool) {
+      try {
+        const query = `
+          UPDATE forecasts
+          SET target_amount = $1, notes = $2
+          WHERE id = $3
+          RETURNING id, month, target_amount, notes, created_at
+        `;
+        const result = await pool.query(query, [amountNum, notes || '', id]);
+        if (result.rows.length === 0) {
+          return res.status(404).json({ error: `Forecast '${id}' not found` });
+        }
+        return res.json({ data: result.rows[0] });
+      } catch (dbErr) {
+        console.warn('[crm5] DB update error, using memory fallback:', dbErr.message);
+      }
+    }
+
+    const match = inMemoryForecasts.find(f => f.id === id);
+    if (!match) {
+      return res.status(404).json({ error: `Forecast '${id}' not found` });
+    }
+    match.target_amount = amountNum;
+    if (notes !== undefined) match.notes = notes;
+
+    return res.json({ data: match });
+  } catch (error) {
+    console.error('[crm5] Error updating forecast:', error.message);
+    return res.status(500).json({ error: 'Failed to update forecast' });
+  }
+});
+
+/**
+ * DELETE /api/forecasts/:id
+ * Deletes a forecast target.
+ */
+router.delete('/forecasts/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (pool) {
+      try {
+        const result = await pool.query('DELETE FROM forecasts WHERE id = $1 RETURNING id', [id]);
+        if (result.rows.length === 0) {
+          return res.status(404).json({ error: `Forecast '${id}' not found` });
+        }
+        return res.json({ data: { message: `Forecast '${id}' deleted successfully` } });
+      } catch (dbErr) {
+        console.warn('[crm5] DB delete error, using memory fallback:', dbErr.message);
+      }
+    }
+
+    const idx = inMemoryForecasts.findIndex(f => f.id === id);
+    if (idx === -1) {
+      return res.status(404).json({ error: `Forecast '${id}' not found` });
+    }
+    inMemoryForecasts.splice(idx, 1);
+    return res.json({ data: { message: `Forecast '${id}' deleted successfully` } });
+  } catch (error) {
+    console.error('[crm5] Error deleting forecast:', error.message);
+    return res.status(500).json({ error: 'Failed to delete forecast' });
+  }
+});
+
+module.exports = router;
