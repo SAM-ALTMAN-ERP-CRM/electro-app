@@ -1,12 +1,14 @@
 -- Database seed for ERP3
 -- Re-runnable: delete existing seed rows first so running twice doesn't error.
 
+DELETE FROM work_orders;
 DELETE FROM bom_items;
 DELETE FROM boms;
 
 -- Reset sequences so IDs are always predictable
-ALTER SEQUENCE boms_seq      RESTART WITH 1;
-ALTER SEQUENCE bom_items_seq RESTART WITH 1;
+ALTER SEQUENCE boms_seq        RESTART WITH 1;
+ALTER SEQUENCE bom_items_seq   RESTART WITH 1;
+ALTER SEQUENCE work_orders_seq RESTART WITH 1;
 
 -- BOM-0001: 55-inch TV (SKU-0001)
 INSERT INTO boms (product_sku, product_name, version, active)
@@ -31,3 +33,14 @@ INSERT INTO bom_items (bom_id, component_sku, component_name, qty_per_unit) VALU
   ('BOM-0002', 'SKU-0103', 'Power Supply Unit',   1),
   ('BOM-0002', 'SKU-0104', 'Remote Control',      1),
   ('BOM-0002', 'SKU-0105', 'Packaging Box',       1);
+
+-- Work Orders: 5 seed work orders [ERP3-B1]
+INSERT INTO work_orders (id, bom_id, product_sku, quantity, status, source, planned_start, planned_end, created_at, completed_at) VALUES
+  ('WO-0001', 'BOM-0001', 'SKU-0001', 50, 'planned',     'manual',   '2026-11-15', '2026-11-20', '2026-11-01 10:00:00+00', NULL),
+  ('WO-0002', 'BOM-0001', 'SKU-0001', 25, 'in_progress', 'manual',   '2026-11-05', '2026-11-12', '2026-11-02 09:30:00+00', NULL),
+  ('WO-0003', 'BOM-0002', 'SKU-0003', 30, 'completed',   'manual',   '2026-10-20', '2026-10-28', '2026-10-18 08:00:00+00', '2026-10-28 16:45:00+00'),
+  ('WO-0004', 'BOM-0001', 'SKU-0001', 10, 'cancelled',   'manual',   '2026-10-25', '2026-10-30', '2026-10-22 11:15:00+00', NULL),
+  ('WO-0005', 'BOM-0002', 'SKU-0003', 15, 'planned',     'shortage', '2026-11-18', '2026-11-25', '2026-11-08 14:20:00+00', NULL);
+
+-- Advance sequence past highest seeded ID
+SELECT setval('work_orders_seq', 5);
