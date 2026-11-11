@@ -18,3 +18,16 @@ CREATE TABLE IF NOT EXISTS tickets (
   due_at        TIMESTAMPTZ,                   -- filled by the SLA rule in CRM2-A3
   resolved_at   TIMESTAMPTZ                    -- set when status becomes 'resolved'
 );
+
+-- [CRM2-B1] warranties
+-- Serial-level warranty records. Serial number is primary key.
+CREATE TABLE IF NOT EXISTS warranties (
+  serial_number   TEXT PRIMARY KEY,
+  sku             TEXT NOT NULL,
+  product_name    TEXT NOT NULL,
+  customer_id     TEXT NOT NULL,
+  purchase_date   DATE NOT NULL,
+  warranty_months INTEGER NOT NULL DEFAULT 12,
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
