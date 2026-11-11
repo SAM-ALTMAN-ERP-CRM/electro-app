@@ -1,25 +1,18 @@
 import React from 'react';
+import WorkOrdersPage from './pages/WorkOrdersPage';
 
-function Placeholder() {
-  return (
-    <div style={{ padding: '2rem', maxWidth: '800px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
-        <h2>Production</h2>
-        <span className="badge badge-blue">ERP3</span>
-      </div>
-      <p style={{ color: '#64748b', fontSize: '1rem', lineHeight: '1.6' }}>
-        Module registered. Pages built by Team ERP3 will automatically appear here once their pull requests merge.
-      </p>
-      <div style={{ marginTop: '1.5rem', padding: '1.25rem', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-        <h4 style={{ marginBottom: '0.5rem', color: '#0f172a' }}>Backend Service Integration:</h4>
-        <p style={{ fontSize: '0.875rem', color: '#64748b' }}>
-          Status Check: <code>/svc/erp3/api/health</code>
-        </p>
-      </div>
-    </div>
-  );
-}
-
+/**
+ * ERP-3 Production and Quality module registration.
+ *
+ * Rules:
+ * - Module id: erp3
+ * - Title: Production
+ * - Roles: admin, warehouse
+ * - Routes:
+ *   - /erp3 (Default view: Work Orders)
+ *   - /erp3/work-orders (Work Orders Tracker screen)
+ * - No internal BrowserRouter or navbar: handled by shared shell
+ */
 export default {
   id: 'erp3',
   title: 'Production',
@@ -27,8 +20,14 @@ export default {
   routes: [
     {
       path: '',
-      label: 'Coming soon',
-      element: <Placeholder />
+      element: <WorkOrdersPage />,
+      roles: ['admin', 'warehouse']
+    },
+    {
+      path: 'work-orders',
+      label: 'Work Orders',
+      element: <WorkOrdersPage />,
+      roles: ['admin', 'warehouse']
     }
   ]
 };
