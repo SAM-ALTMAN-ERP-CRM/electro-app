@@ -1,6 +1,7 @@
 -- Database seed for ERP3
 -- Re-runnable: delete existing seed rows first so running twice doesn't error.
 
+DELETE FROM material_issues;
 DELETE FROM work_order_materials;
 DELETE FROM qc_checks;
 DELETE FROM work_orders;
@@ -13,6 +14,7 @@ ALTER SEQUENCE bom_items_seq             RESTART WITH 1;
 ALTER SEQUENCE work_orders_seq           RESTART WITH 1;
 ALTER SEQUENCE qc_checks_seq             RESTART WITH 1;
 ALTER SEQUENCE work_order_materials_seq  RESTART WITH 1;
+ALTER SEQUENCE material_issues_seq       RESTART WITH 1;
 
 -- BOM-0001: 55-inch TV (SKU-0001)
 INSERT INTO boms (product_sku, product_name, version, active)
@@ -100,3 +102,13 @@ INSERT INTO work_order_materials (id, wo_id, component_sku, required_qty, issued
   ('WOM-0025', 'WO-0005', 'SKU-0105', 15, 0);
 
 SELECT setval('work_order_materials_seq', 25);
+
+-- Material Issues: 5 seed material issue records [ERP3-C1]
+INSERT INTO material_issues (id, wo_id, component_sku, qty, issued_at) VALUES
+  ('MI-0001', 'WO-0002', 'SKU-0101', 25, '2026-11-05 10:00:00+00'),
+  ('MI-0002', 'WO-0002', 'SKU-0102', 25, '2026-11-05 10:05:00+00'),
+  ('MI-0003', 'WO-0002', 'SKU-0103', 25, '2026-11-05 10:10:00+00'),
+  ('MI-0004', 'WO-0003', 'SKU-0101', 30, '2026-10-20 09:00:00+00'),
+  ('MI-0005', 'WO-0003', 'SKU-0102', 30, '2026-10-20 09:05:00+00');
+
+SELECT setval('material_issues_seq', 5);
