@@ -14,3 +14,25 @@ ON CONFLICT (id) DO NOTHING;
 
 -- Move the ticket sequence past the seeded IDs so the next new ticket is TKT-0007.
 SELECT setval('crm2_ticket_seq', GREATEST((SELECT last_value FROM crm2_ticket_seq), 6));
+
+-- [CRM2-A3] SLA due times and ticket comments
+-- SLA rule: due_at = created_at + 4 h (high), 24 h (medium), 72 h (low).
+-- Only fills tickets that have no due_at yet, so it is safe to run twice.
+-- With the seed times above, TKT-0001, TKT-0002 and TKT-0005 are already overdue (for the demo).
+UPDATE tickets
+   SET due_at = created_at + CASE priority
+                               WHEN 'high'   THEN interval '4 hours'
+                               WHEN 'medium' THEN interval '24 hours'
+                               ELSE               interval '72 hours'
+                             END
+ WHERE due_at IS NULL;
+
+INSERT INTO ticket_comments (id, ticket_id, author, text, created_at) VALUES
+  ('CMT-0001', 'TKT-0001', 'System Administrator', 'Customer confirmed the flicker starts after about 10 minutes. Engineer visit booked.', now() - interval '5 hours'),
+  ('CMT-0002', 'TKT-0001', 'Imran Qureshi',        'Visited site. Backlight driver board suspected, part requested.',                     now() - interval '2 hours'),
+  ('CMT-0003', 'TKT-0002', 'System Administrator', 'Asked customer to try a different HDMI cable and check ARC settings.',               now() - interval '28 hours'),
+  ('CMT-0004', 'TKT-0003', 'Deepa Menon',          'Re-paired the remote after a factory reset. Working now.',                            now() - interval '2 days')
+ON CONFLICT (id) DO NOTHING;
+
+-- Move the comment sequence past the seeded IDs so the next new comment is CMT-0005.
+SELECT setval('crm2_comment_seq', GREATEST((SELECT last_value FROM crm2_comment_seq), 4));
