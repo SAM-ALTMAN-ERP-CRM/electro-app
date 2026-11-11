@@ -1,0 +1,82 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="600" viewBox="0 0 960 600" role="img" aria-labelledby="title desc">
+  <title id="title">ERP-3 Work Order Detail &amp; Material Issuance Wireframe</title>
+  <desc id="desc">Wireframe for /erp3/work-orders/:id detailing material issuance and finished goods posting</desc>
+  <rect width="960" height="600" fill="#f8fafc"/>
+  <rect x="20" y="20" width="920" height="560" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5"/>
+
+  <!-- Top bar / Page Header -->
+  <text x="50" y="65" font-family="system-ui, -apple-system, sans-serif" font-size="22" font-weight="700" fill="#0f172a">WO-0001: 55" 4K Smart TV Assembly</text>
+  <rect x="480" y="48" width="90" height="22" rx="11" fill="#fef3c7"/>
+  <text x="492" y="64" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="600" fill="#b45309">in_progress</text>
+  <text x="50" y="92" font-family="system-ui, -apple-system, sans-serif" font-size="13" fill="#64748b">Batch Target: 50 Units · BOM-0001 · Warehouse: WH-01</text>
+
+  <!-- Back button -->
+  <rect x="790" y="46" width="120" height="36" rx="6" fill="#f1f5f9" stroke="#cbd5e1"/>
+  <text x="808" y="69" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="600" fill="#334155">← All Orders</text>
+
+  <line x1="50" y1="110" x2="910" y2="110" stroke="#e2e8f0" stroke-width="1"/>
+
+  <!-- Section: Material Requirements & Issuance -->
+  <text x="50" y="135" font-family="system-ui, -apple-system, sans-serif" font-size="15" font-weight="700" fill="#0f172a">Component Issuance (ERP3-C2)</text>
+  <rect x="50" y="150" width="860" height="215" rx="8" fill="#ffffff" stroke="#e2e8f0"/>
+  <rect x="50" y="150" width="860" height="35" rx="8" fill="#f8fafc"/>
+  <text x="70" y="172" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#64748b">COMPONENT</text>
+  <text x="250" y="172" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#64748b">REQUIRED</text>
+  <text x="360" y="172" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#64748b">ISSUED</text>
+  <text x="470" y="172" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#64748b">PENDING</text>
+  <text x="580" y="172" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#64748b">ISSUE QTY</text>
+  <text x="730" y="172" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#64748b">ACTION</text>
+  <line x1="50" y1="185" x2="910" y2="185" stroke="#e2e8f0"/>
+
+  <!-- Row 1: Fully issued -->
+  <text x="70" y="215" font-family="system-ui, -apple-system, sans-serif" font-size="13" fill="#0f172a">SKU-0101 (Display Panel)</text>
+  <text x="250" y="215" font-family="monospace" font-size="13" fill="#0f172a">50</text>
+  <text x="360" y="215" font-family="monospace" font-size="13" fill="#16a34a">50</text>
+  <text x="470" y="215" font-family="monospace" font-size="13" fill="#64748b">0</text>
+  <text x="580" y="215" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#94a3b8">—</text>
+  <rect x="730" y="202" width="75" height="20" rx="10" fill="#dcfce7"/>
+  <text x="742" y="216" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#15803d">✓ Issued</text>
+  <line x1="50" y1="230" x2="910" y2="230" stroke="#f1f5f9"/>
+
+  <!-- Row 2: Partially issued -->
+  <text x="70" y="258" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="600" fill="#0f172a">SKU-0102 (Smart Mainboard)</text>
+  <text x="250" y="258" font-family="monospace" font-size="13" font-weight="600" fill="#0f172a">50</text>
+  <text x="360" y="258" font-family="monospace" font-size="13" font-weight="600" fill="#d97706">30</text>
+  <text x="470" y="258" font-family="monospace" font-size="13" font-weight="600" fill="#dc2626">20</text>
+  <!-- Input box -->
+  <rect x="580" y="244" width="70" height="26" rx="4" fill="#ffffff" stroke="#cbd5e1"/>
+  <text x="605" y="261" font-family="monospace" font-size="13" fill="#0f172a">20</text>
+  <!-- Issue Button -->
+  <rect x="730" y="244" width="85" height="26" rx="4" fill="#2563eb"/>
+  <text x="745" y="261" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#ffffff">Issue Qty</text>
+  <line x1="50" y1="275" x2="910" y2="275" stroke="#f1f5f9"/>
+
+  <!-- Row 3: Fully issued -->
+  <text x="70" y="302" font-family="system-ui, -apple-system, sans-serif" font-size="13" fill="#0f172a">SKU-0103 (Power Supply 150W)</text>
+  <text x="250" y="302" font-family="monospace" font-size="13" fill="#0f172a">50</text>
+  <text x="360" y="302" font-family="monospace" font-size="13" fill="#16a34a">50</text>
+  <text x="470" y="302" font-family="monospace" font-size="13" fill="#64748b">0</text>
+  <text x="580" y="302" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#94a3b8">—</text>
+  <rect x="730" y="289" width="75" height="20" rx="10" fill="#dcfce7"/>
+  <text x="742" y="303" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#15803d">✓ Issued</text>
+
+  <!-- Section: Finished Goods Posting & QC Gate Card -->
+  <rect x="50" y="380" width="860" height="175" rx="8" fill="#f8fafc" stroke="#e2e8f0"/>
+  <text x="70" y="408" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="700" fill="#0f172a">Completion &amp; Finished Goods Posting Gate (ERP3-C3)</text>
+
+  <!-- Status indicators -->
+  <text x="70" y="440" font-family="system-ui, -apple-system, sans-serif" font-size="13" fill="#334155">1. Quality Inspection Status:</text>
+  <rect x="270" y="426" width="75" height="20" rx="10" fill="#dcfce7"/>
+  <text x="282" y="440" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#15803d">✓ PASSED</text>
+  <text x="360" y="440" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#64748b">(Inspector: EMP-0005, Yield 100%)</text>
+
+  <text x="70" y="475" font-family="system-ui, -apple-system, sans-serif" font-size="13" fill="#334155">2. Component Issuance Gate:</text>
+  <rect x="270" y="461" width="95" height="20" rx="10" fill="#fef3c7"/>
+  <text x="280" y="475" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#b45309">⚠ INCOMPLETE</text>
+  <text x="375" y="475" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#dc2626">(SKU-0102 has 20 units pending issue)</text>
+
+  <!-- Gate Post Button -->
+  <rect x="70" y="500" width="340" height="38" rx="6" fill="#cbd5e1"/>
+  <text x="90" y="524" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="600" fill="#64748b">🔒 Post Finished Goods to Inventory</text>
+  <text x="430" y="524" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#64748b">Unlocks when all materials are issued and QC allows.</text>
+</svg>
