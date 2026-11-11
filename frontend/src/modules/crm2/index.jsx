@@ -2,6 +2,8 @@ import React from 'react';
 // [CRM2-A2] ticket screens
 import TicketsPage from './pages/TicketsPage';
 import TicketDetailPage from './pages/TicketDetailPage';
+// [CRM2-B2] warranty screen
+import WarrantyPage from './pages/WarrantyPage';
 
 export default {
   id: 'crm2',
@@ -10,6 +12,8 @@ export default {
   routes: [
     // [CRM2-A2] ticket screens
     { path: 'tickets', label: 'Tickets', element: <TicketsPage /> },
-    { path: 'tickets/:id', element: <TicketDetailPage /> } // no label: detail page stays out of the sidebar
+    { path: 'tickets/:id', element: <TicketDetailPage /> }, // no label: detail page stays out of the sidebar
+    // [CRM2-B2] warranty screen
+    { path: 'warranty', label: 'Warranty', element: <WarrantyPage /> }
   ]
 };
