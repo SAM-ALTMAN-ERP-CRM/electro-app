@@ -1,0 +1,88 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="600" viewBox="0 0 960 600" role="img" aria-labelledby="title desc">
+  <title id="title">ERP-3 BOM Detail &amp; Material Requirements Wireframe</title>
+  <desc id="desc">Wireframe for /erp3/boms/:id showing BOM components and shortage purchasing</desc>
+  <rect width="960" height="600" fill="#f8fafc"/>
+  <rect x="20" y="20" width="920" height="560" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5"/>
+
+  <!-- Top bar / Page Header -->
+  <text x="50" y="65" font-family="system-ui, -apple-system, sans-serif" font-size="22" font-weight="700" fill="#0f172a">BOM-0001: 55" 4K Smart LED TV</text>
+  <rect x="440" y="48" width="65" height="22" rx="11" fill="#dcfce7"/>
+  <text x="454" y="64" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="600" fill="#15803d">active</text>
+  <text x="50" y="92" font-family="system-ui, -apple-system, sans-serif" font-size="13" fill="#64748b">SKU-0001 · Version 1 · 5 Engineering Components</text>
+
+  <!-- Back button -->
+  <rect x="780" y="46" width="130" height="36" rx="6" fill="#f1f5f9" stroke="#cbd5e1"/>
+  <text x="797" y="69" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="600" fill="#334155">← Back to BOMs</text>
+
+  <line x1="50" y1="110" x2="910" y2="110" stroke="#e2e8f0" stroke-width="1"/>
+
+  <!-- Requirements Calculator Bar -->
+  <rect x="50" y="125" width="860" height="65" rx="8" fill="#f8fafc" stroke="#e2e8f0"/>
+  <text x="70" y="162" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="600" fill="#0f172a">Batch Calculation Quantity:</text>
+  <rect x="250" y="140" width="80" height="34" rx="4" fill="#ffffff" stroke="#cbd5e1"/>
+  <text x="275" y="162" font-family="monospace" font-size="14" font-weight="600" fill="#0f172a">20</text>
+  <text x="340" y="162" font-family="system-ui, -apple-system, sans-serif" font-size="13" fill="#64748b">units</text>
+
+  <rect x="400" y="140" width="140" height="34" rx="4" fill="#2563eb"/>
+  <text x="415" y="162" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="600" fill="#ffffff">🔍 Check Materials</text>
+
+  <text x="570" y="162" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#64748b">Checks live ERP-1 warehouse stock availability</text>
+
+  <!-- Components & Shortfall Table -->
+  <text x="50" y="215" font-family="system-ui, -apple-system, sans-serif" font-size="15" font-weight="700" fill="#0f172a">Component Availability &amp; Shortfall Analysis</text>
+  <rect x="50" y="230" width="860" height="235" rx="8" fill="#ffffff" stroke="#e2e8f0"/>
+  <rect x="50" y="230" width="860" height="35" rx="8" fill="#f8fafc"/>
+  <text x="70" y="252" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#64748b">COMPONENT SKU</text>
+  <text x="220" y="252" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#64748b">COMPONENT NAME</text>
+  <text x="440" y="252" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#64748b">REQUIRED</text>
+  <text x="540" y="252" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#64748b">STOCK</text>
+  <text x="640" y="252" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#64748b">STATUS</text>
+  <text x="770" y="252" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#64748b">ACTION</text>
+  <line x1="50" y1="265" x2="910" y2="265" stroke="#e2e8f0"/>
+
+  <!-- Row 1: SKU-0101 OK -->
+  <text x="70" y="295" font-family="monospace" font-size="13" fill="#0f172a">SKU-0101</text>
+  <text x="220" y="295" font-family="system-ui, -apple-system, sans-serif" font-size="13" fill="#0f172a">55" Display Panel</text>
+  <text x="440" y="295" font-family="monospace" font-size="13" fill="#0f172a">20</text>
+  <text x="540" y="295" font-family="monospace" font-size="13" fill="#16a34a">35</text>
+  <rect x="640" y="280" width="85" height="20" rx="10" fill="#dcfce7"/>
+  <text x="653" y="294" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#15803d">✓ Available</text>
+  <text x="770" y="295" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#94a3b8">—</text>
+  <line x1="50" y1="310" x2="910" y2="310" stroke="#f1f5f9"/>
+
+  <!-- Row 2: SKU-0102 SHORTFALL -->
+  <text x="70" y="340" font-family="monospace" font-size="13" font-weight="600" fill="#b91c1c">SKU-0102</text>
+  <text x="220" y="340" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="600" fill="#0f172a">Smart TV Mainboard</text>
+  <text x="440" y="340" font-family="monospace" font-size="13" font-weight="600" fill="#0f172a">20</text>
+  <text x="540" y="340" font-family="monospace" font-size="13" font-weight="600" fill="#dc2626">12</text>
+  <rect x="640" y="325" width="95" height="20" rx="10" fill="#fee2e2"/>
+  <text x="650" y="339" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#b91c1c">✗ Shortfall: 8</text>
+  <!-- Request Purchase Button -->
+  <rect x="765" y="323" width="125" height="25" rx="4" fill="#dc2626"/>
+  <text x="775" y="340" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#ffffff">+ Request Pur.</text>
+  <line x1="50" y1="355" x2="910" y2="355" stroke="#f1f5f9"/>
+
+  <!-- Row 3: SKU-0103 OK -->
+  <text x="70" y="385" font-family="monospace" font-size="13" fill="#0f172a">SKU-0103</text>
+  <text x="220" y="385" font-family="system-ui, -apple-system, sans-serif" font-size="13" fill="#0f172a">150W Power Supply Module</text>
+  <text x="440" y="385" font-family="monospace" font-size="13" fill="#0f172a">20</text>
+  <text x="540" y="385" font-family="monospace" font-size="13" fill="#16a34a">40</text>
+  <rect x="640" y="370" width="85" height="20" rx="10" fill="#dcfce7"/>
+  <text x="653" y="384" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#15803d">✓ Available</text>
+  <text x="770" y="385" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#94a3b8">—</text>
+  <line x1="50" y1="400" x2="910" y2="400" stroke="#f1f5f9"/>
+
+  <!-- Row 4: SKU-0104 OK -->
+  <text x="70" y="430" font-family="monospace" font-size="13" fill="#0f172a">SKU-0104</text>
+  <text x="220" y="430" font-family="system-ui, -apple-system, sans-serif" font-size="13" fill="#0f172a">Bluetooth Remote Control</text>
+  <text x="440" y="430" font-family="monospace" font-size="13" fill="#0f172a">20</text>
+  <text x="540" y="430" font-family="monospace" font-size="13" fill="#16a34a">85</text>
+  <rect x="640" y="415" width="85" height="20" rx="10" fill="#dcfce7"/>
+  <text x="653" y="429" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#15803d">✓ Available</text>
+  <text x="770" y="430" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#94a3b8">—</text>
+
+  <!-- Banner Note -->
+  <rect x="50" y="485" width="860" height="55" rx="8" fill="#fef3c7" stroke="#f59e0b"/>
+  <text x="70" y="510" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="600" fill="#92400e">⚡ ERP-2 Integration Note:</text>
+  <text x="70" y="528" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#92400e">Pressing "Request Pur." triggers ERP-2 POST /api/purchase-requests with shortage quantity (8 units) for purchasing fulfillment.</text>
+</svg>
