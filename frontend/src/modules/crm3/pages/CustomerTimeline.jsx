@@ -208,8 +208,8 @@ export default function CustomerTimeline({ defaultCustomerId = 'CUST-0001' }) {
       customer_id: customerId,
       type: noteType,
       summary: trimmedSummary,
-      source_team: 'crm3',
-      created_by: 'admin@demo.com',
+      source_team: 'CRM-3',
+      created_by: 'EMP-0001',
       created_at: new Date().toISOString()
     };
 
@@ -228,15 +228,15 @@ export default function CustomerTimeline({ defaultCustomerId = 'CUST-0001' }) {
           customer_id: customerId,
           type: noteType,
           summary: trimmedSummary,
-          source_team: 'crm3',
-          created_by: 'admin@demo.com'
+          source_team: 'CRM-3',
+          created_by: 'EMP-0001'
         }
       });
 
-      // Update temporary ID with backend persisted ID if returned
+      // Replace optimistic placeholder fields with backend persisted record
       if (saved && saved.id) {
         setInteractions(prev =>
-          prev.map(item => (item.id === tempId ? { ...item, id: saved.id, created_at: saved.created_at || item.created_at } : item))
+          prev.map(item => (item.id === tempId ? { ...item, ...saved } : item))
         );
       }
     } catch (err) {
