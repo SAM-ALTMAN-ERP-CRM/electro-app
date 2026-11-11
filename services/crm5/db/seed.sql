@@ -27,3 +27,17 @@ VALUES
   ('PV-0004', 'CUST-0004', NOW() - INTERVAL '20 minutes'),
   ('PV-0005', 'CUST-0001', NOW() - INTERVAL '5 minutes')
 ON CONFLICT (id) DO NOTHING;
+
+-- Seed the 3 core role-based reports specified in [CRM5-D1]
+INSERT INTO reports (id, name, source, allowed_roles)
+VALUES
+  ('RPT-0001', 'Leads by Source', 'CRM-1', 'sales,admin'),
+  ('RPT-0002', 'Tickets by Status', 'CRM-2', 'support,admin'),
+  ('RPT-0003', 'Customers by Type', 'CRM-3', 'sales,support,admin')
+ON CONFLICT DO NOTHING;
+
+-- Sync PostgreSQL sequences past seeded IDs so new inserts do not collide on primary keys
+SELECT setval('snapshot_seq', GREATEST(1, (SELECT COALESCE(MAX(CAST(SUBSTRING(id FROM 5) AS INTEGER)), 0) FROM dashboard_snapshots WHERE id ~ '^SNP-[0-9]+$')));
+SELECT setval('forecast_seq', GREATEST(1, (SELECT COALESCE(MAX(CAST(SUBSTRING(id FROM 6) AS INTEGER)), 0) FROM forecasts WHERE id ~ '^FCST-[0-9]+$')));
+SELECT setval('portal_visit_seq', GREATEST(1, (SELECT COALESCE(MAX(CAST(SUBSTRING(id FROM 4) AS INTEGER)), 0) FROM portal_visits WHERE id ~ '^PV-[0-9]+$')));
+SELECT setval('report_seq', GREATEST(1, (SELECT COALESCE(MAX(CAST(SUBSTRING(id FROM 5) AS INTEGER)), 0) FROM reports WHERE id ~ '^RPT-[0-9]+$')));
