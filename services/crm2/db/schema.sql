@@ -19,6 +19,19 @@ CREATE TABLE IF NOT EXISTS tickets (
   resolved_at   TIMESTAMPTZ                    -- set when status becomes 'resolved'
 );
 
+-- [CRM2-A3] ticket_comments
+-- Notes added to a ticket by support staff. IDs look like CMT-0001.
+-- (The SLA due time uses the existing tickets.due_at column from CRM2-A1.)
+CREATE SEQUENCE IF NOT EXISTS crm2_comment_seq START 1;
+
+CREATE TABLE IF NOT EXISTS ticket_comments (
+  id         TEXT PRIMARY KEY DEFAULT ('CMT-' || LPAD(nextval('crm2_comment_seq')::text, 4, '0')),
+  ticket_id  TEXT NOT NULL REFERENCES tickets(id),
+  author     TEXT NOT NULL,                  -- name of the logged-in user who wrote it
+  text       TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
 -- [CRM2-B1] warranties
 -- Serial-level warranty records. Serial number is primary key.
 CREATE TABLE IF NOT EXISTS warranties (
@@ -30,4 +43,3 @@ CREATE TABLE IF NOT EXISTS warranties (
   warranty_months INTEGER NOT NULL DEFAULT 12,
   created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 );
-
