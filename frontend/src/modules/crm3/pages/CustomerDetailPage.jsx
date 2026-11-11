@@ -1,540 +1,413 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '../../../api';
 import CustomerForm from './CustomerForm';
 
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const PHONE_REGEX = /^\d{10}$/;
-
 export default function CustomerDetailPage() {
   const { id } = useParams();
+  const navigate = useNavigate();
 
   const [customer, setCustomer] = useState(null);
   const [contacts, setContacts] = useState([]);
+  const [tags, setTags] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [error, setError] = useState(null);
   const [notification, setNotification] = useState('');
 
-  // Add Contact Form State
-  const [showAddContact, setShowAddContact] = useState(false);
-  const [contactForm, setContactForm] = useState({
-    name: '',
-    designation: '',
-    phone: '',
-    email: ''
-  });
-  const [contactErrors, setContactErrors] = useState({});
-  const [submittingContact, setSubmittingContact] = useState(false);
-  const [contactServerError, setContactServerError] = useState('');
-
   // Edit Customer Modal State
-  const [showEditCustomer, setShowEditCustomer] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
 
-  const fetchCustomerData = useCallback(async () => {
-    if (!id) return;
+  // New tag input
+  const [newTag, setNewTag] = useState('');
+  const [addingTag, setAddingTag] = useState(false);
+
+  // New contact form toggle
+  const [showContactForm, setShowContactForm] = useState(false);
+  const [contactName, setContactName] = useState('');
+  const [contactPhone, setContactPhone] = useState('');
+  const [contactEmail, setContactEmail] = useState('');
+  const [contactDesignation, setContactDesignation] = useState('');
+  const [savingContact, setSavingContact] = useState(false);
+
+  useEffect(() => {
+    loadCustomerData();
+  }, [id]);
+
+  async function loadCustomerData() {
     setLoading(true);
-    setError('');
-
+    setError(null);
     try {
-      // 1. Fetch customer details
-      const customerData = await api('crm3', `/api/customers/${id}`);
-      setCustomer(customerData);
+      const [custRes, contactsRes, tagsRes] = await Promise.all([
+        api('crm3', `/api/customers/${id}`),
+        api('crm3', `/api/customers/${id}/contacts`).catch(() => ({ data: [] })),
+        api('crm3', `/api/customers/${id}/tags`).catch(() => ({ data: [] }))
+      ]);
 
-      // 2. Fetch customer contacts
-      try {
-        const contactsData = await api('crm3', `/api/customers/${id}/contacts`);
-        setContacts(Array.isArray(contactsData) ? contactsData : []);
-      } catch (cErr) {
-        console.warn('Could not load contacts:', cErr.message);
-        setContacts([]);
-      }
+      setCustomer(custRes.data || custRes);
+      setContacts(contactsRes.data || contactsRes || []);
+      setTags(tagsRes.data || tagsRes || []);
     } catch (err) {
-      setError(err.message || `Customer with ID '${id}' could not be loaded.`);
+      setError(err.message || `Customer with ID '${id}' not found`);
     } finally {
       setLoading(false);
     }
-  }, [id]);
+  }
 
-  useEffect(() => {
-    fetchCustomerData();
-  }, [fetchCustomerData]);
+  // Handle customer edit success
+  function handleCustomerEditSuccess(updated) {
+    setCustomer(updated);
+    setShowEditModal(false);
+    setNotification(`Customer '${updated.name}' (${updated.id}) updated successfully.`);
+    setTimeout(() => setNotification(''), 5000);
+  }
 
-  // Handle Contact Form Field Changes
-  const handleContactChange = (e) => {
-    const { name, value } = e.target;
-    setContactForm(prev => ({ ...prev, [name]: value }));
-    if (contactErrors[name]) {
-      setContactErrors(prev => ({ ...prev, [name]: '' }));
-    }
-  };
-
-  // Validate Contact Input
-  const validateContact = () => {
-    const errs = {};
-    if (!contactForm.name.trim()) {
-      errs.name = 'Contact name is required';
-    }
-    if (contactForm.email && !EMAIL_REGEX.test(contactForm.email.trim())) {
-      errs.email = 'Please enter a valid email address';
-    }
-    if (contactForm.phone && !PHONE_REGEX.test(contactForm.phone.trim().replace(/\D/g, ''))) {
-      errs.phone = 'Phone number must be 10 digits';
-    }
-    setContactErrors(errs);
-    return Object.keys(errs).length === 0;
-  };
-
-  // Submit Add Contact
-  const handleAddContactSubmit = async (e) => {
+  // Add a tag
+  async function handleAddTag(e) {
     e.preventDefault();
-    setContactServerError('');
+    if (!newTag.trim()) return;
 
-    if (!validateContact()) return;
+    setAddingTag(true);
+    try {
+      const res = await api('crm3', `/api/customers/${id}/tags`, {
+        method: 'POST',
+        body: { tag: newTag.trim() }
+      });
 
-    setSubmittingContact(true);
+      if (res && res.tags) {
+        setTags(res.tags);
+      } else {
+        const added = newTag.trim();
+        if (!tags.includes(added)) setTags([...tags, added]);
+      }
+      setNewTag('');
+    } catch (err) {
+      alert('Error adding tag: ' + err.message);
+    } finally {
+      setAddingTag(false);
+    }
+  }
+
+  // Remove a tag
+  async function handleRemoveTag(tagToRemove) {
+    try {
+      await api('crm3', `/api/customers/${id}/tags/${encodeURIComponent(tagToRemove)}`, {
+        method: 'DELETE'
+      });
+      setTags(tags.filter(t => t.toLowerCase() !== tagToRemove.toLowerCase()));
+    } catch (err) {
+      alert('Error removing tag: ' + err.message);
+    }
+  }
+
+  // Add a contact
+  async function handleAddContact(e) {
+    e.preventDefault();
+    if (!contactName.trim()) return;
+
+    setSavingContact(true);
     try {
       const payload = {
-        name: contactForm.name.trim(),
-        designation: contactForm.designation.trim() || null,
-        phone: contactForm.phone.trim().replace(/\D/g, '') || null,
-        email: contactForm.email.trim().toLowerCase() || null
+        name: contactName.trim(),
+        phone: contactPhone.trim() || null,
+        email: contactEmail.trim() || null,
+        designation: contactDesignation.trim() || null
       };
 
-      const newContact = await api('crm3', `/api/customers/${id}/contacts`, {
+      const res = await api('crm3', `/api/customers/${id}/contacts`, {
         method: 'POST',
         body: payload
       });
 
-      setContacts(prev => [...prev, newContact]);
-      setNotification(`Contact '${newContact.name}' added successfully!`);
-      setContactForm({ name: '', designation: '', phone: '', email: '' });
-      setShowAddContact(false);
+      const created = res.data || res;
+      setContacts([...contacts, created]);
+      setContactName('');
+      setContactPhone('');
+      setContactEmail('');
+      setContactDesignation('');
+      setShowContactForm(false);
+      setNotification(`Contact '${created.name}' added successfully.`);
       setTimeout(() => setNotification(''), 5000);
     } catch (err) {
-      setContactServerError(err.message || 'Failed to save contact');
+      alert('Error adding contact: ' + err.message);
     } finally {
-      setSubmittingContact(false);
+      setSavingContact(false);
     }
-  };
-
-  // Handle Customer Edit Success
-  const handleCustomerEditSuccess = (updatedCustomer) => {
-    setCustomer(updatedCustomer);
-    setShowEditCustomer(false);
-    setNotification(`Customer '${updatedCustomer.name}' updated successfully.`);
-    setTimeout(() => setNotification(''), 5000);
-  };
-
-  const getTypeBadgeClass = (type) => {
-    switch (type) {
-      case 'corporate':
-        return 'badge badge-amber';
-      case 'dealer':
-        return 'badge badge-green';
-      case 'retail':
-      default:
-        return 'badge badge-blue';
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="page-container" style={{ padding: '3rem', textAlign: 'center', color: '#64748b' }}>
-        <p style={{ fontSize: '1.1rem' }}>Loading customer details for {id}...</p>
-      </div>
-    );
   }
 
-  if (error || !customer) {
+  function renderTypeBadge(type) {
+    if (!type) return null;
+    const stylesMap = {
+      retail: { bg: '#dbeafe', color: '#1e40af' },
+      corporate: { bg: '#f3e8ff', color: '#6b21a8' },
+      dealer: { bg: '#d1fae5', color: '#065f46' }
+    };
+    const conf = stylesMap[type.toLowerCase()] || { bg: '#f3f4f6', color: '#4b5563' };
     return (
-      <div className="page-container" style={{ padding: '2rem', maxWidth: '800px', margin: '0 auto' }}>
-        <div style={{ background: '#fee2e2', border: '1px solid #f87171', color: '#991b1b', padding: '1.5rem', borderRadius: '8px' }}>
-          <h3 style={{ marginBottom: '0.5rem' }}>Unable to Load Customer</h3>
-          <p style={{ marginBottom: '1rem', fontSize: '0.9rem' }}>{error || 'Customer not found.'}</p>
-          <Link to="/crm3/customers" className="btn" style={{ background: '#dc2626' }}>
-            ← Back to Customer Directory
-          </Link>
-        </div>
-      </div>
+      <span style={{ backgroundColor: conf.bg, color: conf.color, padding: '3px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: '600' }}>
+        {type.toUpperCase()}
+      </span>
     );
   }
 
   return (
-    <div className="page-container" style={{ padding: '1.5rem', maxWidth: '1200px', margin: '0 auto' }}>
-      {/* Navigation Breadcrumb / Header Bar */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <Link
-            to="/crm3/customers"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.25rem',
-              color: '#2563eb',
-              textDecoration: 'none',
-              fontSize: '0.875rem',
-              fontWeight: 500
-            }}
-          >
-            ← Back to Customers
-          </Link>
-          <span style={{ color: '#cbd5e1' }}>/</span>
-          <span style={{ fontSize: '0.875rem', color: '#64748b' }}>{customer.id}</span>
-        </div>
-
-        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-          <button
-            onClick={() => setShowEditCustomer(true)}
-            className="btn"
-            style={{
-              background: '#ffffff',
-              color: '#0f172a',
-              border: '1px solid #cbd5e1',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.4rem'
-            }}
-          >
-            ✏️ Edit Customer
-          </button>
-          <Link
-            to={`/crm3/customers/${customer.id}/timeline`}
-            className="btn"
-            style={{
-              background: '#0f172a',
-              color: '#ffffff',
-              textDecoration: 'none',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.4rem'
-            }}
-          >
-            ⏱️ View Timeline
-          </Link>
+    <div style={styles.container}>
+      <div style={styles.topBar}>
+        <button onClick={() => navigate('/crm3')} style={styles.backBtn}>
+          &larr; Back to Customers
+        </button>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          {customer && (
+            <button
+              onClick={() => setShowEditModal(!showEditModal)}
+              style={styles.editBtn}
+            >
+              {showEditModal ? 'Close Edit Form' : '✏️ Edit Customer'}
+            </button>
+          )}
+          {customer && (
+            <button
+              onClick={() => navigate(`/crm3/customers/${id}/timeline`)}
+              style={styles.timelineBtn}
+            >
+              🕒 View Activity Timeline &rarr;
+            </button>
+          )}
         </div>
       </div>
 
-      {/* Notifications */}
-      {notification && (
-        <div style={{ background: '#dcfce7', border: '1px solid #86efac', color: '#166534', padding: '0.75rem 1rem', borderRadius: '6px', marginBottom: '1.5rem', fontSize: '0.875rem' }}>
-          ✓ {notification}
-        </div>
-      )}
+      {notification && <div style={styles.notificationBox}>✓ {notification}</div>}
+      {loading && <div style={styles.loadingBox}>Loading customer record...</div>}
+      {error && <div style={styles.errorBox}>{error}</div>}
 
-      {/* Edit Customer Modal */}
-      {showEditCustomer && (
-        <div style={{ marginBottom: '2rem' }}>
+      {/* Edit Customer Form */}
+      {showEditModal && customer && (
+        <div style={{ marginBottom: '24px' }}>
           <CustomerForm
             initialData={customer}
             onSuccess={handleCustomerEditSuccess}
-            onCancel={() => setShowEditCustomer(false)}
+            onCancel={() => setShowEditModal(false)}
           />
         </div>
       )}
 
-      {/* Customer Header Profile Card */}
-      <div style={{ background: '#ffffff', borderRadius: '8px', border: '1px solid #e2e8f0', padding: '1.5rem', marginBottom: '1.5rem', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem', borderBottom: '1px solid #f1f5f9', paddingBottom: '1.25rem', marginBottom: '1.25rem' }}>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#0f172a' }}>
-                {customer.name}
-              </h1>
-              <span className={getTypeBadgeClass(customer.type)}>
-                {customer.type}
-              </span>
-            </div>
-            <p style={{ color: '#2563eb', fontWeight: 600, fontSize: '0.9rem', marginTop: '0.25rem' }}>
-              Customer ID: {customer.id}
-            </p>
-          </div>
-
-          <div style={{ textAlign: 'right' }}>
-            <span style={{ fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>City</span>
-            <p style={{ fontWeight: 600, color: '#0f172a', fontSize: '1rem' }}>{customer.city || '—'}</p>
-          </div>
-        </div>
-
-        {/* Customer Primary Info Grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.25rem' }}>
-          <div>
-            <span style={{ fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Email</span>
-            <p style={{ color: '#0f172a', fontWeight: 500, marginTop: '0.25rem' }}>{customer.email || '—'}</p>
-          </div>
-          <div>
-            <span style={{ fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Phone</span>
-            <p style={{ color: '#0f172a', fontWeight: 500, marginTop: '0.25rem' }}>{customer.phone || '—'}</p>
-          </div>
-          <div>
-            <span style={{ fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>GSTIN</span>
-            <p style={{ color: customer.gstin ? '#0f172a' : '#94a3b8', fontFamily: 'monospace', fontWeight: 600, marginTop: '0.25rem' }}>
-              {customer.gstin || 'None / Not Registered'}
-            </p>
-          </div>
-          <div>
-            <span style={{ fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Created At</span>
-            <p style={{ color: '#64748b', fontSize: '0.875rem', marginTop: '0.25rem' }}>
-              {customer.created_at ? new Date(customer.created_at).toLocaleDateString('en-IN', { year: 'numeric', month: 'short', day: 'numeric' }) : '—'}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Address Cards (Billing & Shipping) */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
-        {/* Billing Address Card */}
-        <div style={{ background: '#ffffff', borderRadius: '8px', border: '1px solid #e2e8f0', padding: '1.25rem', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
-            <span style={{ fontSize: '1.1rem' }}>🏛️</span>
-            <h3 style={{ fontSize: '1rem', fontWeight: 600, color: '#0f172a' }}>Billing Address</h3>
-          </div>
-          <p style={{ color: '#334155', fontSize: '0.9rem', lineHeight: '1.6', background: '#f8fafc', padding: '0.75rem 1rem', borderRadius: '6px', border: '1px solid #f1f5f9' }}>
-            {customer.billing_address || 'No billing address recorded.'}
-          </p>
-          <div style={{ marginTop: '0.75rem', fontSize: '0.8rem', color: '#64748b' }}>
-            <strong>City:</strong> {customer.city || '—'}
-          </div>
-        </div>
-
-        {/* Shipping Address Card */}
-        <div style={{ background: '#ffffff', borderRadius: '8px', border: '1px solid #e2e8f0', padding: '1.25rem', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
-            <span style={{ fontSize: '1.1rem' }}>🚚</span>
-            <h3 style={{ fontSize: '1rem', fontWeight: 600, color: '#0f172a' }}>Shipping Address</h3>
-          </div>
-          <p style={{ color: '#334155', fontSize: '0.9rem', lineHeight: '1.6', background: '#f8fafc', padding: '0.75rem 1rem', borderRadius: '6px', border: '1px solid #f1f5f9' }}>
-            {customer.shipping_address || customer.billing_address || 'Same as billing address.'}
-          </p>
-          <div style={{ marginTop: '0.75rem', fontSize: '0.8rem', color: '#64748b' }}>
-            <strong>City:</strong> {customer.city || '—'}
-          </div>
-        </div>
-      </div>
-
-      {/* Contacts Section */}
-      <div style={{ background: '#ffffff', borderRadius: '8px', border: '1px solid #e2e8f0', padding: '1.5rem', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.75rem' }}>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <h2 style={{ fontSize: '1.25rem', fontWeight: 600, color: '#0f172a' }}>
-                Customer Contacts
-              </h2>
-              <span className="badge badge-blue">
-                {contacts.length}
-              </span>
-            </div>
-            <p style={{ color: '#64748b', fontSize: '0.85rem', marginTop: '0.2rem' }}>
-              Direct representatives, procurement heads, and store personnel for {customer.name}.
-            </p>
-          </div>
-
-          <button
-            onClick={() => {
-              setShowAddContact(prev => !prev);
-              setContactServerError('');
-              setContactErrors({});
-            }}
-            className="btn"
-            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem' }}
-          >
-            {showAddContact ? 'Cancel' : '+ Add Contact'}
-          </button>
-        </div>
-
-        {/* Add Contact Form (Toggleable Card) */}
-        {showAddContact && (
-          <div style={{ background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '1.25rem', marginBottom: '1.5rem' }}>
-            <h4 style={{ fontSize: '0.95rem', fontWeight: 600, color: '#0f172a', marginBottom: '1rem' }}>
-              New Contact for {customer.name}
-            </h4>
-
-            {contactServerError && (
-              <div style={{ background: '#fee2e2', border: '1px solid #f87171', color: '#991b1b', padding: '0.5rem 0.75rem', borderRadius: '6px', marginBottom: '1rem', fontSize: '0.85rem' }}>
-                {contactServerError}
-              </div>
-            )}
-
-            <form onSubmit={handleAddContactSubmit}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem', marginBottom: '1rem' }}>
-                {/* Contact Name */}
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#334155', marginBottom: '0.35rem' }}>
-                    Full Name <span style={{ color: '#ef4444' }}>*</span>
-                  </label>
-                  <input
-                    type="text"
-                    name="name"
-                    value={contactForm.name}
-                    onChange={handleContactChange}
-                    placeholder="e.g. Rajesh Sharma"
-                    style={{
-                      width: '100%',
-                      padding: '0.5rem 0.75rem',
-                      borderRadius: '6px',
-                      border: `1px solid ${contactErrors.name ? '#ef4444' : '#cbd5e1'}`,
-                      fontSize: '0.875rem',
-                      background: '#ffffff'
-                    }}
-                  />
-                  {contactErrors.name && (
-                    <span style={{ color: '#ef4444', fontSize: '0.75rem', marginTop: '0.25rem', display: 'block' }}>
-                      {contactErrors.name}
-                    </span>
-                  )}
-                </div>
-
-                {/* Designation / Role */}
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#334155', marginBottom: '0.35rem' }}>
-                    Designation / Role
-                  </label>
-                  <input
-                    type="text"
-                    name="designation"
-                    value={contactForm.designation}
-                    onChange={handleContactChange}
-                    placeholder="e.g. Procurement Manager"
-                    style={{
-                      width: '100%',
-                      padding: '0.5rem 0.75rem',
-                      borderRadius: '6px',
-                      border: '1px solid #cbd5e1',
-                      fontSize: '0.875rem',
-                      background: '#ffffff'
-                    }}
-                  />
-                </div>
-
-                {/* Phone */}
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#334155', marginBottom: '0.35rem' }}>
-                    Phone Number
-                  </label>
-                  <input
-                    type="text"
-                    name="phone"
-                    value={contactForm.phone}
-                    onChange={handleContactChange}
-                    placeholder="10-digit number (e.g. 9820223456)"
-                    style={{
-                      width: '100%',
-                      padding: '0.5rem 0.75rem',
-                      borderRadius: '6px',
-                      border: `1px solid ${contactErrors.phone ? '#ef4444' : '#cbd5e1'}`,
-                      fontSize: '0.875rem',
-                      background: '#ffffff'
-                    }}
-                  />
-                  {contactErrors.phone && (
-                    <span style={{ color: '#ef4444', fontSize: '0.75rem', marginTop: '0.25rem', display: 'block' }}>
-                      {contactErrors.phone}
-                    </span>
-                  )}
-                </div>
-
-                {/* Email */}
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#334155', marginBottom: '0.35rem' }}>
-                    Email Address
-                  </label>
-                  <input
-                    type="email"
-                    name="email"
-                    value={contactForm.email}
-                    onChange={handleContactChange}
-                    placeholder="e.g. rajesh@sunrise.com"
-                    style={{
-                      width: '100%',
-                      padding: '0.5rem 0.75rem',
-                      borderRadius: '6px',
-                      border: `1px solid ${contactErrors.email ? '#ef4444' : '#cbd5e1'}`,
-                      fontSize: '0.875rem',
-                      background: '#ffffff'
-                    }}
-                  />
-                  {contactErrors.email && (
-                    <span style={{ color: '#ef4444', fontSize: '0.75rem', marginTop: '0.25rem', display: 'block' }}>
-                      {contactErrors.email}
-                    </span>
-                  )}
+      {!loading && customer && (
+        <>
+          {/* Header Card */}
+          <div style={styles.card}>
+            <div style={styles.headerFlex}>
+              <div>
+                <div style={styles.customerId}>{customer.id}</div>
+                <h1 style={styles.title}>{customer.name}</h1>
+                <div style={styles.badgeRow}>
+                  {renderTypeBadge(customer.type)}
+                  {customer.city && <span style={styles.cityBadge}>{customer.city}</span>}
                 </div>
               </div>
 
-              <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
-                <button
-                  type="button"
-                  onClick={() => setShowAddContact(false)}
-                  style={{
-                    padding: '0.5rem 1rem',
-                    borderRadius: '6px',
-                    border: '1px solid #cbd5e1',
-                    background: '#ffffff',
-                    color: '#475569',
-                    fontSize: '0.85rem',
-                    cursor: 'pointer'
-                  }}
-                >
-                  Cancel
-                </button>
+              {/* Tags Section (CRM3-C3) */}
+              <div style={styles.tagsContainer}>
+                <div style={styles.tagsLabel}>Tags:</div>
+                <div style={styles.chipsWrapper}>
+                  {tags.length === 0 ? (
+                    <span style={styles.noTags}>No tags yet</span>
+                  ) : (
+                    tags.map(t => (
+                      <span key={t} style={styles.tagChip}>
+                        {t}
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveTag(t)}
+                          style={styles.removeTagBtn}
+                          title="Remove tag"
+                        >
+                          &times;
+                        </button>
+                      </span>
+                    ))
+                  )}
+                </div>
+
+                {/* Add Tag Inline Form */}
+                <form onSubmit={handleAddTag} style={styles.addTagForm}>
+                  <input
+                    type="text"
+                    placeholder="+ New tag"
+                    value={newTag}
+                    onChange={e => setNewTag(e.target.value)}
+                    style={styles.tagInput}
+                  />
+                  <button
+                    type="submit"
+                    disabled={addingTag || !newTag.trim()}
+                    style={styles.addTagBtn}
+                  >
+                    Add
+                  </button>
+                </form>
+              </div>
+            </div>
+
+            {/* Info Grid */}
+            <div style={styles.infoGrid}>
+              <div>
+                <span style={styles.infoLabel}>Email</span>
+                <div style={styles.infoValue}>{customer.email}</div>
+              </div>
+              <div>
+                <span style={styles.infoLabel}>Phone</span>
+                <div style={styles.infoValue}>{customer.phone}</div>
+              </div>
+              <div>
+                <span style={styles.infoLabel}>GSTIN</span>
+                <div style={styles.infoValue}>{customer.gstin || '—'}</div>
+              </div>
+              <div>
+                <span style={styles.infoLabel}>Billing Address</span>
+                <div style={styles.infoValue}>{customer.billing_address || '—'}</div>
+              </div>
+              <div>
+                <span style={styles.infoLabel}>Shipping Address</span>
+                <div style={styles.infoValue}>{customer.shipping_address || '—'}</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Contacts Section */}
+          <div style={styles.card}>
+            <div style={styles.sectionHeader}>
+              <h3 style={styles.sectionTitle}>Customer Contacts ({contacts.length})</h3>
+              <button
+                onClick={() => setShowContactForm(!showContactForm)}
+                style={styles.smallPrimaryBtn}
+              >
+                {showContactForm ? 'Cancel' : '+ Add Contact'}
+              </button>
+            </div>
+
+            {/* Add Contact Modal/Form */}
+            {showContactForm && (
+              <form onSubmit={handleAddContact} style={styles.contactForm}>
+                <div style={styles.formGrid}>
+                  <div>
+                    <label style={styles.formLabel}>Contact Name *</label>
+                    <input
+                      type="text"
+                      required
+                      value={contactName}
+                      onChange={e => setContactName(e.target.value)}
+                      style={styles.input}
+                    />
+                  </div>
+                  <div>
+                    <label style={styles.formLabel}>Phone</label>
+                    <input
+                      type="text"
+                      value={contactPhone}
+                      onChange={e => setContactPhone(e.target.value)}
+                      style={styles.input}
+                    />
+                  </div>
+                  <div>
+                    <label style={styles.formLabel}>Email</label>
+                    <input
+                      type="email"
+                      value={contactEmail}
+                      onChange={e => setContactEmail(e.target.value)}
+                      style={styles.input}
+                    />
+                  </div>
+                  <div>
+                    <label style={styles.formLabel}>Designation</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Procurement Lead"
+                      value={contactDesignation}
+                      onChange={e => setContactDesignation(e.target.value)}
+                      style={styles.input}
+                    />
+                  </div>
+                </div>
                 <button
                   type="submit"
-                  disabled={submittingContact}
-                  className="btn"
-                  style={{ fontSize: '0.85rem' }}
+                  disabled={savingContact}
+                  style={{ ...styles.smallPrimaryBtn, marginTop: '12px' }}
                 >
-                  {submittingContact ? 'Saving...' : 'Save Contact'}
+                  {savingContact ? 'Saving...' : 'Save Contact'}
                 </button>
-              </div>
-            </form>
-          </div>
-        )}
+              </form>
+            )}
 
-        {/* Contacts Table */}
-        {contacts.length === 0 ? (
-          <div style={{ padding: '2rem', textAlign: 'center', background: '#f8fafc', borderRadius: '6px', border: '1px solid #f1f5f9' }}>
-            <p style={{ color: '#64748b', fontSize: '0.9rem' }}>
-              No contacts recorded for this customer yet. Click <strong>+ Add Contact</strong> above to add primary or branch representatives.
-            </p>
-          </div>
-        ) : (
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ margin: 0 }}>
-              <thead>
-                <tr>
-                  <th>Contact ID</th>
-                  <th>Full Name</th>
-                  <th>Designation</th>
-                  <th>Phone</th>
-                  <th>Email</th>
-                  <th>Added On</th>
-                </tr>
-              </thead>
-              <tbody>
-                {contacts.map((contact) => (
-                  <tr key={contact.id}>
-                    <td style={{ fontWeight: 600, color: '#2563eb' }}>{contact.id}</td>
-                    <td style={{ fontWeight: 500, color: '#0f172a' }}>{contact.name}</td>
-                    <td>
-                      {contact.designation ? (
-                        <span style={{ background: '#f1f5f9', color: '#475569', padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.8rem' }}>
-                          {contact.designation}
-                        </span>
-                      ) : (
-                        <span style={{ color: '#94a3b8' }}>—</span>
-                      )}
-                    </td>
-                    <td style={{ color: '#475569' }}>{contact.phone || '—'}</td>
-                    <td style={{ color: '#475569' }}>{contact.email || '—'}</td>
-                    <td style={{ color: '#64748b', fontSize: '0.8rem' }}>
-                      {contact.created_at ? new Date(contact.created_at).toLocaleDateString('en-IN') : '—'}
-                    </td>
+            {/* Contacts Table */}
+            {contacts.length === 0 ? (
+              <div style={styles.emptyContacts}>No contacts added for this customer yet.</div>
+            ) : (
+              <table style={styles.table}>
+                <thead>
+                  <tr style={styles.thRow}>
+                    <th style={styles.th}>Name</th>
+                    <th style={styles.th}>Designation</th>
+                    <th style={styles.th}>Phone</th>
+                    <th style={styles.th}>Email</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {contacts.map(c => (
+                    <tr key={c.id || c.name} style={styles.tr}>
+                      <td style={styles.tdBold}>{c.name}</td>
+                      <td style={styles.td}>{c.designation || '—'}</td>
+                      <td style={styles.td}>{c.phone || '—'}</td>
+                      <td style={styles.td}>{c.email || '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
-        )}
-      </div>
+        </>
+      )}
     </div>
   );
 }
+
+const styles = {
+  container: { padding: '24px', maxWidth: '1200px', margin: '0 auto', fontFamily: 'system-ui, sans-serif' },
+  topBar: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' },
+  backBtn: { backgroundColor: 'transparent', border: 'none', color: '#2563eb', cursor: 'pointer', fontSize: '14px', fontWeight: '500', padding: 0 },
+  editBtn: { backgroundColor: '#fff', color: '#1f2937', border: '1px solid #d1d5db', borderRadius: '6px', padding: '6px 14px', fontSize: '13px', fontWeight: '500', cursor: 'pointer' },
+  timelineBtn: { backgroundColor: '#f3f4f6', color: '#1f2937', border: '1px solid #d1d5db', borderRadius: '6px', padding: '6px 14px', fontSize: '13px', fontWeight: '500', cursor: 'pointer' },
+  card: { backgroundColor: '#fff', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '24px', marginBottom: '24px' },
+  headerFlex: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '1px solid #f3f4f6', paddingBottom: '20px', marginBottom: '20px' },
+  customerId: { fontSize: '13px', fontFamily: 'monospace', color: '#2563eb', fontWeight: 'bold' },
+  title: { fontSize: '24px', fontWeight: 'bold', color: '#111827', margin: '4px 0 10px 0' },
+  badgeRow: { display: 'flex', gap: '8px', alignItems: 'center' },
+  cityBadge: { backgroundColor: '#fef3c7', color: '#92400e', padding: '2px 8px', borderRadius: '4px', fontSize: '12px' },
+  tagsContainer: { display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' },
+  tagsLabel: { fontSize: '12px', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase' },
+  chipsWrapper: { display: 'flex', flexWrap: 'wrap', gap: '6px', justifyContent: 'flex-end', maxWidth: '400px' },
+  noTags: { fontSize: '12px', color: '#9ca3af', fontStyle: 'italic' },
+  tagChip: { display: 'inline-flex', alignItems: 'center', gap: '6px', backgroundColor: '#e0e7ff', color: '#3730a3', padding: '3px 8px', borderRadius: '16px', fontSize: '12px', fontWeight: '500' },
+  removeTagBtn: { backgroundColor: 'transparent', border: 'none', color: '#6366f1', cursor: 'pointer', fontSize: '14px', lineHeight: 1, padding: 0, fontWeight: 'bold' },
+  addTagForm: { display: 'flex', gap: '6px', marginTop: '4px' },
+  tagInput: { padding: '4px 8px', borderRadius: '4px', border: '1px solid #d1d5db', fontSize: '12px', width: '110px' },
+  addTagBtn: { backgroundColor: '#4f46e5', color: '#fff', border: 'none', borderRadius: '4px', padding: '4px 10px', fontSize: '12px', cursor: 'pointer', fontWeight: '500' },
+  infoGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' },
+  infoLabel: { fontSize: '12px', color: '#6b7280', display: 'block', marginBottom: '2px' },
+  infoValue: { fontSize: '14px', color: '#111827', fontWeight: '500' },
+  sectionHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' },
+  sectionTitle: { margin: 0, fontSize: '18px', fontWeight: '600', color: '#111827' },
+  smallPrimaryBtn: { backgroundColor: '#2563eb', color: '#fff', border: 'none', borderRadius: '4px', padding: '6px 12px', fontSize: '13px', cursor: 'pointer', fontWeight: '500' },
+  contactForm: { backgroundColor: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '16px', marginBottom: '16px' },
+  formGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px' },
+  formLabel: { fontSize: '12px', fontWeight: '500', color: '#374151', display: 'block', marginBottom: '4px' },
+  input: { padding: '6px 10px', borderRadius: '4px', border: '1px solid #d1d5db', fontSize: '13px', width: '100%', boxSizing: 'border-box' },
+  emptyContacts: { padding: '24px', textAlign: 'center', color: '#9ca3af', fontSize: '14px' },
+  table: { width: '100%', borderCollapse: 'collapse', textAlign: 'left' },
+  thRow: { backgroundColor: '#f9fafb', borderBottom: '1px solid #e5e7eb' },
+  th: { padding: '10px 12px', fontSize: '12px', fontWeight: '600', color: '#4b5563', textTransform: 'uppercase' },
+  tr: { borderBottom: '1px solid #f3f4f6' },
+  td: { padding: '12px', fontSize: '13px', color: '#374151' },
+  tdBold: { padding: '12px', fontSize: '13px', fontWeight: '600', color: '#111827' },
+  errorBox: { backgroundColor: '#fee2e2', color: '#991b1b', padding: '12px', borderRadius: '6px', marginBottom: '16px', fontSize: '14px' },
+  loadingBox: { padding: '40px', textAlign: 'center', color: '#6b7280', fontSize: '15px' },
+  notificationBox: { backgroundColor: '#dcfce7', color: '#166534', border: '1px solid #86efac', padding: '12px', borderRadius: '6px', marginBottom: '16px', fontSize: '14px' }
+};
