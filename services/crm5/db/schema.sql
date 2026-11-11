@@ -1,5 +1,5 @@
 -- Database schema for CRM-5 Portal & Analytics (Port 5105, Database crm5_db)
--- Build Issue: [CRM5-B1] Sales summary & [CRM5-C1] Targets and weighted pipeline
+-- Build Issues: [CRM5-A1] Portal overview, [CRM5-B1] Sales summary, [CRM5-C1] Targets
 
 CREATE SEQUENCE IF NOT EXISTS snapshot_seq START 1;
 
@@ -17,4 +17,12 @@ CREATE TABLE IF NOT EXISTS forecasts (
   target_amount NUMERIC(12, 2) NOT NULL,
   notes TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE SEQUENCE IF NOT EXISTS portal_visit_seq START 1;
+
+CREATE TABLE IF NOT EXISTS portal_visits (
+  id VARCHAR(20) PRIMARY KEY DEFAULT ('PV-' || LPAD(nextval('portal_visit_seq')::TEXT, 4, '0')),
+  customer_id VARCHAR(20) NOT NULL,
+  visited_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
