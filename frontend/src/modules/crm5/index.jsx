@@ -1,6 +1,7 @@
 import React from 'react';
 import DashboardPage from './pages/DashboardPage';
 import ReportsPage from './pages/ReportsPage';
+import ForecastPage from './pages/ForecastPage';
 
 /**
  * CRM-5 Portal and Dashboards module registration.
@@ -10,6 +11,7 @@ import ReportsPage from './pages/ReportsPage';
  * - Route '' renders the executive Dashboard for default module access (/crm5)
  * - Route 'dashboard' renders the executive Dashboard with sidebar menu entry (/crm5/dashboard)
  * - Route 'reports' renders the role-based Reports screen (/crm5/reports)
+ * - Route 'forecast' renders the Forecast and Target tracking screen (/crm5/forecast)
  */
 export default {
   id: 'crm5',
@@ -31,6 +33,12 @@ export default {
       path: 'reports',
       label: 'Reports',
       element: <ReportsPage />,
+      roles: ['admin', 'sales', 'support', 'warehouse', 'finance', 'hr']
+    },
+    {
+      path: 'forecast',
+      label: 'Forecast',
+      element: <ForecastPage />,
       roles: ['admin', 'sales', 'support', 'warehouse', 'finance', 'hr']
     }
   ]
