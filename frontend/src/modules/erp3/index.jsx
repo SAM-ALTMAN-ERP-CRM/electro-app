@@ -20,7 +20,7 @@ import QCPage from './pages/QCPage';
  *   - /erp3/boms/new (Create BOM form)
  *   - /erp3/boms/:id (BOM detail, material requirements & shortage purchase request)
  *   - /erp3/work-orders (Work orders list & status transitions)
- *   - /erp3/work-orders/:id (Work order detail, material issuance & finished goods posting)
+ *   - /erp3/work-orders/:id (Work order detail & BOM materials [ERP3-B3], material issuance & finished goods)
  *   - /erp3/qc (Quality control inspections & defect analytics)
  * - No internal BrowserRouter or navbar: handled by shared shell
  */
