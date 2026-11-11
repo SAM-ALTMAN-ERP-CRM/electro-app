@@ -1,0 +1,50 @@
+[
+  {
+    "id": "RAT-0001",
+    "supplier_id": "SUP-0001",
+    "delivery_score": 4.8,
+    "quality_score": 4.8,
+    "comment": "Consistent on-time delivery and top panel quality",
+    "created_at": "2026-11-01T10:00:00Z"
+  },
+  {
+    "id": "RAT-0002",
+    "supplier_id": "SUP-0002",
+    "delivery_score": 4.5,
+    "quality_score": 4.5,
+    "comment": "Reliable silicon components and good packaging",
+    "created_at": "2026-11-02T11:00:00Z"
+  },
+  {
+    "id": "RAT-0003",
+    "supplier_id": "SUP-0003",
+    "delivery_score": 4.2,
+    "quality_score": 4.2,
+    "comment": "Standard lead times, decent transformer units",
+    "created_at": "2026-11-03T09:30:00Z"
+  },
+  {
+    "id": "RAT-0004",
+    "supplier_id": "SUP-0004",
+    "delivery_score": 4.6,
+    "quality_score": 4.6,
+    "comment": "High fidelity audio drivers with zero defects",
+    "created_at": "2026-11-04T14:20:00Z"
+  },
+  {
+    "id": "RAT-0005",
+    "supplier_id": "SUP-0005",
+    "delivery_score": 4.0,
+    "quality_score": 4.0,
+    "comment": "Durable polymer frames, slightly slow dispatch",
+    "created_at": "2026-11-05T16:00:00Z"
+  },
+  {
+    "id": "RAT-0006",
+    "supplier_id": "SUP-0006",
+    "delivery_score": 4.4,
+    "quality_score": 4.4,
+    "comment": "Quality cable looms with full testing certificates",
+    "created_at": "2026-11-06T12:00:00Z"
+  }
+]
