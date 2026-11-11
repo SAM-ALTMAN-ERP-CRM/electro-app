@@ -8,6 +8,7 @@ const fs = require('fs');
 const path = require('path');
 const { Pool } = require('pg');
 const { requireAuth } = require('../../_shared/auth');
+const { callService } = require('../../_shared/callService');
 
 // Postgres connection pool using DATABASE_URL or standard local database
 const pool = new Pool({
@@ -23,6 +24,7 @@ router.use(requireAuth);
 // In-memory fallback stores for offline development / test environments
 let inMemoryWorkOrders = [];
 let inMemoryMaterials = [];
+let inMemoryMaterialIssues = [];
 
 try {
   const mockWoPath = path.resolve(__dirname, '../mocks/work-orders.json');
@@ -42,8 +44,18 @@ try {
   console.warn('[erp3/work-orders] Could not load mock materials:', err.message);
 }
 
+try {
+  const mockIssuesPath = path.resolve(__dirname, '../mocks/material-issues.json');
+  if (fs.existsSync(mockIssuesPath)) {
+    inMemoryMaterialIssues = JSON.parse(fs.readFileSync(mockIssuesPath, 'utf-8'));
+  }
+} catch (err) {
+  console.warn('[erp3/work-orders] Could not load mock material issues:', err.message);
+}
+
 let mockWoCounter = inMemoryWorkOrders.length + 1;
 let mockMaterialCounter = inMemoryMaterials.length + 1;
+let mockIssueCounter = inMemoryMaterialIssues.length + 1;
 
 // Fallback BOM components mapping for offline / test environments
 const BOM_COMPONENTS_MAP = {
@@ -570,6 +582,173 @@ router.delete('/work-orders/:id', async (req, res, next) => {
     inMemoryWorkOrders.splice(idx, 1);
     inMemoryMaterials = inMemoryMaterials.filter(m => m.wo_id !== id);
     return res.json({ data: { message: 'Work order deleted successfully', id } });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ─── POST /api/work-orders/:id/issue ─────────────────────────────────────────
+// Issue raw materials to a work order [ERP3-C1].
+// Body: { component_sku, qty }
+// - Cannot exceed required_qty (else 400)
+// - Adds to issued_qty in work_order_materials
+// - Logs the issue in material_issues
+// - Calls ERP-1 POST /api/stock/adjust with negative delta (warehouse_id: 'WH-01', reason: <wo_id>, mock: 'stock-adjust')
+router.post('/work-orders/:id/issue', async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { component_sku, qty } = req.body;
+
+    if (!component_sku || typeof component_sku !== 'string' || !component_sku.trim()) {
+      return res.status(400).json({ error: 'component_sku is required' });
+    }
+
+    const parsedQty = parseFloat(qty);
+    if (isNaN(parsedQty) || parsedQty <= 0) {
+      return res.status(400).json({ error: 'qty must be a positive number' });
+    }
+
+    const trimmedSku = component_sku.trim();
+
+    // 1. Verify material requirement exists for this work order
+    const matResult = await safeQuery(
+      `SELECT id, wo_id, component_sku, required_qty, issued_qty
+       FROM work_order_materials
+       WHERE wo_id = $1 AND component_sku = $2`,
+      [id, trimmedSku]
+    );
+
+    let matRow = null;
+    if (matResult) {
+      if (matResult.rows.length === 0) {
+        return res.status(404).json({
+          error: `Component '${trimmedSku}' is not part of work order '${id}'`
+        });
+      }
+      matRow = matResult.rows[0];
+    } else {
+      matRow = inMemoryMaterials.find(
+        m => m.wo_id === id && m.component_sku === trimmedSku
+      );
+      if (!matRow) {
+        return res.status(404).json({
+          error: `Component '${trimmedSku}' is not part of work order '${id}'`
+        });
+      }
+    }
+
+    const currentIssued = parseFloat(matRow.issued_qty || 0);
+    const required = parseFloat(matRow.required_qty || 0);
+
+    // 2. Validate that issued_qty + qty does not exceed required_qty
+    if (currentIssued + parsedQty > required) {
+      const remaining = Math.max(0, required - currentIssued);
+      return res.status(400).json({
+        error: `Issuing ${parsedQty} would exceed required quantity. Remaining allowed: ${remaining}`
+      });
+    }
+
+    const newIssuedQty = currentIssued + parsedQty;
+
+    // 3. Update issued_qty in database & record in material_issues
+    let createdIssue = null;
+    const client = await pool.connect().catch(() => null);
+
+    if (client) {
+      try {
+        await client.query('BEGIN');
+
+        await client.query(
+          `UPDATE work_order_materials
+           SET issued_qty = issued_qty + $1
+           WHERE wo_id = $2 AND component_sku = $3`,
+          [parsedQty, id, trimmedSku]
+        );
+
+        const issueInsert = await client.query(
+          `INSERT INTO material_issues (wo_id, component_sku, qty)
+           VALUES ($1, $2, $3)
+           RETURNING id, wo_id, component_sku, qty, issued_at`,
+          [id, trimmedSku, parsedQty]
+        );
+
+        await client.query('COMMIT');
+        createdIssue = issueInsert.rows[0];
+      } catch (dbErr) {
+        await client.query('ROLLBACK');
+        throw dbErr;
+      } finally {
+        client.release();
+      }
+    }
+
+    if (!createdIssue) {
+      // In-memory fallback
+      matRow.issued_qty = newIssuedQty;
+      const newIssueId = `MI-${String(mockIssueCounter++).padStart(4, '0')}`;
+      createdIssue = {
+        id: newIssueId,
+        wo_id: id,
+        component_sku: trimmedSku,
+        qty: parsedQty,
+        issued_at: new Date().toISOString()
+      };
+      inMemoryMaterialIssues.push(createdIssue);
+    } else {
+      // Keep in-memory store in sync
+      if (matRow) matRow.issued_qty = newIssuedQty;
+      inMemoryMaterialIssues.push(createdIssue);
+    }
+
+    // 4. Cross-service stock adjustment call to ERP-1
+    try {
+      await callService('erp1', '/api/stock/adjust', {
+        method: 'POST',
+        body: {
+          sku: trimmedSku,
+          warehouse_id: 'WH-01',
+          delta: -parsedQty,
+          reason: id
+        },
+        mock: 'stock-adjust'
+      });
+    } catch (intErr) {
+      console.warn(`[integration-error] Failed to adjust ERP-1 stock for WO ${id}:`, intErr.message);
+    }
+
+    return res.status(201).json({
+      data: {
+        ...createdIssue,
+        issued_qty: newIssuedQty,
+        required_qty: required
+      }
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ─── GET /api/work-orders/:id/issues ─────────────────────────────────────────
+// Get history of materials issued for a work order [ERP3-C1].
+router.get('/work-orders/:id/issues', async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const pgResult = await safeQuery(
+      `SELECT id, wo_id, component_sku, qty, issued_at
+       FROM material_issues
+       WHERE wo_id = $1
+       ORDER BY issued_at DESC`,
+      [id]
+    );
+
+    if (pgResult) {
+      return res.json({ data: pgResult.rows });
+    }
+
+    // In-memory fallback
+    const issues = inMemoryMaterialIssues.filter(mi => mi.wo_id === id);
+    return res.json({ data: issues });
   } catch (err) {
     next(err);
   }
