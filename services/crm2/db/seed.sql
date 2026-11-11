@@ -1,1 +1,16 @@
 -- Database seed for CRM2
+
+-- [CRM2-A1] tickets
+-- 6 tickets (TKT-0001 to TKT-0006). Teammates' RMA and assignment seeds point at these IDs.
+-- Serials TV55-2611-000N belong to the customer who bought them (CUST-000N).
+INSERT INTO tickets (id, customer_id, customer_name, serial_number, subject, description, priority, status, assigned_to, created_at, resolved_at) VALUES
+  ('TKT-0001', 'CUST-0001', 'Aarav Mehta',                'TV55-2611-0001', 'TV screen flickers',          'Screen flickers every few minutes after the TV warms up.',   'high',   'in_progress', 'EMP-0005', now() - interval '6 hours',  NULL),
+  ('TKT-0002', 'CUST-0002', 'Sunrise Electronics Pvt Ltd', 'TV55-2611-0002', 'No sound from HDMI input',    'Picture works on HDMI 1 but there is no audio.',              'medium', 'open',        'EMP-0006', now() - interval '30 hours', NULL),
+  ('TKT-0003', 'CUST-0003', 'Priya Nair',                  'TV55-2611-0003', 'Remote not pairing',          'Voice remote does not pair after battery change.',            'low',    'resolved',    NULL,       now() - interval '3 days',   now() - interval '2 days'),
+  ('TKT-0004', 'CUST-0004', 'BrightHome Retail LLP',       'TV55-2611-0004', 'Dead pixels on panel',        'Cluster of dead pixels in the top-left corner.',              'high',   'open',        'EMP-0007', now() - interval '2 hours',  NULL),
+  ('TKT-0005', 'CUST-0006', 'Metro Offices Ltd',           NULL,             'Installation visit request',  'Need wall-mount installation for 3 TVs at the new office.', 'medium', 'open',        NULL,       now() - interval '1 day',    NULL),
+  ('TKT-0006', 'CUST-0008', 'Gadget Hub',                  NULL,             'Smart TV app keeps crashing', 'Streaming app crashes on launch after the latest update.',   'low',    'closed',      'EMP-0005', now() - interval '5 days',   now() - interval '4 days')
+ON CONFLICT (id) DO NOTHING;
+
+-- Move the ticket sequence past the seeded IDs so the next new ticket is TKT-0007.
+SELECT setval('crm2_ticket_seq', GREATEST((SELECT last_value FROM crm2_ticket_seq), 6));
