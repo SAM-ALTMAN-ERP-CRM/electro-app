@@ -73,6 +73,18 @@ export function PriorityBadge({ priority }) {
   return <span className={`badge ${colours[priority] || ''}`}>{prettyLabel(priority)}</span>;
 }
 
+// [CRM2-A3] SLA badge: red "Overdue" once past due_at, otherwise "x h left".
+// Resolved and closed tickets have no running SLA, so nothing is shown.
+export function SlaBadge({ ticket }) {
+  if (!ticket.due_at || ticket.status === 'resolved' || ticket.status === 'closed') {
+    return <span style={{ color: '#94a3b8' }}>—</span>;
+  }
+  const hoursLeft = (new Date(ticket.due_at).getTime() - Date.now()) / (1000 * 60 * 60);
+  if (hoursLeft <= 0) return <span className="badge badge-red">Overdue</span>;
+  const label = hoursLeft < 1 ? '<1 h left' : `${Math.floor(hoursLeft)} h left`;
+  return <span className="badge">{label}</span>;
+}
+
 // Show an engineer as "Imran Qureshi (EMP-0005)", or "Unassigned"
 export function engineerName(engineers, id) {
   if (!id) return 'Unassigned';
@@ -117,6 +129,7 @@ export default function TicketsPage() {
   const [error, setError] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [priorityFilter, setPriorityFilter] = useState('');
+  const [overdueOnly, setOverdueOnly] = useState(false); // [CRM2-A3] show GET /api/tickets/overdue
 
   const [engineers, setEngineers] = useState(FALLBACK_ENGINEERS);
   const [customers, setCustomers] = useState(FALLBACK_CUSTOMERS);
@@ -132,18 +145,25 @@ export default function TicketsPage() {
     setLoading(true);
     setError('');
     try {
-      const params = new URLSearchParams();
-      if (statusFilter) params.append('status', statusFilter);
-      if (priorityFilter) params.append('priority', priorityFilter);
-      const qs = params.toString() ? `?${params.toString()}` : '';
-      const rows = await api('crm2', `/api/tickets${qs}`);
+      let rows;
+      if (overdueOnly) {
+        // [CRM2-A3] overdue list comes from its own endpoint; the priority filter still applies
+        rows = await api('crm2', '/api/tickets/overdue');
+        if (priorityFilter) rows = rows.filter(t => t.priority === priorityFilter);
+      } else {
+        const params = new URLSearchParams();
+        if (statusFilter) params.append('status', statusFilter);
+        if (priorityFilter) params.append('priority', priorityFilter);
+        const qs = params.toString() ? `?${params.toString()}` : '';
+        rows = await api('crm2', `/api/tickets${qs}`);
+      }
       setTickets(Array.isArray(rows) ? rows : []);
     } catch (err) {
       setError(`Could not load tickets: ${err.message}`);
     } finally {
       setLoading(false);
     }
-  }, [statusFilter, priorityFilter]);
+  }, [statusFilter, priorityFilter, overdueOnly]);
 
   useEffect(() => { loadTickets(); }, [loadTickets]);
 
@@ -249,7 +269,7 @@ export default function TicketsPage() {
       <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'flex-end' }}>
         <div>
           <label style={styles.label}>Status</label>
-          <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} style={styles.input}>
+          <select value={statusFilter} disabled={overdueOnly} onChange={e => setStatusFilter(e.target.value)} style={styles.input}>
             <option value="">All statuses</option>
             {STATUSES.map(s => <option key={s} value={s}>{prettyLabel(s)}</option>)}
           </select>
@@ -261,8 +281,12 @@ export default function TicketsPage() {
             {PRIORITIES.map(p => <option key={p} value={p}>{prettyLabel(p)}</option>)}
           </select>
         </div>
-        {(statusFilter || priorityFilter) && (
-          <button className="btn" style={styles.secondaryBtn} onClick={() => { setStatusFilter(''); setPriorityFilter(''); }}>
+        <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.9rem', paddingBottom: '0.5rem' }}>
+          <input type="checkbox" checked={overdueOnly} onChange={e => setOverdueOnly(e.target.checked)} />
+          Overdue only
+        </label>
+        {(statusFilter || priorityFilter || overdueOnly) && (
+          <button className="btn" style={styles.secondaryBtn} onClick={() => { setStatusFilter(''); setPriorityFilter(''); setOverdueOnly(false); }}>
             Clear filters
           </button>
         )}
@@ -273,7 +297,7 @@ export default function TicketsPage() {
       {loading ? (
         <p style={{ ...styles.muted, marginTop: '1rem' }}>Loading tickets…</p>
       ) : !error && tickets.length === 0 ? (
-        <p style={{ ...styles.muted, marginTop: '1rem' }}>No tickets match these filters.</p>
+        <p style={{ ...styles.muted, marginTop: '1rem' }}>{overdueOnly ? 'No overdue tickets.' : 'No tickets match these filters.'}</p>
       ) : !error && (
         <div style={{ overflowX: 'auto' }}>
         <table>
@@ -285,6 +309,7 @@ export default function TicketsPage() {
               <th>Serial</th>
               <th>Priority</th>
               <th>Status</th>
+              <th>SLA</th>
               <th>Assigned to</th>
               <th>Created</th>
             </tr>
@@ -298,6 +323,7 @@ export default function TicketsPage() {
                 <td style={styles.nowrap}>{t.serial_number || '—'}</td>
                 <td style={styles.nowrap}><PriorityBadge priority={t.priority} /></td>
                 <td style={styles.nowrap}><StatusBadge status={t.status} /></td>
+                <td style={styles.nowrap}><SlaBadge ticket={t} /></td>
                 <td>{engineerName(engineers, t.assigned_to)}</td>
                 <td>{formatDateTime(t.created_at)}</td>
               </tr>
