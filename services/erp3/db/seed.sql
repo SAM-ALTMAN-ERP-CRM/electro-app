@@ -1,6 +1,7 @@
 -- Database seed for ERP3
 -- Re-runnable: delete existing seed rows first so running twice doesn't error.
 
+DELETE FROM qc_checks;
 DELETE FROM work_orders;
 DELETE FROM bom_items;
 DELETE FROM boms;
@@ -9,6 +10,7 @@ DELETE FROM boms;
 ALTER SEQUENCE boms_seq        RESTART WITH 1;
 ALTER SEQUENCE bom_items_seq   RESTART WITH 1;
 ALTER SEQUENCE work_orders_seq RESTART WITH 1;
+ALTER SEQUENCE qc_checks_seq   RESTART WITH 1;
 
 -- BOM-0001: 55-inch TV (SKU-0001)
 INSERT INTO boms (product_sku, product_name, version, active)
@@ -42,5 +44,14 @@ INSERT INTO work_orders (id, bom_id, product_sku, quantity, status, source, plan
   ('WO-0004', 'BOM-0001', 'SKU-0001', 10, 'cancelled',   'manual',   '2026-10-25', '2026-10-30', '2026-10-22 11:15:00+00', NULL),
   ('WO-0005', 'BOM-0002', 'SKU-0003', 15, 'planned',     'shortage', '2026-11-18', '2026-11-25', '2026-11-08 14:20:00+00', NULL);
 
--- Advance sequence past highest seeded ID
 SELECT setval('work_orders_seq', 5);
+
+-- QC Checks: 5 seed inspection records [ERP3-D1]
+INSERT INTO qc_checks (id, wo_id, inspector, checked_qty, passed_qty, failed_qty, defect_reason, result, checked_at) VALUES
+  ('QC-0001', 'WO-0001', 'EMP-0005', 50, 50, 0,  NULL,          'pass',   '2026-11-02 10:30:00+00'),
+  ('QC-0002', 'WO-0002', 'EMP-0006', 25, 15, 10, 'dead pixel',   'fail',   '2026-11-03 14:15:00+00'),
+  ('QC-0003', 'WO-0003', 'EMP-0005', 30, 27, 3,  'scratch',      'rework', '2026-10-25 11:00:00+00'),
+  ('QC-0004', 'WO-0004', 'EMP-0007', 10, 10, 0,  NULL,          'pass',   '2026-10-24 09:45:00+00'),
+  ('QC-0005', 'WO-0005', 'EMP-0006', 15, 13, 2,  'wrong label',  'rework', '2026-11-08 16:20:00+00');
+
+SELECT setval('qc_checks_seq', 5);
