@@ -1,0 +1,22 @@
+[
+  { "id": "SKU-0001", "name": "55-inch 4K Smart TV", "category": "TV", "brand": "Electro", "price": "42990.00", "tax_rate": 18, "reorder_level": 10, "active": true },
+  { "id": "SKU-0002", "name": "43-inch Full HD TV", "category": "TV", "brand": "Electro", "price": "24990.00", "tax_rate": 18, "reorder_level": 10, "active": true },
+  { "id": "SKU-0003", "name": "65-inch OLED TV", "category": "TV", "brand": "Electro", "price": "94990.00", "tax_rate": 18, "reorder_level": 10, "active": true },
+  { "id": "SKU-0004", "name": "Soundbar 2.1", "category": "Audio", "brand": "Electro", "price": "8990.00", "tax_rate": 18, "reorder_level": 10, "active": true },
+  { "id": "SKU-0005", "name": "Soundbar 5.1", "category": "Audio", "brand": "Electro", "price": "17990.00", "tax_rate": 18, "reorder_level": 10, "active": true },
+  { "id": "SKU-0006", "name": "Wireless Headphones", "category": "Audio", "brand": "Electro", "price": "3499.00", "tax_rate": 18, "reorder_level": 10, "active": true },
+  { "id": "SKU-0007", "name": "Bluetooth Earbuds", "category": "Audio", "brand": "Electro", "price": "2299.00", "tax_rate": 18, "reorder_level": 10, "active": true },
+  { "id": "SKU-0008", "name": "20W Fast Charger", "category": "Mobile accessory", "brand": "Electro", "price": "899.00", "tax_rate": 18, "reorder_level": 10, "active": true },
+  { "id": "SKU-0009", "name": "Power Bank 20000mAh", "category": "Mobile accessory", "brand": "Electro", "price": "1799.00", "tax_rate": 18, "reorder_level": 10, "active": true },
+  { "id": "SKU-0010", "name": "Bluetooth Speaker", "category": "Audio", "brand": "Electro", "price": "4999.00", "tax_rate": 18, "reorder_level": 10, "active": true },
+  { "id": "SKU-0011", "name": "Party Speaker", "category": "Audio", "brand": "Electro", "price": "14999.00", "tax_rate": 18, "reorder_level": 10, "active": true },
+  { "id": "SKU-0012", "name": "Mixer-Grinder 750W", "category": "Appliance", "brand": "Electro", "price": "3999.00", "tax_rate": 18, "reorder_level": 10, "active": true },
+  { "id": "SKU-0013", "name": "Air Fryer 4L", "category": "Appliance", "brand": "Electro", "price": "6499.00", "tax_rate": 18, "reorder_level": 10, "active": true },
+  { "id": "SKU-0014", "name": "Microwave Oven 25L", "category": "Appliance", "brand": "Electro", "price": "9999.00", "tax_rate": 18, "reorder_level": 10, "active": true },
+  { "id": "SKU-0015", "name": "Induction Cooktop", "category": "Appliance", "brand": "Electro", "price": "2999.00", "tax_rate": 18, "reorder_level": 10, "active": true },
+  { "id": "SKU-0101", "name": "55-inch Panel", "category": "Component", "brand": "Electro", "price": "12500.00", "tax_rate": 18, "reorder_level": 10, "active": true },
+  { "id": "SKU-0102", "name": "Mainboard", "category": "Component", "brand": "Electro", "price": "4990.00", "tax_rate": 18, "reorder_level": 10, "active": true },
+  { "id": "SKU-0103", "name": "Power Supply", "category": "Component", "brand": "Electro", "price": "2500.00", "tax_rate": 18, "reorder_level": 10, "active": true },
+  { "id": "SKU-0104", "name": "Remote", "category": "Component", "brand": "Electro", "price": "650.00", "tax_rate": 18, "reorder_level": 10, "active": true },
+  { "id": "SKU-0105", "name": "Packaging Box", "category": "Component", "brand": "Electro", "price": "350.00", "tax_rate": 18, "reorder_level": 10, "active": true }
+]
