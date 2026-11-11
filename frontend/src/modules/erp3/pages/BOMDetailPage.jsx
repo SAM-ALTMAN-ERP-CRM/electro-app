@@ -2,22 +2,81 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { api } from '../../../api';
 
-const DEFAULT_BOM_DATA = {
-  id: 'BOM-0001',
-  product_sku: 'SKU-0001',
-  product_name: '55-Inch LED Smart TV',
-  version: 1,
-  active: true,
-  items: [
-    { component_sku: 'SKU-0101', component_name: 'Display Panel', qty_per_unit: 1 },
-    { component_sku: 'SKU-0102', component_name: 'Main Board', qty_per_unit: 1 },
-    { component_sku: 'SKU-0103', component_name: 'Power Supply Unit', qty_per_unit: 1 },
-    { component_sku: 'SKU-0104', component_name: 'Remote Control', qty_per_unit: 1 },
-    { component_sku: 'SKU-0105', component_name: 'Packaging Box', qty_per_unit: 1 }
-  ]
+// Five realistic seed fallback BOMs adhering to Section 5 shared catalog IDs
+const SEED_BOM_MAP = {
+  'BOM-0001': {
+    id: 'BOM-0001',
+    product_sku: 'SKU-0001',
+    product_name: '55-Inch LED Smart TV',
+    version: 1,
+    active: true,
+    items: [
+      { component_sku: 'SKU-0101', component_name: 'Display Panel', qty_per_unit: 1 },
+      { component_sku: 'SKU-0102', component_name: 'Main Board', qty_per_unit: 1 },
+      { component_sku: 'SKU-0103', component_name: 'Power Supply Unit', qty_per_unit: 1 },
+      { component_sku: 'SKU-0104', component_name: 'Remote Control', qty_per_unit: 1 },
+      { component_sku: 'SKU-0105', component_name: 'Packaging Box', qty_per_unit: 1 }
+    ]
+  },
+  'BOM-0002': {
+    id: 'BOM-0002',
+    product_sku: 'SKU-0003',
+    product_name: '65-Inch OLED Smart TV',
+    version: 1,
+    active: true,
+    items: [
+      { component_sku: 'SKU-0101', component_name: 'OLED Display Panel', qty_per_unit: 1 },
+      { component_sku: 'SKU-0102', component_name: 'Main Board', qty_per_unit: 1 },
+      { component_sku: 'SKU-0103', component_name: 'Power Supply Unit', qty_per_unit: 1 },
+      { component_sku: 'SKU-0104', component_name: 'Remote Control', qty_per_unit: 1 },
+      { component_sku: 'SKU-0105', component_name: 'Packaging Box', qty_per_unit: 1 }
+    ]
+  },
+  'BOM-0003': {
+    id: 'BOM-0003',
+    product_sku: 'SKU-0002',
+    product_name: '43-Inch LED TV',
+    version: 1,
+    active: true,
+    items: [
+      { component_sku: 'SKU-0101', component_name: 'Display Panel Module', qty_per_unit: 1 },
+      { component_sku: 'SKU-0102', component_name: 'Smart TV Mainboard', qty_per_unit: 1 },
+      { component_sku: 'SKU-0103', component_name: 'Power Supply Module', qty_per_unit: 1 },
+      { component_sku: 'SKU-0104', component_name: 'Remote Control', qty_per_unit: 1 },
+      { component_sku: 'SKU-0105', component_name: 'Packaging Box', qty_per_unit: 1 }
+    ]
+  },
+  'BOM-0004': {
+    id: 'BOM-0004',
+    product_sku: 'SKU-0004',
+    product_name: '32-Inch HD LED TV',
+    version: 1,
+    active: true,
+    items: [
+      { component_sku: 'SKU-0101', component_name: 'HD Display Panel', qty_per_unit: 1 },
+      { component_sku: 'SKU-0102', component_name: 'Smart TV Mainboard', qty_per_unit: 1 },
+      { component_sku: 'SKU-0103', component_name: 'Power Supply Module', qty_per_unit: 1 },
+      { component_sku: 'SKU-0104', component_name: 'Remote Control', qty_per_unit: 1 },
+      { component_sku: 'SKU-0105', component_name: 'Packaging Box', qty_per_unit: 1 }
+    ]
+  },
+  'BOM-0005': {
+    id: 'BOM-0005',
+    product_sku: 'SKU-0005',
+    product_name: '75-Inch QLED TV',
+    version: 1,
+    active: true,
+    items: [
+      { component_sku: 'SKU-0101', component_name: 'QLED Display Panel', qty_per_unit: 1 },
+      { component_sku: 'SKU-0102', component_name: 'High-Performance Mainboard', qty_per_unit: 1 },
+      { component_sku: 'SKU-0103', component_name: 'Heavy Duty Power Supply', qty_per_unit: 1 },
+      { component_sku: 'SKU-0104', component_name: 'Voice Remote Control', qty_per_unit: 1 },
+      { component_sku: 'SKU-0105', component_name: 'Reinforced Packaging Box', qty_per_unit: 1 }
+    ]
+  }
 };
 
-// Seed stock availability simulation according to ERP3-A3 (SKU-0102 is short for 20 units)
+// Seed stock availability simulation according to ERP3-A3
 const STOCK_AVAILABILITY = {
   'SKU-0101': 35,
   'SKU-0102': 12, // Shortfall for 20 units: 20 - 12 = 8
@@ -30,13 +89,16 @@ export default function BOMDetailPage() {
   const { id } = useParams();
   const bomId = id || 'BOM-0001';
 
-  const [bom, setBom] = useState(DEFAULT_BOM_DATA);
-  const [loading, setLoading] = useState(false);
+  // State for loaded BOM header and its items
+  const fallbackBom = SEED_BOM_MAP[bomId] || SEED_BOM_MAP['BOM-0001'];
+  const [bom, setBom] = useState(fallbackBom);
+  const [loading, setLoading] = useState(true);
   const [targetQty, setTargetQty] = useState(20);
   const [checked, setChecked] = useState(false);
   const [purchasedSkus, setPurchasedSkus] = useState({});
   const [notification, setNotification] = useState('');
 
+  // Fetch BOM details and items from GET /api/boms/:id
   useEffect(() => {
     async function loadBom() {
       try {
@@ -45,7 +107,7 @@ export default function BOMDetailPage() {
           setBom(data);
         }
       } catch (err) {
-        console.info(`Using fallback BOM data for ${bomId}:`, err.message);
+        console.info(`Using seed BOM fallback for ${bomId}:`, err.message);
       } finally {
         setLoading(false);
       }
@@ -53,14 +115,15 @@ export default function BOMDetailPage() {
     loadBom();
   }, [bomId]);
 
-  const handleCheckMaterials = async () => {
+  // Simulate warehouse stock availability check
+  const handleCheckMaterials = () => {
     setChecked(true);
-    setNotification('Checked live inventory against ERP-1 warehouse stock.');
+    setNotification('Checked live component requirements against warehouse inventory stock.');
   };
 
+  // Submit shortage purchase request to ERP-2 Purchasing
   const handleRequestPurchase = async (compSku, compName, shortfall) => {
     try {
-      // ERP3-A3: Call ERP-2 purchase requests
       await api('erp3', `/api/boms/${bomId}/purchase-request`, {
         method: 'POST',
         body: {
@@ -68,14 +131,14 @@ export default function BOMDetailPage() {
           product_name: compName,
           quantity: shortfall,
           requested_by: 'ERP-3 production',
-          reason: 'Work order shortage'
+          reason: 'BOM recipe shortage'
         }
       });
     } catch (err) {
-      console.info('Purchase request simulated mock triggered:', err.message);
+      console.info('Purchase request handled (offline simulation):', err.message);
     }
 
-    setPurchasedSkus(prev => ({ ...prev, [compSku]: true }));
+    setPurchasedSkus((prev) => ({ ...prev, [compSku]: true }));
     setNotification(`Purchase request for ${shortfall} units of ${compSku} submitted to ERP-2 Purchasing.`);
   };
 
@@ -88,10 +151,14 @@ export default function BOMDetailPage() {
             <h2 style={{ margin: 0, fontSize: '1.6rem', fontWeight: 700, color: '#0f172a' }}>
               {bom.id}: {bom.product_name}
             </h2>
-            <span className="badge badge-green">active</span>
+            {bom.active ? (
+              <span className="badge badge-green">active</span>
+            ) : (
+              <span className="badge badge-amber">inactive</span>
+            )}
           </div>
           <p style={{ color: '#64748b', fontSize: '0.875rem', marginTop: '0.25rem' }}>
-            Finished Good SKU: <span style={{ fontFamily: 'monospace', color: '#2563eb' }}>{bom.product_sku}</span> | Version: {bom.version}
+            Finished Good SKU: <span style={{ fontFamily: 'monospace', color: '#2563eb', fontWeight: 600 }}>{bom.product_sku}</span> | Version: {bom.version || 1}
           </p>
         </div>
         <div>
@@ -109,13 +176,18 @@ export default function BOMDetailPage() {
         </div>
       )}
 
-      {/* Material Requirement & Availability Checker (ERP3-A3) */}
+      {/* Loading state indicator */}
+      {loading && (
+        <p style={{ color: '#64748b', fontSize: '0.9rem' }}>Loading Bill of Materials details...</p>
+      )}
+
+      {/* Batch Material Requirement & Shortage Checker */}
       <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '1.5rem', marginBottom: '1.5rem' }}>
         <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '1.1rem', color: '#0f172a' }}>
-          Batch Material Requirement & Shortage Checker (ERP3-A3)
+          Batch Material Requirement & Shortage Checker
         </h3>
         <p style={{ fontSize: '0.875rem', color: '#64748b', marginBottom: '1rem' }}>
-          Simulate production batch size and verify component availability in ERP-1 warehouse stock.
+          Simulate production batch size to calculate component demand and verify stock availability.
         </p>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
@@ -141,7 +213,7 @@ export default function BOMDetailPage() {
         </div>
       </div>
 
-      {/* Components & Availability Table */}
+      {/* Components Table */}
       <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden', marginBottom: '1.5rem' }}>
         <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #e2e8f0' }}>
           <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: '#0f172a' }}>

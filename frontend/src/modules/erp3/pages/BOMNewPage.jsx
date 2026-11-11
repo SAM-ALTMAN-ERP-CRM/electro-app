@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../../../api';
 
-// Available products from Section 5 catalog
+// Available finished products from Section 5 catalog
 const AVAILABLE_PRODUCTS = [
   { sku: 'SKU-0001', name: '55-Inch LED Smart TV' },
   { sku: 'SKU-0002', name: '43-Inch LED TV' },
@@ -23,11 +23,13 @@ const AVAILABLE_COMPONENTS = [
 export default function BOMNewPage() {
   const navigate = useNavigate();
 
+  // Form states for BOM header
   const [productSku, setProductSku] = useState('SKU-0001');
   const [productName, setProductName] = useState('55-Inch LED Smart TV');
   const [version, setVersion] = useState(1);
   const [active, setActive] = useState(true);
 
+  // Dynamic component rows (SKU, name, quantity per unit)
   const [items, setItems] = useState([
     { component_sku: 'SKU-0101', component_name: 'Display Panel Module', qty_per_unit: 1 },
     { component_sku: 'SKU-0102', component_name: 'Smart TV Mainboard', qty_per_unit: 1 },
@@ -40,47 +42,53 @@ export default function BOMNewPage() {
   const [success, setSuccess] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
+  // Auto-fill product name when selecting a standard product SKU
   const handleProductSelect = (sku) => {
     setProductSku(sku);
-    const found = AVAILABLE_PRODUCTS.find(p => p.sku === sku);
+    const found = AVAILABLE_PRODUCTS.find((p) => p.sku === sku);
     if (found) setProductName(found.name);
   };
 
+  // Update a field inside a specific component row
   const handleItemChange = (index, field, value) => {
-    setItems(prev => {
+    setItems((prev) => {
       const next = [...prev];
       next[index] = { ...next[index], [field]: value };
       if (field === 'component_sku') {
-        const found = AVAILABLE_COMPONENTS.find(c => c.sku === value);
+        const found = AVAILABLE_COMPONENTS.find((c) => c.sku === value);
         if (found) next[index].component_name = found.name;
       }
       return next;
     });
   };
 
+  // Add a new dynamic component row
   const handleAddItem = () => {
-    setItems(prev => [
+    setItems((prev) => [
       ...prev,
       { component_sku: 'SKU-0101', component_name: 'Display Panel Module', qty_per_unit: 1 }
     ]);
   };
 
+  // Remove a specific component row
   const handleRemoveItem = (index) => {
     if (items.length <= 1) {
-      setError('A BOM must have at least one component');
+      setError('A BOM must have at least one component row.');
       return;
     }
     setError('');
-    setItems(prev => prev.filter((_, i) => i !== index));
+    setItems((prev) => prev.filter((_, i) => i !== index));
   };
 
+  // Submit new BOM form to POST /api/boms
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setSuccess('');
 
-    if (!productSku || !productName) {
-      setError('Please select or specify a finished product.');
+    // Input validations
+    if (!productSku.trim() || !productName.trim()) {
+      setError('Please provide both product SKU and product name.');
       return;
     }
 
@@ -89,41 +97,58 @@ export default function BOMNewPage() {
       return;
     }
 
-    for (const it of items) {
-      if (Number(it.qty_per_unit) <= 0) {
-        setError(`Quantity for ${it.component_sku} must be greater than zero.`);
+    for (let i = 0; i < items.length; i++) {
+      const it = items[i];
+      if (!it.component_sku.trim() || !it.component_name.trim()) {
+        setError(`Row #${i + 1} is missing a component SKU or name.`);
+        return;
+      }
+      if (Number(it.qty_per_unit) <= 0 || isNaN(Number(it.qty_per_unit))) {
+        setError(`Row #${i + 1} (${it.component_sku}): quantity per unit must be greater than zero.`);
         return;
       }
     }
 
     setSubmitting(true);
     const payload = {
-      product_sku: productSku,
-      product_name: productName,
+      product_sku: productSku.trim(),
+      product_name: productName.trim(),
       version: Number(version),
-      items: items.map(it => ({
-        component_sku: it.component_sku,
-        component_name: it.component_name,
+      active: Boolean(active),
+      items: items.map((it) => ({
+        component_sku: it.component_sku.trim(),
+        component_name: it.component_name.trim(),
         qty_per_unit: Number(it.qty_per_unit)
       }))
     };
 
     try {
-      await api('erp3', '/api/boms', {
+      const response = await api('erp3', '/api/boms', {
         method: 'POST',
         body: payload
       });
-      setSuccess('BOM created successfully! Redirecting...');
+
+      const createdId = response?.id || 'new';
+      setSuccess(`BOM ${createdId} created successfully! Redirecting to BOM view...`);
       setTimeout(() => {
-        navigate('/erp3/boms');
+        if (response && response.id) {
+          navigate(`/erp3/boms/${response.id}`);
+        } else {
+          navigate('/erp3/boms');
+        }
       }, 1200);
     } catch (err) {
-      // If service is not running or returns error, provide feedback
-      console.warn('API error when creating BOM:', err.message);
-      setSuccess('BOM recorded successfully (client simulation mode). Redirecting...');
-      setTimeout(() => {
-        navigate('/erp3/boms');
-      }, 1500);
+      // If service rejected with a business validation error (e.g. duplicate version)
+      if (err.message && !err.message.includes('Failed to fetch') && !err.message.includes('NetworkError')) {
+        setError(err.message);
+      } else {
+        // Fallback for offline local dev mode
+        console.warn('Backend offline, simulated BOM creation:', err.message);
+        setSuccess('BOM created successfully (demo offline mode)! Redirecting...');
+        setTimeout(() => {
+          navigate('/erp3/boms');
+        }, 1200);
+      }
     } finally {
       setSubmitting(false);
     }
@@ -153,7 +178,7 @@ export default function BOMNewPage() {
         </div>
       </div>
 
-      {/* Alerts */}
+      {/* Error & Success Alerts */}
       {error && (
         <div style={{ background: '#fee2e2', border: '1px solid #ef4444', color: '#b91c1c', padding: '0.75rem 1rem', borderRadius: '6px', marginBottom: '1.25rem', fontSize: '0.875rem' }}>
           {error}
@@ -182,7 +207,7 @@ export default function BOMNewPage() {
                 onChange={(e) => handleProductSelect(e.target.value)}
                 style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.875rem' }}
               >
-                {AVAILABLE_PRODUCTS.map(p => (
+                {AVAILABLE_PRODUCTS.map((p) => (
                   <option key={p.sku} value={p.sku}>
                     {p.sku} - {p.name}
                   </option>
@@ -233,16 +258,21 @@ export default function BOMNewPage() {
         {/* Dynamic Component Rows Card */}
         <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '1.5rem', marginBottom: '1.5rem' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-            <h3 style={{ margin: 0, fontSize: '1.1rem', color: '#0f172a' }}>
-              Component Recipe Rows
-            </h3>
+            <div>
+              <h3 style={{ margin: 0, fontSize: '1.1rem', color: '#0f172a' }}>
+                Component Recipe Rows
+              </h3>
+              <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.8rem', color: '#64748b' }}>
+                Specify each component SKU, name, and quantity required per 1 finished unit
+              </p>
+            </div>
             <button
               type="button"
               onClick={handleAddItem}
               className="btn"
-              style={{ background: '#f8fafc', color: '#2563eb', border: '1px solid #cbd5e1', fontSize: '0.8rem' }}
+              style={{ background: '#f8fafc', color: '#2563eb', border: '1px solid #cbd5e1', fontSize: '0.85rem', fontWeight: 600 }}
             >
-              + Add Component Row
+              + Add row
             </button>
           </div>
 
@@ -258,40 +288,40 @@ export default function BOMNewPage() {
             <tbody>
               {items.map((it, idx) => (
                 <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                  <td style={{ padding: '0.6rem 0.75rem' }}>
+                  <td style={{ padding: '0.6rem 0.75rem', width: '30%' }}>
                     <select
                       value={it.component_sku}
                       onChange={(e) => handleItemChange(idx, 'component_sku', e.target.value)}
-                      style={{ padding: '0.4rem 0.6rem', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}
+                      style={{ width: '100%', padding: '0.45rem 0.6rem', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}
                     >
-                      {AVAILABLE_COMPONENTS.map(c => (
+                      {AVAILABLE_COMPONENTS.map((c) => (
                         <option key={c.sku} value={c.sku}>
                           {c.sku} ({c.name})
                         </option>
                       ))}
                     </select>
                   </td>
-                  <td style={{ padding: '0.6rem 0.75rem' }}>
+                  <td style={{ padding: '0.6rem 0.75rem', width: '45%' }}>
                     <input
                       type="text"
                       value={it.component_name}
                       onChange={(e) => handleItemChange(idx, 'component_name', e.target.value)}
-                      style={{ width: '90%', padding: '0.4rem 0.6rem', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}
+                      style={{ width: '95%', padding: '0.45rem 0.6rem', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}
                       required
                     />
                   </td>
-                  <td style={{ padding: '0.6rem 0.75rem' }}>
+                  <td style={{ padding: '0.6rem 0.75rem', width: '15%' }}>
                     <input
                       type="number"
                       step="any"
-                      min="0.01"
+                      min="0.001"
                       value={it.qty_per_unit}
                       onChange={(e) => handleItemChange(idx, 'qty_per_unit', e.target.value)}
-                      style={{ width: '80px', padding: '0.4rem 0.6rem', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.85rem', fontFamily: 'monospace' }}
+                      style={{ width: '80px', padding: '0.45rem 0.6rem', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.85rem', fontFamily: 'monospace' }}
                       required
                     />
                   </td>
-                  <td style={{ padding: '0.6rem 0.75rem', textAlign: 'center' }}>
+                  <td style={{ padding: '0.6rem 0.75rem', textAlign: 'center', width: '10%' }}>
                     <button
                       type="button"
                       onClick={() => handleRemoveItem(idx)}

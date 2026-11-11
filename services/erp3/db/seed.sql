@@ -24,6 +24,20 @@ VALUES ('SKU-0001', '55-Inch LED Smart TV', 1, TRUE);
 INSERT INTO boms (product_sku, product_name, version, active)
 VALUES ('SKU-0003', '65-Inch OLED Smart TV', 1, TRUE);
 
+-- BOM-0003: 43-inch LED TV (SKU-0002)
+INSERT INTO boms (product_sku, product_name, version, active)
+VALUES ('SKU-0002', '43-Inch LED TV', 1, TRUE);
+
+-- BOM-0004: 32-inch HD LED TV (SKU-0004)
+INSERT INTO boms (product_sku, product_name, version, active)
+VALUES ('SKU-0004', '32-Inch HD LED TV', 1, TRUE);
+
+-- BOM-0005: 75-inch QLED TV (SKU-0005)
+INSERT INTO boms (product_sku, product_name, version, active)
+VALUES ('SKU-0005', '75-Inch QLED TV', 1, TRUE);
+
+SELECT setval('boms_seq', 5);
+
 -- Components for BOM-0001 (55-inch TV) — 5 shared component SKUs
 INSERT INTO bom_items (bom_id, component_sku, component_name, qty_per_unit) VALUES
   ('BOM-0001', 'SKU-0101', 'Display Panel',    1),
@@ -39,6 +53,32 @@ INSERT INTO bom_items (bom_id, component_sku, component_name, qty_per_unit) VALU
   ('BOM-0002', 'SKU-0103', 'Power Supply Unit',   1),
   ('BOM-0002', 'SKU-0104', 'Remote Control',      1),
   ('BOM-0002', 'SKU-0105', 'Packaging Box',       1);
+
+-- Components for BOM-0003 (43-inch LED TV)
+INSERT INTO bom_items (bom_id, component_sku, component_name, qty_per_unit) VALUES
+  ('BOM-0003', 'SKU-0101', 'Display Panel Module', 1),
+  ('BOM-0003', 'SKU-0102', 'Smart TV Mainboard',   1),
+  ('BOM-0003', 'SKU-0103', 'Power Supply Module',  1),
+  ('BOM-0003', 'SKU-0104', 'Remote Control',       1),
+  ('BOM-0003', 'SKU-0105', 'Packaging Box',        1);
+
+-- Components for BOM-0004 (32-inch HD LED TV)
+INSERT INTO bom_items (bom_id, component_sku, component_name, qty_per_unit) VALUES
+  ('BOM-0004', 'SKU-0101', 'HD Display Panel',     1),
+  ('BOM-0004', 'SKU-0102', 'Smart TV Mainboard',   1),
+  ('BOM-0004', 'SKU-0103', 'Power Supply Module',  1),
+  ('BOM-0004', 'SKU-0104', 'Remote Control',       1),
+  ('BOM-0004', 'SKU-0105', 'Packaging Box',        1);
+
+-- Components for BOM-0005 (75-inch QLED TV)
+INSERT INTO bom_items (bom_id, component_sku, component_name, qty_per_unit) VALUES
+  ('BOM-0005', 'SKU-0101', 'QLED Display Panel',          1),
+  ('BOM-0005', 'SKU-0102', 'High-Performance Mainboard',  1),
+  ('BOM-0005', 'SKU-0103', 'Heavy Duty Power Supply',     1),
+  ('BOM-0005', 'SKU-0104', 'Voice Remote Control',        1),
+  ('BOM-0005', 'SKU-0105', 'Reinforced Packaging Box',    1);
+
+SELECT setval('bom_items_seq', 25);
 
 -- Work Orders: 5 seed work orders [ERP3-B1]
 INSERT INTO work_orders (id, bom_id, product_sku, quantity, status, source, planned_start, planned_end, created_at, completed_at) VALUES
