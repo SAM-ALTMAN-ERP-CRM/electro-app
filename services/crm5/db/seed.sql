@@ -1,5 +1,5 @@
 -- Database seed for CRM-5 Portal & Analytics
--- Provides historical snapshots and sample analytics data adhering to Section 5 shared IDs
+-- Provides historical snapshots, forecasts, and customer portal visit logs adhering to Section 5 shared IDs
 
 INSERT INTO dashboard_snapshots (id, taken_at, metrics)
 VALUES
@@ -18,3 +18,12 @@ VALUES
   ('FCST-0004', '2026-11', 150000.00, 'Post-festival corporate accounts target (Current Month)'),
   ('FCST-0005', '2026-12', 200000.00, 'Year-end enterprise closure and institutional renewals')
 ON CONFLICT (month) DO NOTHING;
+
+INSERT INTO portal_visits (id, customer_id, visited_at)
+VALUES
+  ('PV-0001', 'CUST-0001', NOW() - INTERVAL '2 hours'),
+  ('PV-0002', 'CUST-0002', NOW() - INTERVAL '1 hour'),
+  ('PV-0003', 'CUST-0003', NOW() - INTERVAL '45 minutes'),
+  ('PV-0004', 'CUST-0004', NOW() - INTERVAL '20 minutes'),
+  ('PV-0005', 'CUST-0001', NOW() - INTERVAL '5 minutes')
+ON CONFLICT (id) DO NOTHING;
