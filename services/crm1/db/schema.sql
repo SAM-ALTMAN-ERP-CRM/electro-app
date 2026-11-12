@@ -42,3 +42,19 @@ CREATE TABLE IF NOT EXISTS dealers (
   status VARCHAR(20) NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'inactive')),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+-- Sales rep IDs come from ERP-6, so they are stored without a cross-database foreign key.
+CREATE SEQUENCE IF NOT EXISTS leads_seq START 1;
+
+CREATE TABLE IF NOT EXISTS leads (
+  id VARCHAR(20) PRIMARY KEY DEFAULT ('LEAD-' || LPAD(nextval('leads_seq')::TEXT, 4, '0')),
+  name VARCHAR(100) NOT NULL,
+  phone VARCHAR(20),
+  email VARCHAR(100),
+  source VARCHAR(20) NOT NULL CHECK (source IN ('dealer', 'web', 'walk-in')),
+  product_interest VARCHAR(100),
+  status VARCHAR(20) NOT NULL DEFAULT 'new' CHECK (status IN ('new', 'contacted', 'qualified', 'lost')),
+  score INT NOT NULL DEFAULT 0,
+  sales_rep_id VARCHAR(20),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);

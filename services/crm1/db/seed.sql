@@ -38,3 +38,23 @@ INSERT INTO dealers (
 ON CONFLICT (id) DO NOTHING;
 
 SELECT setval('dealer_seq', GREATEST(5, (SELECT COALESCE(MAX(CAST(SUBSTRING(id FROM 5) AS INTEGER)), 0) FROM dealers WHERE id LIKE 'DLR-%')));
+
+-- Seed leads once so repeated database setup does not create duplicates.
+INSERT INTO leads (
+  id, name, phone, email, source, product_interest, status, score, sales_rep_id
+) VALUES
+  ('LEAD-0001', 'Aarav Mehta', '9820011223', 'aarav@gmail.com', 'dealer', '55-inch 4K Smart TV', 'qualified', 70, 'EMP-0001'),
+  ('LEAD-0002', 'Sunrise Electronics', '022-28491029', 'procurement@sunrise.com', 'web', 'Soundbar 5.1', 'contacted', 50, 'EMP-0002'),
+  ('LEAD-0003', 'Priya Nair', '9847012345', 'priya.nair@yahoo.com', 'walk-in', 'Microwave Oven 25L', 'new', 30, 'EMP-0003'),
+  ('LEAD-0004', 'BrightHome Retail', '020-25671199', 'orders@brighthome.in', 'dealer', '65-inch OLED TV', 'qualified', 80, 'EMP-0001'),
+  ('LEAD-0005', 'Kiran Patel', '9825098765', 'kiran.patel@rediffmail.com', 'web', 'Air Fryer 4L', 'new', 40, 'EMP-0004')
+ON CONFLICT (id) DO NOTHING;
+
+SELECT setval(
+  'leads_seq',
+  GREATEST(
+    (SELECT last_value FROM leads_seq),
+    5,
+    (SELECT COALESCE(MAX(CAST(SUBSTRING(id FROM 6) AS INTEGER)), 0) FROM leads WHERE id LIKE 'LEAD-%')
+  )
+);
