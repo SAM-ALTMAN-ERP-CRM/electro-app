@@ -2,7 +2,7 @@
 
 Data owner: Ashutosh (CRM2-R2). Checks that `services/crm2/db/seed.sql` follows the shared seed contract (Section 5 of the issues pack) and that `schema.sql` + `seed.sql` load cleanly, twice.
 
-**Last run:** 12 Nov 2026, on `main` at `b049e1a` (A1, A2, A3 merged) plus the `-- [CRM2-B1]` blocks from open PR #292. C1 and D1 rows are pending until those PRs exist.
+**Last run:** 12 Nov 2026 on `main` at `c18721c`, with all six CRM-2 tables merged (A1, A3, B1 via B3, C1, D1). CRM2-C3 (#338) and CRM2-D3 (#339) change no SQL.
 
 ---
 
@@ -21,7 +21,7 @@ psql -v ON_ERROR_STOP=1 -d crm2_db -f services/crm2/db/seed.sql
 |---|---|
 | First load on an empty database | ✅ no errors |
 | Second load on the same database (re-runnable) | ✅ no errors (only "already exists, skipping" notices) |
-| Row counts after two loads | ✅ tickets 6, ticket_comments 4, warranties 5 (no duplicates) |
+| Row counts after two loads | ✅ tickets 6, ticket_comments 4, warranties 5, rmas 3, service_centres 4, ticket_assignments 3 (no duplicates) |
 | `npm run reset` | ⏳ re-check once ERP5-C4 replaces the placeholder script |
 
 ---
@@ -38,12 +38,12 @@ Run the queries in section 4 against `crm2_db`. Every "must be empty" query retu
 | 4 | Every `warranties.sku` is `SKU-0001` (55-inch 4K Smart TV) | ✅ 0 rows |
 | 5 | Serials `TV55-2611-0001`..`0005` belong to `CUST-0001`..`0005` in order; 0001–0003 active, 0004–0005 expired | ✅ see table below |
 | 6 | A ticket's `serial_number` belongs to that ticket's customer | ✅ 0 mismatches (TKT-0001..0004 ↔ TV55-2611-0001..0004) |
-| 7 | `TKT-0001`..`TKT-0006` exist (teammates' RMA and assignment seeds point at them) | ✅ all 6 present |
-| 8 | Sequences continue after the seeded IDs | ✅ `crm2_ticket_seq` = 6 (next TKT-0007), `crm2_comment_seq` = 4 (next CMT-0005) |
+| 7 | `TKT-0001`..`TKT-0006` exist (RMA and assignment seeds point at them) | ✅ all 6 present |
+| 8 | Sequences continue after the seeded IDs | ✅ ticket 6, comment 4, rma 3, centre 4, assignment 3 (next IDs TKT-0007, CMT-0005, RMA-0004, SC-0005, ASG-0004) |
 | 9 | Every comment points at an existing ticket | ✅ 0 orphans (also enforced by the FK) |
 | 10 | At least 2 seed tickets are overdue for the demo | ✅ TKT-0001, TKT-0002, TKT-0005 |
-| 11 | RMA seeds use `TKT-0001`..`TKT-0003` and serials of in-warranty units (CRM2-C1) | ⏳ pending C1 PR |
-| 12 | Service-centre seeds are `SC-0001`..`SC-0004`; assignments use `TKT-0001`..`TKT-0006` (CRM2-D1) | ⏳ pending D1 PR |
+| 11 | RMA seeds use existing tickets `TKT-0001`..`0003`, in-warranty serials, and the serial of that ticket | ✅ RMA-0001..0003 → TKT-0001..0003 / TV55-2611-0001..0003, all `active`, all match the ticket's serial |
+| 12 | Service centres are `SC-0001`..`SC-0004`; every assignment points at an existing ticket | ✅ SC-0001..0004; TKT-0001→SC-0001, TKT-0002→SC-0002, TKT-0003→SC-0004 |
 
 Rule 5 result (`expires_on` = purchase date + 12 months, compared with 12 Nov 2026):
 
@@ -65,11 +65,11 @@ Every `schema.sql` block in the team, reviewed against its issue.
 
 | Block | PR | Review |
 |---|---|---|
-| `-- [CRM2-A1] tickets` | #289 merged | ✅ Columns match the issue. CHECKs on `priority` and `status`. `CREATE … IF NOT EXISTS`; seed uses `ON CONFLICT DO NOTHING` + `setval(GREATEST(…))`. |
-| `-- [CRM2-A3] ticket_comments` | #291 merged | ✅ FK to `tickets(id)`. Seed `due_at` uses `UPDATE … WHERE due_at IS NULL`, so it also fixes databases seeded before A3. |
-| `-- [CRM2-B1] warranties` | #292 open | ✅ Columns match the issue; `serial_number` as PK; seed re-runnable. ⚠️ PR is in conflict with `main` (A3 blocks were added at the end of both SQL files): pull `main` and keep both blocks. Suggestion: `CHECK (warranty_months > 0)`. |
-| `-- [CRM2-C1] rmas` | — | ⏳ Pending. Review for: CHECKs on `status` and `outcome`, FK `ticket_id → tickets(id)`, seed on TKT-0001..0003. |
-| `-- [CRM2-D1] service_centres, ticket_assignments` | — | ⏳ Pending. Review for: FKs to `tickets(id)` and `service_centres(id)`, one assignment per ticket (UNIQUE `ticket_id`), 4 seed centres. |
+| `-- [CRM2-A1] tickets` | #289 | ✅ Columns match the issue. CHECKs on `priority` and `status`. `CREATE … IF NOT EXISTS`; seed uses `ON CONFLICT DO NOTHING` + `setval(GREATEST(…))`. |
+| `-- [CRM2-A3] ticket_comments` | #291 | ✅ FK to `tickets(id)`. Seed `due_at` uses `UPDATE … WHERE due_at IS NULL`, so it also fixes databases seeded before A3. |
+| `-- [CRM2-B1] warranties` | #294 (B3 contains B1) | ✅ Columns match the issue; `serial_number` as PK; seed re-runnable. Suggestion: `CHECK (warranty_months > 0)`. Note: #292 (B1) and #293 (B2) are still open but their code is already on `main` via #294; they can be closed. |
+| `-- [CRM2-D1] service_centres, ticket_assignments` | #300 | ✅ Columns match the issue. `capacity >= 0` CHECK, `centre_id` FK, `ticket_id` UNIQUE (re-assigning replaces). `ticket_id` is plain text (built before A1 merged); seed rows all point at real tickets. |
+| `-- [CRM2-C1] rmas` | #330 | ✅ Columns match the issue. CHECKs on `status` and `outcome`. `ticket_id` is plain text (same reason); seed rows all point at real tickets and in-warranty serials. |
 
 ---
 
@@ -113,8 +113,11 @@ SELECT string_agg(id, ' ' ORDER BY id) FROM tickets
  WHERE id IN ('TKT-0001','TKT-0002','TKT-0003','TKT-0004','TKT-0005','TKT-0006');
 
 -- 8 sequences
-SELECT 'crm2_ticket_seq' AS seq, last_value FROM crm2_ticket_seq
-UNION ALL SELECT 'crm2_comment_seq', last_value FROM crm2_comment_seq;
+SELECT 'ticket' AS seq, last_value FROM crm2_ticket_seq
+UNION ALL SELECT 'comment', last_value FROM crm2_comment_seq
+UNION ALL SELECT 'rma', last_value FROM crm2_rma_seq
+UNION ALL SELECT 'centre', last_value FROM crm2_centre_seq
+UNION ALL SELECT 'assignment', last_value FROM crm2_assignment_seq;
 
 -- 9 comments on missing tickets
 SELECT c.id FROM ticket_comments c LEFT JOIN tickets t ON t.id = c.ticket_id WHERE t.id IS NULL;
@@ -122,4 +125,17 @@ SELECT c.id FROM ticket_comments c LEFT JOIN tickets t ON t.id = c.ticket_id WHE
 -- 10 overdue seed tickets (expect at least 2)
 SELECT string_agg(id, ' ' ORDER BY id) FROM tickets
  WHERE due_at < now() AND status NOT IN ('resolved', 'closed');
+
+-- 11 RMAs: ticket exists, serial in warranty, serial matches the ticket (expect all true)
+SELECT r.id, r.ticket_id, r.serial_number,
+       t.id IS NOT NULL AS ticket_exists,
+       (w.purchase_date + (w.warranty_months || ' months')::interval)::date >= CURRENT_DATE AS in_warranty,
+       t.serial_number = r.serial_number AS serial_matches_ticket
+  FROM rmas r
+  LEFT JOIN warranties w USING (serial_number)
+  LEFT JOIN tickets t ON t.id = r.ticket_id
+ ORDER BY r.id;
+
+-- 12 assignments pointing at missing tickets (must be empty)
+SELECT a.id, a.ticket_id FROM ticket_assignments a LEFT JOIN tickets t ON t.id = a.ticket_id WHERE t.id IS NULL;
 ```

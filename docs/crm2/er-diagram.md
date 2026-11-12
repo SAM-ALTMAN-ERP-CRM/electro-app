@@ -4,33 +4,31 @@ Database `crm2_db` (PostgreSQL), owned by team CRM-2. Data owner: Ashutosh (CRM2
 
 This file covers every CRM-2 table: the ER diagram in 3NF, a data dictionary, and notes on normalisation and links to other teams. Seed checks and the schema review log are in [seed-check.md](seed-check.md).
 
-**Status of each table** (this draft is updated as teammates' PRs merge):
+All six tables are on `main` (checked 12 Nov 2026, `c18721c`). CRM2-C3 and CRM2-D3 add no tables.
 
-| Table | Issue | Owner | Status |
+| Table | Created by | Owner | Merged in |
 |---|---|---|---|
-| `tickets` | CRM2-A1, A3 | Ashutosh | Merged (#289, #291) |
-| `ticket_comments` | CRM2-A3 | Ashutosh | Merged (#291) |
-| `warranties` | CRM2-B1 | Zoha | Open PR #292 |
-| `rmas` | CRM2-C1 | Aditya Kumbhar | Planned (from issue text) |
-| `service_centres` | CRM2-D1 | Anant | Planned (from issue text) |
-| `ticket_assignments` | CRM2-D1 | Anant | Planned (from issue text) |
-
-Types for planned tables are taken from the issue text and marked *(planned)*. They will be replaced with the real `schema.sql` types when those PRs merge.
+| `tickets` | CRM2-A1 (SLA in A3) | Ashutosh | #289, #291 |
+| `ticket_comments` | CRM2-A3 | Ashutosh | #291 |
+| `warranties` | CRM2-B1 | Zoha | #294 (B3, which contains B1) |
+| `service_centres` | CRM2-D1 | Anant | #300 |
+| `ticket_assignments` | CRM2-D1 | Anant | #300 |
+| `rmas` | CRM2-C1 | Aditya Kumbhar | #330 |
 
 ---
 
 ## 1. ER diagram
 
-Solid lines are real foreign keys. Dotted lines are logical links (same value, no database constraint).
+Solid lines are real foreign keys in `schema.sql`. Dotted lines are logical links: the same ID is stored and checked by the API or the seed check, but there is no database constraint (C1 and D1 were built while the tickets table was still a mock, so `ticket_id` there is plain text).
 
 ```mermaid
 erDiagram
     TICKETS ||--o{ TICKET_COMMENTS : "has"
-    TICKETS ||--o{ RMAS : "may raise"
-    TICKETS ||--o| TICKET_ASSIGNMENTS : "assigned to centre (max 1)"
     SERVICE_CENTRES ||--o{ TICKET_ASSIGNMENTS : "receives"
+    TICKETS |o..o| TICKET_ASSIGNMENTS : "sent to one centre (logical)"
+    TICKETS |o..o{ RMAS : "may raise (logical)"
     WARRANTIES |o..o{ TICKETS : "serial_number (logical)"
-    WARRANTIES |o..o{ RMAS : "serial_number (logical)"
+    WARRANTIES |o..o{ RMAS : "serial_number (logical, checked by C3)"
 
     TICKETS {
         text id PK "TKT-0001, sequence crm2_ticket_seq"
@@ -65,31 +63,31 @@ erDiagram
         timestamptz created_at "default now()"
     }
 
-    RMAS {
-        text id PK "RMA-0001 (planned)"
-        text ticket_id FK "tickets.id (planned)"
-        text serial_number "warranties.serial_number (planned)"
-        text reason "(planned)"
-        text status "requested | approved | rejected | received | closed (planned)"
-        text outcome "nullable, restock | repair | credit_note (planned)"
-        timestamptz requested_at "(planned)"
-        timestamptz decided_at "nullable (planned)"
-    }
-
     SERVICE_CENTRES {
-        text id PK "SC-0001 (planned)"
-        text name "(planned)"
-        text city "(planned)"
-        text phone "(planned)"
-        integer capacity "(planned)"
-        boolean active "default true (planned)"
+        text id PK "SC-0001, sequence crm2_centre_seq"
+        text name
+        text city
+        text phone "nullable"
+        int capacity "default 0, >= 0"
+        boolean active "default true"
     }
 
     TICKET_ASSIGNMENTS {
-        text id PK "(planned)"
-        text ticket_id FK "tickets.id, one row per ticket (planned)"
-        text centre_id FK "service_centres.id (planned)"
-        timestamptz assigned_at "(planned)"
+        text id PK "ASG-0001, sequence crm2_assignment_seq"
+        text ticket_id UK "TKT-xxxx, one row per ticket"
+        text centre_id FK "service_centres.id"
+        timestamptz assigned_at "default now()"
+    }
+
+    RMAS {
+        text id PK "RMA-0001, sequence crm2_rma_seq"
+        text ticket_id "TKT-xxxx"
+        text serial_number "TV55-2611-xxxx, must be in warranty"
+        text reason
+        text status "requested | approved | rejected | received | closed"
+        text outcome "nullable, restock | repair | credit_note"
+        timestamptz requested_at "default now()"
+        timestamptz decided_at "nullable"
     }
 ```
 
@@ -102,14 +100,14 @@ Each team has its own database, so these IDs are checked by the shared seed cont
 | `tickets.customer_id`, `warranties.customer_id` | Customers `CUST-0001`..`CUST-0008` | CRM-3 |
 | `tickets.assigned_to` | Service engineers `EMP-0005`..`EMP-0007` | ERP-6 |
 | `warranties.sku` | Products, `SKU-0001` = 55-inch 4K Smart TV | ERP-1 |
-| `warranties.serial_number` (synced in CRM2-B3) | Dispatches `DSP-0001`..`DSP-0005` | ERP-4 |
-| `rmas.id` (sent on approval in CRM2-C3) | Returns created by `POST /api/returns/from-rma` | ERP-4 |
+| `warranties.serial_number` (synced by `POST /api/warranty/sync`, B3) | Dispatches `DSP-0001`..`DSP-0005` | ERP-4 |
+| `rmas.id` (sent on approval, C3) | Returns created by `POST /api/returns/from-rma` | ERP-4 |
 
 ---
 
 ## 2. Data dictionary
 
-### tickets (CRM2-A1, A3) — merged
+### tickets (CRM2-A1, A3)
 
 | Column | Type | Rules | Meaning |
 |---|---|---|---|
@@ -126,7 +124,7 @@ Each team has its own database, so these IDs are checked by the shared seed cont
 | `due_at` | timestamptz | nullable | SLA deadline: `created_at` + 4 h (high), 24 h (medium) or 72 h (low); recalculated if priority changes |
 | `resolved_at` | timestamptz | nullable | Set when status becomes `resolved`, cleared if reopened, kept when closed |
 
-### ticket_comments (CRM2-A3) — merged
+### ticket_comments (CRM2-A3)
 
 | Column | Type | Rules | Meaning |
 |---|---|---|---|
@@ -136,7 +134,7 @@ Each team has its own database, so these IDs are checked by the shared seed cont
 | `text` | text | not null; API allows 1–2000 characters | The comment |
 | `created_at` | timestamptz | not null, default `now()` | When it was written |
 
-### warranties (CRM2-B1) — open PR #292
+### warranties (CRM2-B1, B3)
 
 | Column | Type | Rules | Meaning |
 |---|---|---|---|
@@ -148,49 +146,50 @@ Each team has its own database, so these IDs are checked by the shared seed cont
 | `warranty_months` | integer | not null, default 12 | Length of the warranty |
 | `created_at` | timestamptz | not null, default `now()` | When the record was added |
 
-`expires_on` (= `purchase_date + warranty_months`) and `status` (`active`/`expired`, compared with today) are **calculated by the API**, not stored, so they can never go out of date.
+`expires_on` (= `purchase_date + warranty_months`) and `status` (`active` / `expired`, compared with today) are **calculated by the API**, not stored, so they never go out of date. The RMA warranty rule (C3) uses the same calculation.
 
-### rmas (CRM2-C1) — planned
-
-| Column | Type | Rules | Meaning |
-|---|---|---|---|
-| `id` | text *(planned)* | PK, `RMA-0001` | Return number |
-| `ticket_id` | text *(planned)* | not null, → `tickets.id` | Ticket the return was raised from |
-| `serial_number` | text *(planned)* | not null, → `warranties.serial_number` (logical) | Unit being returned |
-| `reason` | text *(planned)* | not null | Why it is being returned |
-| `status` | text *(planned)* | default `requested`; `requested`/`approved`/`rejected`/`received`/`closed` | Return life cycle |
-| `outcome` | text *(planned)* | nullable; `restock`/`repair`/`credit_note`; required to approve | What happens to the unit |
-| `requested_at` | timestamptz *(planned)* | | When the return was requested |
-| `decided_at` | timestamptz *(planned)* | nullable | When it was approved or rejected |
-
-### service_centres (CRM2-D1) — planned
+### service_centres (CRM2-D1)
 
 | Column | Type | Rules | Meaning |
 |---|---|---|---|
-| `id` | text *(planned)* | PK, `SC-0001` | Centre number |
-| `name` | text *(planned)* | not null | Centre name |
-| `city` | text *(planned)* | | City |
-| `phone` | text *(planned)* | | Contact number |
-| `capacity` | integer *(planned)* | | How many tickets it can take |
-| `active` | boolean *(planned)* | default true | Whether it accepts new tickets |
+| `id` | text | PK, default `'SC-' + 4-digit crm2_centre_seq` | Centre number, e.g. `SC-0001` |
+| `name` | text | not null | Centre name |
+| `city` | text | not null | City |
+| `phone` | text | nullable | Contact number |
+| `capacity` | int | not null, default 0, CHECK `>= 0` | How many tickets it can take |
+| `active` | boolean | not null, default true | Whether it accepts new tickets |
 
-### ticket_assignments (CRM2-D1) — planned
+### ticket_assignments (CRM2-D1)
 
 | Column | Type | Rules | Meaning |
 |---|---|---|---|
-| `id` | text *(planned)* | PK | Assignment number |
-| `ticket_id` | text *(planned)* | → `tickets.id`; one row per ticket (re-assigning replaces it) | Ticket being sent to a centre |
-| `centre_id` | text *(planned)* | → `service_centres.id` | Centre handling the ticket |
-| `assigned_at` | timestamptz *(planned)* | | When it was assigned |
+| `id` | text | PK, default `'ASG-' + 4-digit crm2_assignment_seq` | Assignment number, e.g. `ASG-0001` |
+| `ticket_id` | text | not null, **UNIQUE** (re-assigning replaces the row) | Ticket sent to a centre (`TKT-xxxx`) |
+| `centre_id` | text | not null, FK → `service_centres.id` | Centre handling the ticket |
+| `assigned_at` | timestamptz | not null, default `now()` | When it was assigned |
+
+### rmas (CRM2-C1, C3)
+
+| Column | Type | Rules | Meaning |
+|---|---|---|---|
+| `id` | text | PK, default `'RMA-' + 4-digit crm2_rma_seq` | Return number, e.g. `RMA-0001` |
+| `ticket_id` | text | not null | Ticket the return was raised from (`TKT-xxxx`) |
+| `serial_number` | text | not null; must be registered and in warranty to create (C3) | Unit being returned |
+| `reason` | text | not null | Why it is being returned |
+| `status` | text | not null, default `requested`, CHECK `requested`/`approved`/`rejected`/`received`/`closed` | Return life cycle |
+| `outcome` | text | nullable, CHECK `restock`/`repair`/`credit_note`; required to approve | What happens to the unit |
+| `requested_at` | timestamptz | not null, default `now()` | When the return was requested |
+| `decided_at` | timestamptz | nullable | When it was approved or rejected |
 
 ---
 
 ## 3. Normalisation (3NF)
 
-- **1NF:** every column holds one value; no lists or repeating groups (comments and assignments are their own tables).
+- **1NF:** every column holds one value; no lists or repeating groups (comments, assignments and returns are their own tables).
 - **2NF:** every primary key is a single column, so no column can depend on only part of a key.
 - **3NF:** every non-key column depends only on its own table's key. Two deliberate exceptions, both copies of another team's data kept for display:
   - `tickets.customer_name` is a copy of the CRM-3 customer name (the issue asks for it, so the ticket list works when CRM-3 is down).
   - `warranties.product_name` is a copy of the ERP-1 product name for the same reason.
-- `warranties` stores only `purchase_date` and `warranty_months`; expiry and status are calculated, not stored, to avoid a value that depends on another non-key column.
-- `ticket_assignments` keeps one row per ticket (CRM2-D1: "assigning a ticket twice replaces the earlier assignment"), so a ticket's centre is never ambiguous.
+- `warranties` stores only `purchase_date` and `warranty_months`; expiry and status are calculated, not stored, so there is no column that depends on other non-key columns.
+- `ticket_assignments.ticket_id` is UNIQUE, so a ticket has at most one current centre.
+- Possible follow-up (not required by the issues): now that `tickets` is merged, `rmas.ticket_id` and `ticket_assignments.ticket_id` could become real foreign keys to `tickets(id)`. The seed check below confirms every existing row already points at a real ticket.
