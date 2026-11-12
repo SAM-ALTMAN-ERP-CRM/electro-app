@@ -105,10 +105,30 @@ export default function RmaDetailPage() {
         headers: { 'Content-Type': 'application/json' },
       });
       setRma(updated);
-      setDecisionMsg(`RMA ${newStatus === 'approved' ? 'approved' : 'rejected'} successfully.`);
+      let msg = `RMA ${newStatus === 'approved' ? 'approved' : 'rejected'} successfully.`;
+      // [CRM2-C3] say whether ERP-4 received the return handoff
+      if (updated.erp4_handoff === 'sent') msg += ' Return handed to ERP-4.';
+      if (updated.erp4_handoff === 'failed') msg += ' ERP-4 is not reachable right now; the handoff was logged.';
+      setDecisionMsg(msg);
     } catch (err) {
       // Show the server's error message (e.g. "Out of warranty" or "outcome is required")
       setDecisionError(err.message || 'Decision failed. Please try again.');
+    } finally {
+      setDeciding(false);
+    }
+  }
+
+  // [CRM2-C3] Move an approved RMA on to 'received' and then 'closed' (PUT /api/rmas/:id)
+  async function advanceStatus(nextStatus) {
+    setDecisionError('');
+    setDecisionMsg('');
+    setDeciding(true);
+    try {
+      const updated = await api('crm2', `/api/rmas/${id}`, { method: 'PUT', body: { status: nextStatus } });
+      setRma(updated);
+      setDecisionMsg(nextStatus === 'received' ? 'Returned unit marked as received.' : 'RMA closed.');
+    } catch (err) {
+      setDecisionError(err.message || 'Could not update the RMA. Please try again.');
     } finally {
       setDeciding(false);
     }
@@ -211,8 +231,79 @@ export default function RmaDetailPage() {
         <p style={{ color: 'green', fontWeight: 500 }}>{decisionMsg}</p>
       )}
 
-      {/* ---- Placeholder for CRM2-C3 status timeline (Ashutosh will add this) ---- */}
-      {/* STATUS TIMELINE — CRM2-C3 will render a timeline component here */}
+      {/* ---- [CRM2-C3] Status timeline ---- */}
+      <StatusTimeline status={rma.status} />
+
+      {/* [CRM2-C3] Next step buttons once the return is approved */}
+      {(rma.status === 'approved' || rma.status === 'received') && (
+        <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1rem' }}>
+          {rma.status === 'approved' && (
+            <button className="btn" onClick={() => advanceStatus('received')} disabled={deciding}>
+              {deciding ? 'Saving…' : 'Mark unit received'}
+            </button>
+          )}
+          {rma.status === 'received' && (
+            <button className="btn" onClick={() => advanceStatus('closed')} disabled={deciding}>
+              {deciding ? 'Saving…' : 'Close RMA'}
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// [CRM2-C3] Horizontal timeline: requested -> approved -> received -> closed.
+// Steps up to the current one are filled; the current step is highlighted.
+// A rejected RMA stops at "requested" and shows a red "Rejected" badge instead.
+const TIMELINE_STEPS = ['requested', 'approved', 'received', 'closed'];
+
+function StatusTimeline({ status }) {
+  if (status === 'rejected') {
+    return (
+      <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '1rem 1.25rem' }}>
+        <h3 style={{ marginTop: 0 }}>Status</h3>
+        <span className="badge badge-red">Rejected</span>
+        <span style={{ marginLeft: '0.75rem', color: '#64748b', fontSize: '0.9rem' }}>This return will not continue.</span>
+      </div>
+    );
+  }
+
+  const currentIndex = TIMELINE_STEPS.indexOf(status);
+
+  return (
+    <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '1rem 1.25rem' }}>
+      <h3 style={{ marginTop: 0 }}>Status</h3>
+      <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', rowGap: '0.75rem' }}>
+        {TIMELINE_STEPS.map((step, i) => {
+          const done = i <= currentIndex;
+          const current = i === currentIndex;
+          return (
+            <React.Fragment key={step}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <span
+                  style={{
+                    width: '1.75rem', height: '1.75rem', borderRadius: '50%',
+                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: '0.8rem', fontWeight: 700,
+                    background: done ? '#2563eb' : '#e2e8f0',
+                    color: done ? '#fff' : '#64748b',
+                    boxShadow: current ? '0 0 0 4px #bfdbfe' : 'none'
+                  }}
+                >
+                  {done && !current ? '✓' : i + 1}
+                </span>
+                <span style={{ fontWeight: current ? 700 : 500, color: done ? '#0f172a' : '#64748b', textTransform: 'capitalize' }}>
+                  {step}
+                </span>
+              </div>
+              {i < TIMELINE_STEPS.length - 1 && (
+                <div style={{ flex: '1 1 2rem', minWidth: '2rem', height: '2px', margin: '0 0.75rem', background: i < currentIndex ? '#2563eb' : '#e2e8f0' }} />
+              )}
+            </React.Fragment>
+          );
+        })}
+      </div>
     </div>
   );
 }
