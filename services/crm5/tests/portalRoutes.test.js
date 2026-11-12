@@ -5,6 +5,7 @@ const assert = require('node:assert/strict');
 process.env.AUTH_REQUIRED = 'false';
 
 const portalRouter = require('../routes/portal');
+const { getStepStatus } = portalRouter;
 
 /**
  * Pure in-memory dispatcher for Express router (no network sockets required).
@@ -12,12 +13,21 @@ const portalRouter = require('../routes/portal');
 function dispatch(router, options) {
   return new Promise((resolve) => {
     let statusCode = 200;
+    const rawUrl = options.url || '/';
+    const parsedUrl = new URL(rawUrl, 'http://localhost');
+    const pathname = parsedUrl.pathname;
+
+    const query = {};
+    for (const [k, v] of parsedUrl.searchParams.entries()) {
+      query[k] = v;
+    }
+
     const req = {
       method: options.method || 'GET',
-      url: options.url || '/',
-      originalUrl: options.url || '/',
+      url: pathname,
+      originalUrl: rawUrl,
       body: options.body || {},
-      query: options.query || {},
+      query: { ...query, ...(options.query || {}) },
       params: options.params || {},
       headers: options.headers || {},
       user: { id: 'USR-0001', name: 'Admin', role: 'admin' }
@@ -120,5 +130,230 @@ describe('CRM-5 Portal Routes', () => {
     assert.ok(Array.isArray(res.body.data), 'Expected visits array');
     assert.ok(res.body.data.length >= 1, 'Expected at least 1 visit');
     assert.ok(res.body.data[0].id.startsWith('PV-'), 'Visit ID should start with PV-');
+  });
+
+  // ==========================================
+  // [CRM5-A3] Feature A: Raise Support Ticket
+  // ==========================================
+  describe('[CRM5-A3] POST /portal/tickets', () => {
+    it('creates support ticket and returns mock ticket ID TKT-MOCK when CRM-2 is in mock mode', async () => {
+      const res = await dispatch(portalRouter, {
+        method: 'POST',
+        url: '/portal/tickets',
+        body: {
+          customer_id: 'CUST-0001',
+          customer_name: 'Rajesh Kumar',
+          subject: 'Screen flickering issue on OLED',
+          description: 'The bottom right quadrant flickers when HDMI 2 is active.',
+          priority: 'high'
+        }
+      });
+
+      assert.equal(res.status, 201);
+      assert.ok(res.body.data);
+      assert.equal(res.body.data.id, 'TKT-MOCK');
+      assert.equal(res.body.data.customer_id, 'CUST-0001');
+      assert.equal(res.body.data.customer_name, 'Rajesh Kumar');
+      assert.equal(res.body.data.subject, 'Screen flickering issue on OLED');
+      assert.equal(res.body.data.priority, 'high');
+      assert.equal(res.body.data.status, 'open');
+    });
+
+    it('rejects ticket submission when customer_id is missing', async () => {
+      const res = await dispatch(portalRouter, {
+        method: 'POST',
+        url: '/portal/tickets',
+        body: {
+          customer_name: 'Rajesh Kumar',
+          subject: 'Missing ID',
+          description: 'No customer ID supplied',
+          priority: 'medium'
+        }
+      });
+
+      assert.equal(res.status, 400);
+      assert.match(res.body.error, /customer_id is required/i);
+    });
+
+    it('rejects ticket submission when customer_id has invalid format', async () => {
+      const res = await dispatch(portalRouter, {
+        method: 'POST',
+        url: '/portal/tickets',
+        body: {
+          customer_id: 'INVALID-ID',
+          customer_name: 'Rajesh Kumar',
+          subject: 'Bad ID format',
+          description: 'Format should be CUST-0001',
+          priority: 'medium'
+        }
+      });
+
+      assert.equal(res.status, 400);
+      assert.match(res.body.error, /must be in format CUST-0001/i);
+    });
+
+    it('rejects ticket submission when customer_name is missing', async () => {
+      const res = await dispatch(portalRouter, {
+        method: 'POST',
+        url: '/portal/tickets',
+        body: {
+          customer_id: 'CUST-0001',
+          subject: 'Missing customer name',
+          description: 'No customer name supplied',
+          priority: 'medium'
+        }
+      });
+
+      assert.equal(res.status, 400);
+      assert.match(res.body.error, /customer_name is required/i);
+    });
+
+    it('rejects ticket submission when subject is empty', async () => {
+      const res = await dispatch(portalRouter, {
+        method: 'POST',
+        url: '/portal/tickets',
+        body: {
+          customer_id: 'CUST-0001',
+          customer_name: 'Rajesh Kumar',
+          subject: '   ',
+          description: 'Some description',
+          priority: 'medium'
+        }
+      });
+
+      assert.equal(res.status, 400);
+      assert.match(res.body.error, /subject is required/i);
+    });
+
+    it('rejects ticket submission when description is empty', async () => {
+      const res = await dispatch(portalRouter, {
+        method: 'POST',
+        url: '/portal/tickets',
+        body: {
+          customer_id: 'CUST-0001',
+          customer_name: 'Rajesh Kumar',
+          subject: 'Valid Subject',
+          description: '',
+          priority: 'medium'
+        }
+      });
+
+      assert.equal(res.status, 400);
+      assert.match(res.body.error, /description is required/i);
+    });
+
+    it('rejects ticket submission when priority is not allowed', async () => {
+      const res = await dispatch(portalRouter, {
+        method: 'POST',
+        url: '/portal/tickets',
+        body: {
+          customer_id: 'CUST-0001',
+          customer_name: 'Rajesh Kumar',
+          subject: 'Valid Subject',
+          description: 'Valid Description',
+          priority: 'critical'
+        }
+      });
+
+      assert.equal(res.status, 400);
+      assert.match(res.body.error, /priority must be one of: low, medium, high/i);
+    });
+  });
+
+  // ==========================================
+  // [CRM5-A3] Feature B: Order Tracking
+  // ==========================================
+  describe('[CRM5-A3] GET /portal/orders/:id', () => {
+    it('retrieves order tracking data for existing order SO-0001 from ERP-4', async () => {
+      const res = await dispatch(portalRouter, {
+        method: 'GET',
+        url: '/portal/orders/SO-0001'
+      });
+
+      assert.equal(res.status, 200);
+      assert.ok(res.body.data);
+      assert.equal(res.body.data.id, 'SO-0001');
+      assert.equal(res.body.data.customer_id, 'CUST-0001');
+      // Upstream ERP-4 sales-orders mock provides status 'dispatched'
+      assert.equal(res.body.data.status, 'dispatched');
+      assert.ok(Array.isArray(res.body.data.items), 'Expected items array');
+      assert.ok(res.body.data.items.length >= 1, 'Expected at least 1 line item');
+    });
+
+    it('retrieves order tracking data for SO-0002 with status dispatched', async () => {
+      const res = await dispatch(portalRouter, {
+        method: 'GET',
+        url: '/portal/orders/SO-0002'
+      });
+
+      assert.equal(res.status, 200);
+      assert.equal(res.body.data.id, 'SO-0002');
+      assert.equal(res.body.data.status, 'dispatched');
+    });
+
+    it('retrieves order tracking data for SO-0006 with status created from portal mock fallback', async () => {
+      const res = await dispatch(portalRouter, {
+        method: 'GET',
+        url: '/portal/orders/SO-0006'
+      });
+
+      assert.equal(res.status, 200);
+      assert.equal(res.body.data.id, 'SO-0006');
+      assert.equal(res.body.data.status, 'created');
+    });
+
+    it('returns 404 for non-existent order ID', async () => {
+      const res = await dispatch(portalRouter, {
+        method: 'GET',
+        url: '/portal/orders/SO-9999'
+      });
+
+      assert.equal(res.status, 404);
+      assert.ok(res.body.error);
+      assert.match(res.body.error, /not found in tracking system/i);
+    });
+  });
+
+  // ==========================================
+  // [CRM5-A3] Four-Step Progress Logic
+  // ==========================================
+  describe('[CRM5-A3] Four-Stage Progress Mapping Helper', () => {
+    it('correctly maps status "created"', () => {
+      assert.equal(getStepStatus('created', 'created'), 'current');
+      assert.equal(getStepStatus('created', 'confirmed'), 'pending');
+      assert.equal(getStepStatus('created', 'dispatched'), 'pending');
+      assert.equal(getStepStatus('created', 'delivered'), 'pending');
+    });
+
+    it('correctly maps status "confirmed"', () => {
+      assert.equal(getStepStatus('confirmed', 'created'), 'completed');
+      assert.equal(getStepStatus('confirmed', 'confirmed'), 'current');
+      assert.equal(getStepStatus('confirmed', 'dispatched'), 'pending');
+      assert.equal(getStepStatus('confirmed', 'delivered'), 'pending');
+    });
+
+    it('correctly maps status "dispatched"', () => {
+      assert.equal(getStepStatus('dispatched', 'created'), 'completed');
+      assert.equal(getStepStatus('dispatched', 'confirmed'), 'completed');
+      assert.equal(getStepStatus('dispatched', 'dispatched'), 'current');
+      assert.equal(getStepStatus('dispatched', 'delivered'), 'pending');
+    });
+
+    it('correctly maps status "delivered"', () => {
+      assert.equal(getStepStatus('delivered', 'created'), 'completed');
+      assert.equal(getStepStatus('delivered', 'confirmed'), 'completed');
+      assert.equal(getStepStatus('delivered', 'dispatched'), 'completed');
+      assert.equal(getStepStatus('delivered', 'delivered'), 'current');
+    });
+
+    it('safely maps unknown or cancelled status without marking delivered', () => {
+      assert.equal(getStepStatus('cancelled', 'created'), 'pending');
+      assert.equal(getStepStatus('cancelled', 'confirmed'), 'pending');
+      assert.equal(getStepStatus('cancelled', 'dispatched'), 'pending');
+      assert.equal(getStepStatus('cancelled', 'delivered'), 'pending');
+
+      assert.equal(getStepStatus('unknown_state', 'created'), 'pending');
+      assert.equal(getStepStatus(null, 'delivered'), 'pending');
+    });
   });
 });

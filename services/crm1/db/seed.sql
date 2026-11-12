@@ -25,3 +25,50 @@ ON CONFLICT (id) DO NOTHING;
 
 SELECT setval('quote_seq', GREATEST(4, (SELECT COALESCE(MAX(CAST(SUBSTRING(id FROM 5) AS INTEGER)), 0) FROM quotes WHERE id LIKE 'QUO-%')));
 SELECT setval('quote_items_seq', GREATEST(7, (SELECT COALESCE(MAX(CAST(SUBSTRING(id FROM 4) AS INTEGER)), 0) FROM quote_items WHERE id LIKE 'QI-%')));
+
+-- Build Issue: [CRM1-D1] Seed dealers (DLR-0001 to DLR-0005)
+INSERT INTO dealers (
+  id, name, contact_person, phone, email, city, tier, credit_limit, status, created_at
+) VALUES
+  ('DLR-0001', 'BrightHome Retail', 'Rahul Deshmukh', '020-25671199', 'rahul@brighthome.in', 'Pune', 'gold', 1500000.00, 'active', NOW() - INTERVAL '30 days'),
+  ('DLR-0002', 'Gadget Hub', 'Suresh Rao', '080-22345678', 'contact@gadgethub.in', 'Bengaluru', 'silver', 800000.00, 'active', NOW() - INTERVAL '25 days'),
+  ('DLR-0003', 'Metro Electronics', 'Amit Verma', '011-23456789', 'amit@metroelec.com', 'Delhi', 'gold', 2000000.00, 'active', NOW() - INTERVAL '20 days'),
+  ('DLR-0004', 'Western Appliance Mart', 'Manoj Joshi', '022-26789012', 'manoj@westernmart.com', 'Mumbai', 'bronze', 300000.00, 'active', NOW() - INTERVAL '15 days'),
+  ('DLR-0005', 'Royal Vision Hub', 'Priya S.', '044-24567890', 'priya@royalvision.com', 'Chennai', 'silver', 600000.00, 'active', NOW() - INTERVAL '10 days')
+ON CONFLICT (id) DO NOTHING;
+
+SELECT setval('dealer_seq', GREATEST(5, (SELECT COALESCE(MAX(CAST(SUBSTRING(id FROM 5) AS INTEGER)), 0) FROM dealers WHERE id LIKE 'DLR-%')));
+
+-- Seed leads once so repeated database setup does not create duplicates.
+INSERT INTO leads (
+  id, name, phone, email, source, product_interest, status, score, sales_rep_id
+) VALUES
+  ('LEAD-0001', 'Aarav Mehta', '9820011223', 'aarav@gmail.com', 'dealer', '55-inch 4K Smart TV', 'qualified', 70, 'EMP-0001'),
+  ('LEAD-0002', 'Sunrise Electronics', '022-28491029', 'procurement@sunrise.com', 'web', 'Soundbar 5.1', 'contacted', 50, 'EMP-0002'),
+  ('LEAD-0003', 'Priya Nair', '9847012345', 'priya.nair@yahoo.com', 'walk-in', 'Microwave Oven 25L', 'new', 30, 'EMP-0003'),
+  ('LEAD-0004', 'BrightHome Retail', '020-25671199', 'orders@brighthome.in', 'dealer', '65-inch OLED TV', 'qualified', 80, 'EMP-0001'),
+  ('LEAD-0005', 'Kiran Patel', '9825098765', 'kiran.patel@rediffmail.com', 'web', 'Air Fryer 4L', 'new', 40, 'EMP-0004')
+ON CONFLICT (id) DO NOTHING;
+
+SELECT setval(
+  'leads_seq',
+  GREATEST(
+    (SELECT last_value FROM leads_seq),
+    5,
+    (SELECT COALESCE(MAX(CAST(SUBSTRING(id FROM 6) AS INTEGER)), 0) FROM leads WHERE id LIKE 'LEAD-%')
+  )
+);
+
+-- Build Issue: [CRM1-B1] Seed opportunities (OPP-0001 to OPP-0006)
+INSERT INTO opportunities (
+  id, lead_id, customer_id, title, expected_value, stage, sales_rep_id, created_at
+) VALUES
+  ('OPP-0001', 'LEAD-0001', 'CUST-0001', '55" Smart TV bulk purchase', 128970.00, 'won', 'EMP-0001', NOW() - INTERVAL '6 days'),
+  ('OPP-0002', 'LEAD-0002', 'CUST-0002', 'Corporate sound system setup', 89950.00, 'proposal', 'EMP-0002', NOW() - INTERVAL '5 days'),
+  ('OPP-0003', 'LEAD-0003', 'CUST-0003', 'Kitchen appliances bundle', 25490.00, 'negotiation', 'EMP-0003', NOW() - INTERVAL '4 days'),
+  ('OPP-0004', 'LEAD-0004', 'CUST-0004', 'Dealer annual TV quota', 474950.00, 'proposal', 'EMP-0001', NOW() - INTERVAL '3 days'),
+  ('OPP-0005', 'LEAD-0005', 'CUST-0005', 'Home audio upgrades', 35980.00, 'prospect', 'EMP-0004', NOW() - INTERVAL '2 days'),
+  ('OPP-0006', 'LEAD-0002', 'CUST-0006', 'Office TV installation', 94990.00, 'lost', 'EMP-0002', NOW() - INTERVAL '1 day')
+ON CONFLICT (id) DO NOTHING;
+
+SELECT setval('opp_seq', GREATEST(6, (SELECT COALESCE(MAX(CAST(SUBSTRING(id FROM 5) AS INTEGER)), 0) FROM opportunities WHERE id LIKE 'OPP-%')));
