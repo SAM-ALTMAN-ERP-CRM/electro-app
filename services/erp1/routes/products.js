@@ -143,6 +143,104 @@ router.get('/products', async (req, res, next) => {
 });
 
 /**
+ * GET /api/products/export.csv
+ * Exports product catalog as a CSV download.
+ */
+router.get('/products/export.csv', async (req, res, next) => {
+  try {
+    let prods = [];
+    const pgResult = await safeQuery(
+      `SELECT id, name, category, brand, price, tax_rate, reorder_level, active
+       FROM products
+       ORDER BY id ASC`
+    );
+
+    if (pgResult) {
+      prods = pgResult.rows;
+    } else {
+      prods = inMemoryProducts;
+    }
+
+    const headers = ['id', 'name', 'category', 'brand', 'price', 'tax_rate', 'reorder_level', 'active'];
+    const escapeCsv = (val) => {
+      if (val === null || val === undefined) return '';
+      const str = String(val);
+      if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+        return `"${str.replace(/"/g, '""')}"`;
+      }
+      return str;
+    };
+
+    const csvRows = [
+      headers.join(','),
+      ...prods.map(p => [
+        escapeCsv(p.id),
+        escapeCsv(p.name),
+        escapeCsv(p.category),
+        escapeCsv(p.brand || 'Electro'),
+        escapeCsv(Number(p.price).toFixed(2)),
+        escapeCsv(p.tax_rate ?? 18),
+        escapeCsv(p.reorder_level ?? 10),
+        escapeCsv(p.active !== false)
+      ].join(','))
+    ];
+
+    const csvData = csvRows.join('\r\n');
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', 'attachment; filename="products.csv"');
+    return res.send(csvData);
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * GET /api/products/:id/price
+ * Returns base price, tax rate (18%), calculated tax amount, and price with tax (ERP1-A3).
+ */
+router.get('/products/:id/price', async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const pgResult = await safeQuery(
+      `SELECT id, name, price, tax_rate
+       FROM products
+       WHERE id = $1`,
+      [id]
+    );
+
+    let product = null;
+    if (pgResult && pgResult.rows.length > 0) {
+      product = pgResult.rows[0];
+    } else {
+      product = inMemoryProducts.find(p => p.id === id);
+    }
+
+    if (!product) {
+      return res.status(404).json({ error: `Product '${id}' not found` });
+    }
+
+    const basePrice = Number(product.price);
+    const taxRate = Number(product.tax_rate ?? 18);
+    const taxAmount = Number((basePrice * (taxRate / 100)).toFixed(2));
+    const priceWithTax = Number((basePrice + taxAmount).toFixed(2));
+
+    return res.json({
+      data: {
+        id: product.id,
+        name: product.name,
+        price: basePrice.toFixed(2),
+        tax_rate: taxRate,
+        tax_amount: taxAmount.toFixed(2),
+        price_with_tax: priceWithTax.toFixed(2)
+      }
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
  * GET /api/products/:id
  * Retrieve a single product by SKU ID.
  */

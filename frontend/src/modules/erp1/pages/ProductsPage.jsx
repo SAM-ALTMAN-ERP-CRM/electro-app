@@ -241,6 +241,50 @@ export default function ProductsPage() {
     }
   };
 
+  /**
+   * Export product catalog to CSV file and trigger browser download (ERP1-A3).
+   */
+  const handleExportCsv = () => {
+    if (!products || products.length === 0) {
+      setError('No products available to export.');
+      return;
+    }
+
+    const headers = ['SKU', 'Name', 'Category', 'Brand', 'Price', 'Tax Rate', 'Reorder Level', 'Active'];
+    const escapeCsv = (val) => {
+      if (val === null || val === undefined) return '';
+      const str = String(val);
+      if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+        return `"${str.replace(/"/g, '""')}"`;
+      }
+      return str;
+    };
+
+    const rows = products.map(p => [
+      escapeCsv(p.id),
+      escapeCsv(p.name),
+      escapeCsv(p.category),
+      escapeCsv(p.brand || 'Electro'),
+      escapeCsv(Number(p.price).toFixed(2)),
+      escapeCsv(p.tax_rate ?? 18),
+      escapeCsv(p.reorder_level ?? 10),
+      escapeCsv(p.active !== false ? 'true' : 'false')
+    ].join(','));
+
+    const csvContent = [headers.join(','), ...rows].join('\r\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', 'products_catalog.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    setFeedback(`Exported ${products.length} product(s) to products_catalog.csv`);
+  };
+
   return (
     <div className="page-container" style={{ maxWidth: '1200px', margin: '0 auto' }}>
       {/* Page Header */}
@@ -264,24 +308,45 @@ export default function ProductsPage() {
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={handleOpenAdd}
-          style={{
-            backgroundColor: '#2563eb',
-            color: '#ffffff',
-            padding: '0.55rem 1.15rem',
-            borderRadius: '6px',
-            fontWeight: 600,
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.5rem',
-            border: 'none',
-            cursor: 'pointer'
-          }}
-        >
-          <span>+ Add Product</span>
-        </button>
+        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+          <button
+            type="button"
+            onClick={handleExportCsv}
+            style={{
+              backgroundColor: '#f1f5f9',
+              border: '1px solid #cbd5e1',
+              color: '#334155',
+              padding: '0.55rem 1.15rem',
+              borderRadius: '6px',
+              fontWeight: 600,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              cursor: 'pointer'
+            }}
+          >
+            <span>📥 Export CSV</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={handleOpenAdd}
+            style={{
+              backgroundColor: '#2563eb',
+              color: '#ffffff',
+              padding: '0.55rem 1.15rem',
+              borderRadius: '6px',
+              fontWeight: 600,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              border: 'none',
+              cursor: 'pointer'
+            }}
+          >
+            <span>+ Add Product</span>
+          </button>
+        </div>
       </div>
 
       {/* Success Notification Banner */}
