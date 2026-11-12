@@ -55,3 +55,29 @@ SELECT setval(
     (SELECT COALESCE(MAX(CAST(SUBSTRING(id FROM 5) AS INTEGER)), 0) FROM employees WHERE id LIKE 'EMP-%')
   )
 );
+
+-- 3. Commissions Seed (Build Issue: [ERP6-D1])
+-- 5 realistic seed rows adhering to shared IDs (EMP-0001 to EMP-0004)
+INSERT INTO commissions (
+  id, sales_rep_id, invoice_id, invoice_amount, rate_percent, commission_amount, month, created_at
+) VALUES
+  ('COMM-0001', 'EMP-0001', 'INV-0091', 45000.00, 2.00, 900.00, '2026-10', '2026-10-15T10:00:00Z'),
+  ('COMM-0002', 'EMP-0002', 'INV-0092', 150000.00, 3.00, 4500.00, '2026-10', '2026-10-16T11:00:00Z'),
+  ('COMM-0003', 'EMP-0003', 'INV-0093', 75000.00, 2.00, 1500.00, '2026-10', '2026-10-20T09:30:00Z'),
+  ('COMM-0004', 'EMP-0004', 'INV-0094', 200000.00, 3.00, 6000.00, '2026-11', '2026-11-01T14:00:00Z'),
+  ('COMM-0005', 'EMP-0001', 'INV-0095', 80000.00, 2.00, 1600.00, '2026-11', '2026-11-02T16:00:00Z')
+ON CONFLICT (invoice_id) DO UPDATE SET
+  sales_rep_id = EXCLUDED.sales_rep_id,
+  invoice_amount = EXCLUDED.invoice_amount,
+  rate_percent = EXCLUDED.rate_percent,
+  commission_amount = EXCLUDED.commission_amount,
+  month = EXCLUDED.month;
+
+SELECT setval(
+  'commission_seq',
+  GREATEST(
+    5,
+    (SELECT COALESCE(MAX(CAST(SUBSTRING(id FROM 6) AS INTEGER)), 0) FROM commissions WHERE id LIKE 'COMM-%')
+  )
+);
+
