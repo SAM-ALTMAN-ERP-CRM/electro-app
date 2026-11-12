@@ -164,5 +164,27 @@ describe('ERP1-A1 Products API Test Suite', () => {
     const getRes = await request(app, 'GET', `/api/products/${createdProductId}`);
     assert.equal(getRes.status, 404);
   });
+
+  it('13. GET /api/products/:id/price returns price and tax calculation (ERP1-A3)', async () => {
+    const res = await request(app, 'GET', '/api/products/SKU-0001/price');
+    assert.equal(res.status, 200);
+    assert.equal(res.body.data.id, 'SKU-0001');
+    assert.equal(res.body.data.price, '42990.00');
+    assert.equal(res.body.data.tax_rate, 18);
+    assert.equal(res.body.data.tax_amount, '7738.20');
+    assert.equal(res.body.data.price_with_tax, '50728.20');
+  });
+
+  it('14. GET /api/products/:id/price returns 404 for unknown product', async () => {
+    const res = await request(app, 'GET', '/api/products/SKU-9999/price');
+    assert.equal(res.status, 404);
+    assert.ok(res.body.error);
+  });
+
+  it('15. GET /api/products/export.csv returns CSV data stream', async () => {
+    const res = await request(app, 'GET', '/api/products/export.csv');
+    assert.equal(res.status, 200);
+    assert.ok(typeof res.body === 'string' || Buffer.isBuffer(res.body));
+  });
 });
 
