@@ -1,6 +1,7 @@
 import React from 'react';
 import EmployeesPage from './pages/EmployeesPage';
 import DepartmentsPage from './pages/DepartmentsPage';
+import CommissionsPage from './pages/CommissionsPage';
 
 export default {
   id: 'erp6',
@@ -20,6 +21,12 @@ export default {
       path: 'departments',
       label: 'Departments',
       element: <DepartmentsPage />
+    },
+    {
+      path: 'commissions',
+      label: 'Commissions',
+      element: <CommissionsPage />
     }
   ]
 };
+
