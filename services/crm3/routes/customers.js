@@ -4,7 +4,12 @@ const fs = require('fs');
 const path = require('path');
 const { requireAuth } = require('../../_shared/auth');
 const { makePool } = require('../../_shared/db');
-const { validateCustomer, EMAIL_REGEX } = require('../validators/customerValidator');
+const {
+  validateCustomerPayload,
+  checkEmailUniqueness,
+  validateCustomer,
+  EMAIL_REGEX
+} = require('../validators/customerValidator');
 
 const pool = makePool('crm3_db');
 
@@ -34,6 +39,29 @@ async function safeQuery(text, params) {
   } catch (err) {
     return null;
   }
+}
+
+/**
+ * Generates next sequential Customer ID (CUST-xxxx).
+ */
+async function getNextCustomerId() {
+  try {
+    const seqResult = await pool.query("SELECT nextval('customers_seq') AS n");
+    if (seqResult && seqResult.rows && seqResult.rows.length > 0) {
+      const nextNum = seqResult.rows[0].n;
+      return `CUST-${String(nextNum).padStart(4, '0')}`;
+    }
+  } catch (err) {
+    // Database sequence unavailable; fall back to in-memory counter
+  }
+
+  const existingNums = inMemoryCustomers.map(c => {
+    if (!c.id || !c.id.startsWith('CUST-')) return 0;
+    const num = parseInt(c.id.replace('CUST-', ''), 10);
+    return isNaN(num) ? 0 : num;
+  });
+  const maxNum = Math.max(10, ...existingNums, 0);
+  return `CUST-${String(maxNum + 1).padStart(4, '0')}`;
 }
 
 /**
@@ -159,6 +187,174 @@ router.post('/customers/validate', async (req, res, next) => {
 });
 
 /**
+ * POST /api/customers/import
+ * Bulk import customers from JSON array (CRM3-D3).
+ * Accepts: Array of customer objects, or { customers: [...] } or { data: [...] }
+ * Returns: { inserted, skipped, total, errors[] }
+ * Inserts valid rows (using CRM3-A3 validation), skips invalid ones.
+ */
+router.post('/customers/import', async (req, res, next) => {
+  try {
+    const payload = req.body;
+    let rows = [];
+
+    if (Array.isArray(payload)) {
+      rows = payload;
+    } else if (payload && Array.isArray(payload.customers)) {
+      rows = payload.customers;
+    } else if (payload && Array.isArray(payload.data)) {
+      rows = payload.data;
+    }
+
+    if (!rows || rows.length === 0) {
+      return res.status(200).json({
+        status: 'success',
+        inserted: 0,
+        skipped: 0,
+        total: 0,
+        errors: [],
+        data: {
+          inserted: 0,
+          skipped: 0,
+          total: 0,
+          errors: [],
+          customers: []
+        }
+      });
+    }
+
+    const insertedCustomers = [];
+    const errors = [];
+    const seenEmailsInBatch = new Set();
+
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      const rowNum = i + 1;
+
+      // 1. Validate payload against CRM3-A3 rules
+      const validation = validateCustomerPayload(row);
+      if (!validation.isValid) {
+        errors.push({
+          row: rowNum,
+          name: row?.name || 'Unknown',
+          email: row?.email || '',
+          error: validation.firstError,
+          errors: validation.errors
+        });
+        continue;
+      }
+
+      const customerData = validation.sanitized;
+      const normalizedEmail = customerData.email.toLowerCase();
+
+      // 2. Intra-batch duplicate email check
+      if (seenEmailsInBatch.has(normalizedEmail)) {
+        errors.push({
+          row: rowNum,
+          name: customerData.name,
+          email: customerData.email,
+          error: `Duplicate email '${customerData.email}' within same import batch`
+        });
+        continue;
+      }
+
+      // 3. Database uniqueness check (if DB is active)
+      let dbConflict = false;
+      try {
+        const uniqueness = await checkEmailUniqueness(pool, customerData.email);
+        if (!uniqueness.isUnique) {
+          dbConflict = true;
+        }
+      } catch (err) {
+        // Safe fallback if DB offline
+      }
+
+      // 4. In-memory uniqueness check
+      const memConflict = inMemoryCustomers.some(
+        c => c.email && c.email.toLowerCase() === normalizedEmail
+      );
+
+      if (dbConflict || memConflict) {
+        errors.push({
+          row: rowNum,
+          name: customerData.name,
+          email: customerData.email,
+          error: `Customer with email '${customerData.email}' already exists`
+        });
+        continue;
+      }
+
+      // 5. Generate monotonic Customer ID
+      const newId = await getNextCustomerId();
+
+      // 6. Attempt PostgreSQL insertion
+      let saved = null;
+      try {
+        const insertResult = await pool.query(
+          `INSERT INTO customers (
+            id, name, type, email, phone, gstin, billing_address, shipping_address, city
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+          RETURNING id, name, type, email, phone, gstin, billing_address, shipping_address, city, created_at`,
+          [
+            newId,
+            customerData.name,
+            customerData.type,
+            customerData.email,
+            customerData.phone,
+            customerData.gstin,
+            customerData.billing_address,
+            customerData.shipping_address,
+            customerData.city
+          ]
+        );
+        if (insertResult && insertResult.rows && insertResult.rows.length > 0) {
+          saved = insertResult.rows[0];
+        }
+      } catch (insertErr) {
+        // Safe fallback if DB fails
+      }
+
+      if (!saved) {
+        saved = {
+          id: newId,
+          name: customerData.name,
+          type: customerData.type,
+          email: customerData.email,
+          phone: customerData.phone,
+          gstin: customerData.gstin,
+          billing_address: customerData.billing_address,
+          shipping_address: customerData.shipping_address,
+          city: customerData.city,
+          created_at: new Date().toISOString()
+        };
+      }
+
+      // Track in memory & intra-batch set
+      inMemoryCustomers.push(saved);
+      seenEmailsInBatch.add(normalizedEmail);
+      insertedCustomers.push(saved);
+    }
+
+    return res.status(200).json({
+      status: 'success',
+      inserted: insertedCustomers.length,
+      skipped: errors.length,
+      total: rows.length,
+      errors,
+      data: {
+        inserted: insertedCustomers.length,
+        skipped: errors.length,
+        total: rows.length,
+        errors,
+        customers: insertedCustomers
+      }
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
  * POST /api/customers
  * Creates a new customer with validation rules (CRM3-A3).
  * Rejects bad inputs with 400 and duplicate email with 409.
@@ -201,9 +397,7 @@ router.post('/customers', async (req, res, next) => {
 
     // Attempt to persist in PostgreSQL
     try {
-      const seqResult = await pool.query("SELECT nextval('customers_seq') AS n");
-      const nextNum = seqResult.rows[0].n;
-      const customerId = `CUST-${String(nextNum).padStart(4, '0')}`;
+      const customerId = await getNextCustomerId();
 
       const insertRes = await pool.query(
         `INSERT INTO customers (id, name, type, email, phone, gstin, billing_address, shipping_address, city)
@@ -499,5 +693,18 @@ router.post('/customers/:id/contacts', async (req, res, next) => {
     next(err);
   }
 });
+
+router._resetInMemoryCustomers = () => {
+  try {
+    const mockPath = path.resolve(__dirname, '../mocks/customers.json');
+    if (fs.existsSync(mockPath)) {
+      inMemoryCustomers = JSON.parse(fs.readFileSync(mockPath, 'utf-8'));
+    } else {
+      inMemoryCustomers = [];
+    }
+  } catch (e) {
+    inMemoryCustomers = [];
+  }
+};
 
 module.exports = router;

@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="600" viewBox="0 0 960 600" role="img" aria-labelledby="title desc">
+  <title id="title">CRM-3 CSV Customer Import Wireframe</title>
+  <desc id="desc">Wireframe layout for /crm3/import (File Upload, Browser CSV Parser &amp; Results)</desc>
+  <rect width="960" height="600" fill="#f8fafc"/>
+  <rect x="20" y="20" width="920" height="560" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5"/>
+
+  <!-- Page Header -->
+  <text x="50" y="65" font-family="system-ui, -apple-system, sans-serif" font-size="24" font-weight="700" fill="#0f172a">Customer Bulk CSV Import</text>
+  <rect x="365" y="47" width="70" height="24" rx="12" fill="#dbeafe"/>
+  <text x="380" y="63" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="600" fill="#1d4ed8">CRM-3</text>
+  <text x="50" y="95" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#64748b">Upload customer master records in bulk from comma-separated spreadsheet files</text>
+  <line x1="50" y1="115" x2="910" y2="115" stroke="#e2e8f0"/>
+
+  <!-- Upload Drag and Drop Zone -->
+  <rect x="50" y="135" width="860" height="100" rx="8" fill="#f8fafc" stroke="#94a3b8" stroke-dasharray="6,6" stroke-width="1.5"/>
+  <text x="400" y="172" font-family="system-ui, -apple-system, sans-serif" font-size="22" fill="#64748b">📁</text>
+  <text x="430" y="172" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="600" fill="#0f172a">Choose a CSV file or drag &amp; drop it here</text>
+  <text x="310" y="200" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#64748b">Columns: name, type, email, phone, gstin, billing_address, shipping_address, city</text>
+
+  <!-- Load Sample Acceptance CSV Button -->
+  <rect x="670" y="152" width="220" height="30" rx="5" fill="#ffffff" stroke="#cbd5e1"/>
+  <text x="685" y="172" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#334155">⚡ Load 10-Row Acceptance CSV</text>
+
+  <!-- Parsed Preview Table -->
+  <text x="50" y="260" font-family="system-ui, -apple-system, sans-serif" font-size="15" font-weight="700" fill="#0f172a">Parsed CSV Preview (10 rows found)</text>
+  <rect x="50" y="275" width="860" height="140" rx="6" fill="#ffffff" stroke="#e2e8f0"/>
+  <rect x="50" y="275" width="860" height="30" rx="6" fill="#f8fafc"/>
+  <text x="70" y="295" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#64748b">ROW</text>
+  <text x="120" y="295" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#64748b">CUSTOMER NAME</text>
+  <text x="330" y="295" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#64748b">TYPE</text>
+  <text x="450" y="295" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#64748b">EMAIL</text>
+  <text x="670" y="295" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#64748b">PHONE</text>
+  <text x="800" y="295" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#64748b">STATUS</text>
+  <line x1="50" y1="305" x2="910" y2="305" stroke="#e2e8f0"/>
+
+  <!-- Preview Row 1 -->
+  <text x="70" y="328" font-family="monospace" font-size="12" fill="#64748b">#1</text>
+  <text x="120" y="328" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="600" fill="#0f172a">Rohit Sharma</text>
+  <rect x="330" y="315" width="50" height="18" rx="9" fill="#dbeafe"/>
+  <text x="340" y="328" font-family="system-ui, -apple-system, sans-serif" font-size="10" font-weight="600" fill="#1d4ed8">retail</text>
+  <text x="450" y="328" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#334155">rohit.sharma@example.com</text>
+  <text x="670" y="328" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#334155">9820199001</text>
+  <rect x="800" y="315" width="55" height="18" rx="9" fill="#dcfce7"/>
+  <text x="810" y="328" font-family="system-ui, -apple-system, sans-serif" font-size="10" font-weight="700" fill="#15803d">VALID</text>
+  <line x1="50" y1="340" x2="910" y2="340" stroke="#f1f5f9"/>
+
+  <!-- Preview Row 3 (Invalid phone) -->
+  <text x="70" y="362" font-family="monospace" font-size="12" fill="#64748b">#3</text>
+  <text x="120" y="362" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="600" fill="#0f172a">Invalid Phone Customer</text>
+  <rect x="330" y="349" width="50" height="18" rx="9" fill="#dbeafe"/>
+  <text x="340" y="362" font-family="system-ui, -apple-system, sans-serif" font-size="10" font-weight="600" fill="#1d4ed8">retail</text>
+  <text x="450" y="362" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#334155">badphone@example.com</text>
+  <text x="670" y="362" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#b91c1c">12345</text>
+  <rect x="800" y="349" width="55" height="18" rx="9" fill="#fee2e2"/>
+  <text x="808" y="362" font-family="system-ui, -apple-system, sans-serif" font-size="10" font-weight="700" fill="#b91c1c">INVALID</text>
+  <line x1="50" y1="375" x2="910" y2="375" stroke="#f1f5f9"/>
+
+  <!-- Preview Row 6 (Corporate missing GSTIN) -->
+  <text x="70" y="398" font-family="monospace" font-size="12" fill="#64748b">#6</text>
+  <text x="120" y="398" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="600" fill="#0f172a">Corporate Missing GSTIN</text>
+  <rect x="330" y="385" width="70" height="18" rx="9" fill="#dcfce7"/>
+  <text x="340" y="398" font-family="system-ui, -apple-system, sans-serif" font-size="10" font-weight="600" fill="#15803d">corporate</text>
+  <text x="450" y="398" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#334155">missinggstin@corp.com</text>
+  <text x="670" y="398" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#334155">9820199006</text>
+  <rect x="800" y="385" width="55" height="18" rx="9" fill="#fee2e2"/>
+  <text x="808" y="398" font-family="system-ui, -apple-system, sans-serif" font-size="10" font-weight="700" fill="#b91c1c">INVALID</text>
+
+  <!-- Import Action Button -->
+  <rect x="50" y="430" width="200" height="36" rx="6" fill="#2563eb"/>
+  <text x="75" y="453" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="600" fill="#ffffff">🚀 Import Valid Customers</text>
+
+  <!-- Import Results Card -->
+  <rect x="50" y="480" width="860" height="85" rx="6" fill="#f0fdf4" stroke="#bbf7d0"/>
+  <text x="70" y="505" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="700" fill="#166534">✓ Import Completed: 8 inserted, 2 skipped</text>
+  <text x="70" y="527" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#15803d">• Row 3 skipped: phone must be 10 digits</text>
+  <text x="70" y="547" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#15803d">• Row 6 skipped: GSTIN required and must be 15 characters for corporate</text>
+</svg>
