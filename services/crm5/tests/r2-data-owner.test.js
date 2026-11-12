@@ -74,7 +74,7 @@ describe('[CRM5-R2] Data owner: schema, seed contract & ER diagram verification'
 
     const requiredColumns = [
       'id', 'customer_id', 'visited_at',
-      'taken_at', 'metrics',
+      'range', 'taken_at', 'metrics',
       'month', 'target_amount', 'notes', 'created_at',
       'name', 'source', 'allowed_roles'
     ];

@@ -20,7 +20,7 @@ function dispatch(router, options) {
       query: options.query || {},
       params: options.params || {},
       headers: options.headers || {},
-      user: { id: 'USR-0001', name: 'Admin', role: 'admin' }
+      user: options.user !== undefined ? options.user : { id: 'USR-0001', name: 'Admin', role: 'admin' }
     };
 
     const res = {
@@ -324,6 +324,133 @@ describe('CRM1 Quotes Routes Integration Tests ([CRM1-C1] & [CRM1-C3])', () => {
     assert.equal(rejectRes.status, 200);
     assert.equal(rejectRes.body.data.status, 'rejected');
     assert.equal(rejectRes.body.data.rejection_reason, 'Client decided to delay purchase');
+  });
+
+  it('[CRM1-D3] GET /approvals rejects non-admin users with HTTP 403', async () => {
+    process.env.AUTH_REQUIRED = 'true';
+    const jwt = require('jsonwebtoken');
+    const salesToken = jwt.sign({ id: 'USR-0002', role: 'sales' }, 'dev_secret_key_change_in_production');
+    const res = await dispatch(quotesRouter, {
+      method: 'GET',
+      url: '/approvals',
+      headers: { authorization: `Bearer ${salesToken}` }
+    });
+    process.env.AUTH_REQUIRED = 'false';
+    assert.equal(res.status, 403);
+    assert.match(res.body.error, /Forbidden/);
+  });
+
+  it('[CRM1-D3] GET /approvals returns list of quotes awaiting manager approval for admin', async () => {
+    const res = await dispatch(quotesRouter, {
+      method: 'GET',
+      url: '/approvals',
+      user: { id: 'USR-0001', name: 'Admin', role: 'admin' }
+    });
+    assert.equal(res.status, 200);
+    assert.ok(Array.isArray(res.body.data));
+  });
+
+  it('[CRM1-D3] PATCH /quotes/:id/approve rejects non-admin users with HTTP 403', async () => {
+    process.env.AUTH_REQUIRED = 'true';
+    const jwt = require('jsonwebtoken');
+    const salesToken = jwt.sign({ id: 'USR-0002', role: 'sales' }, 'dev_secret_key_change_in_production');
+    const res = await dispatch(quotesRouter, {
+      method: 'PATCH',
+      url: '/quotes/QUO-0005/approve',
+      params: { id: 'QUO-0005' },
+      headers: { authorization: `Bearer ${salesToken}` }
+    });
+    process.env.AUTH_REQUIRED = 'false';
+    assert.equal(res.status, 403);
+    assert.match(res.body.error, /Forbidden/);
+  });
+
+  it('[CRM1-D3] PATCH /quotes/:id/approve marks quote approved and unlocks sending', async () => {
+    // 1. Create a draft quote with 12% discount (needs_approval = true)
+    const createRes = await dispatch(quotesRouter, {
+      method: 'POST',
+      url: '/quotes',
+      body: {
+        opportunity_id: 'OPP-0001',
+        customer_id: 'CUST-0001',
+        sales_rep_id: 'EMP-0001',
+        discount_percent: 12,
+        items: [{ sku: 'SKU-0001', product_name: '55-inch 4K Smart TV', quantity: 1, unit_price: 42990 }]
+      }
+    });
+
+    const quoteId = createRes.body.data.id;
+    assert.equal(createRes.body.data.needs_approval, true);
+    assert.equal(createRes.body.data.approved, false);
+
+    // 2. Attempt to move to sent before approval: must fail with 400
+    const blockedRes = await dispatch(quotesRouter, {
+      method: 'PATCH',
+      url: `/quotes/${quoteId}/status`,
+      params: { id: quoteId },
+      body: { status: 'sent' }
+    });
+    assert.equal(blockedRes.status, 400);
+
+    // 3. Admin approves the quote
+    const approveRes = await dispatch(quotesRouter, {
+      method: 'PATCH',
+      url: `/quotes/${quoteId}/approve`,
+      params: { id: quoteId },
+      user: { id: 'USR-0001', name: 'Admin', role: 'admin' }
+    });
+    assert.equal(approveRes.status, 200);
+    assert.equal(approveRes.body.data.approved, true);
+
+    // 4. Now moving to sent must succeed (200 OK)
+    const unblockedRes = await dispatch(quotesRouter, {
+      method: 'PATCH',
+      url: `/quotes/${quoteId}/status`,
+      params: { id: quoteId },
+      body: { status: 'sent' }
+    });
+    assert.equal(unblockedRes.status, 200);
+    assert.equal(unblockedRes.body.data.status, 'sent');
+  });
+
+  it('[CRM1-D3] PATCH /quotes/:id/reject validates reason and sets status to rejected', async () => {
+    // 1. Create quote
+    const createRes = await dispatch(quotesRouter, {
+      method: 'POST',
+      url: '/quotes',
+      body: {
+        opportunity_id: 'OPP-0002',
+        customer_id: 'CUST-0002',
+        sales_rep_id: 'EMP-0002',
+        discount_percent: 15,
+        items: [{ sku: 'SKU-0002', product_name: '43-inch Full HD TV', quantity: 1, unit_price: 24990 }]
+      }
+    });
+
+    const quoteId = createRes.body.data.id;
+
+    // 2. Rejection without reason fails with 400
+    const failRejectRes = await dispatch(quotesRouter, {
+      method: 'PATCH',
+      url: `/quotes/${quoteId}/reject`,
+      params: { id: quoteId },
+      body: { reason: '' },
+      user: { id: 'USR-0001', name: 'Admin', role: 'admin' }
+    });
+    assert.equal(failRejectRes.status, 400);
+    assert.equal(failRejectRes.body.error, 'Rejection reason is required');
+
+    // 3. Rejection with reason succeeds
+    const rejectRes = await dispatch(quotesRouter, {
+      method: 'PATCH',
+      url: `/quotes/${quoteId}/reject`,
+      params: { id: quoteId },
+      body: { reason: 'Discount exceeds policy threshold for customer tier' },
+      user: { id: 'USR-0001', name: 'Admin', role: 'admin' }
+    });
+    assert.equal(rejectRes.status, 200);
+    assert.equal(rejectRes.body.data.status, 'rejected');
+    assert.equal(rejectRes.body.data.rejection_reason, 'Discount exceeds policy threshold for customer tier');
   });
 
 });

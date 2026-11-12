@@ -31,3 +31,38 @@ CREATE TABLE IF NOT EXISTS ticket_comments (
   text       TEXT NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- [CRM2-B1] warranties
+-- Serial-level warranty records. Serial number is primary key.
+CREATE TABLE IF NOT EXISTS warranties (
+  serial_number   TEXT PRIMARY KEY,
+  sku             TEXT NOT NULL,
+  product_name    TEXT NOT NULL,
+  customer_id     TEXT NOT NULL,
+  purchase_date   DATE NOT NULL,
+  warranty_months INTEGER NOT NULL DEFAULT 12,
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- [CRM2-D1] service_centres and ticket_assignments
+-- Repair and service centres across cities, and ticket-to-centre assignments.
+-- IDs look like SC-0001 and ASG-0001.
+CREATE SEQUENCE IF NOT EXISTS crm2_centre_seq START 1;
+
+CREATE TABLE IF NOT EXISTS service_centres (
+  id       TEXT PRIMARY KEY DEFAULT ('SC-' || LPAD(nextval('crm2_centre_seq')::text, 4, '0')),
+  name     TEXT NOT NULL,
+  city     TEXT NOT NULL,
+  phone    TEXT,
+  capacity INT NOT NULL DEFAULT 0 CHECK (capacity >= 0),
+  active   BOOLEAN NOT NULL DEFAULT true
+);
+
+CREATE SEQUENCE IF NOT EXISTS crm2_assignment_seq START 1;
+
+CREATE TABLE IF NOT EXISTS ticket_assignments (
+  id          TEXT PRIMARY KEY DEFAULT ('ASG-' || LPAD(nextval('crm2_assignment_seq')::text, 4, '0')),
+  ticket_id   TEXT NOT NULL UNIQUE,          -- Plain text ID (e.g. TKT-0001); assigning twice replaces earlier assignment
+  centre_id   TEXT NOT NULL REFERENCES service_centres(id),
+  assigned_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);

@@ -4,6 +4,7 @@ import { api } from '../../../api';
 // Realistic fallback seed data adhering strictly to Section 5 shared IDs
 // Used when backend service is offline or initializing
 const FALLBACK_SUMMARY = {
+  range: 'all_time',
   total_leads: 12,
   open_opportunities: 7,
   won_value: 209970.0,
@@ -26,12 +27,27 @@ const FALLBACK_SUMMARY = {
   ]
 };
 
+const RANGE_OPTIONS = [
+  { key: 'this_week', label: 'This Week' },
+  { key: 'this_month', label: 'This Month' },
+  { key: 'all_time', label: 'All Time' }
+];
+
 export default function DashboardPage() {
   // State for analytics metrics and UI controls
   const [summary, setSummary] = useState(FALLBACK_SUMMARY);
+  const [selectedRange, setSelectedRange] = useState('all_time');
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState('');
   const [selectedStage, setSelectedStage] = useState('all');
+
+  // State for snapshots [CRM5-B3]
+  const [snapshots, setSnapshots] = useState([]);
+  const [snapshotsLoading, setSnapshotsLoading] = useState(true);
+  const [snapshotsError, setSnapshotsError] = useState('');
+  const [savingSnapshot, setSavingSnapshot] = useState(false);
+  const [snapshotMsg, setSnapshotMsg] = useState('');
+  const [snapshotError, setSnapshotError] = useState('');
 
   // Currency formatter in INR with Indian comma numbering
   const formatMoney = (val) => {
@@ -52,12 +68,14 @@ export default function DashboardPage() {
     }
   };
 
-  // Fetch live metrics from CRM-5 backend
-  const fetchDashboardData = useCallback(async () => {
+  // Fetch live metrics from CRM-5 backend with date filter
+  const fetchDashboardData = useCallback(async (rangeToFetch) => {
+    const targetRange = rangeToFetch || selectedRange;
     setLoading(true);
     setErrorMsg('');
     try {
-      const data = await api('crm5', '/api/dashboard/sales-summary');
+      const res = await api('crm5', `/api/dashboard/sales-summary?range=${targetRange}`);
+      const data = res && res.data ? res.data : res;
       if (data && typeof data === 'object') {
         setSummary(data);
       }
@@ -68,11 +86,73 @@ export default function DashboardPage() {
     } finally {
       setLoading(false);
     }
+  }, [selectedRange]);
+
+  // Fetch historical saved snapshots from database
+  const fetchSnapshots = useCallback(async () => {
+    setSnapshotsLoading(true);
+    setSnapshotsError('');
+    try {
+      const res = await api('crm5', '/api/dashboard/snapshots');
+      const list = Array.isArray(res) ? res : (res && Array.isArray(res.data) ? res.data : []);
+      setSnapshots(list);
+    } catch (err) {
+      console.warn('[crm5] Error fetching snapshots:', err.message);
+      setSnapshotsError('Failed to load snapshot history from database.');
+    } finally {
+      setSnapshotsLoading(false);
+    }
   }, []);
 
   useEffect(() => {
-    fetchDashboardData();
-  }, [fetchDashboardData]);
+    fetchDashboardData(selectedRange);
+    fetchSnapshots();
+  }, [fetchDashboardData, fetchSnapshots]);
+
+  // Handle date filter tab click
+  const handleRangeChange = (newRange) => {
+    if (newRange === selectedRange || loading) return;
+    setSelectedRange(newRange);
+    fetchDashboardData(newRange);
+  };
+
+  // Handle Save Snapshot button click
+  const handleSaveSnapshot = async () => {
+    if (savingSnapshot) return;
+    setSavingSnapshot(true);
+    setSnapshotMsg('');
+    setSnapshotError('');
+
+    try {
+      const payload = {
+        range: selectedRange,
+        metrics: {
+          range: selectedRange,
+          total_leads: summary.total_leads,
+          open_opportunities: summary.open_opportunities,
+          won_value: summary.won_value,
+          quotes_accepted: summary.quotes_accepted,
+          opportunities_by_stage: summary.opportunities_by_stage
+        }
+      };
+
+      const res = await api('crm5', '/api/dashboard/snapshot', {
+        method: 'POST',
+        body: payload
+      });
+
+      const saved = res?.data || res;
+      const rangeLabel = RANGE_OPTIONS.find(r => r.key === selectedRange)?.label || selectedRange;
+      setSnapshotMsg(`Snapshot ${saved?.id || 'record'} captured successfully for range "${rangeLabel}"!`);
+      // Refresh history list immediately
+      fetchSnapshots();
+    } catch (err) {
+      console.error('[crm5] Error saving snapshot:', err.message);
+      setSnapshotError(`Failed to save snapshot: ${err.message}`);
+    } finally {
+      setSavingSnapshot(false);
+    }
+  };
 
   // Derive stage metrics and max value for CSS bar chart scaling
   const stages = summary.opportunities_by_stage || [];
@@ -102,22 +182,89 @@ export default function DashboardPage() {
           </p>
         </div>
 
-        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
+          {/* Date Filter Selector Buttons [CRM5-B3] */}
+          <div style={{ display: 'flex', background: '#f1f5f9', padding: '3px', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
+            {RANGE_OPTIONS.map((opt) => {
+              const isActive = selectedRange === opt.key;
+              return (
+                <button
+                  key={opt.key}
+                  type="button"
+                  onClick={() => handleRangeChange(opt.key)}
+                  disabled={loading}
+                  style={{
+                    padding: '0.35rem 0.85rem',
+                    fontSize: '0.8rem',
+                    fontWeight: isActive ? 700 : 500,
+                    backgroundColor: isActive ? '#0f172a' : 'transparent',
+                    color: isActive ? '#ffffff' : '#475569',
+                    border: 'none',
+                    borderRadius: '6px',
+                    boxShadow: isActive ? '0 1px 2px rgba(0,0,0,0.1)' : 'none',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  {opt.label}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Save Snapshot Button [CRM5-B3] */}
           <button
             type="button"
-            onClick={fetchDashboardData}
+            onClick={handleSaveSnapshot}
+            disabled={savingSnapshot || loading}
+            style={{
+              padding: '0.45rem 0.95rem',
+              fontSize: '0.85rem',
+              fontWeight: 600,
+              backgroundColor: '#10b981',
+              color: '#ffffff',
+              border: '1px solid #059669',
+              borderRadius: '6px',
+              cursor: savingSnapshot ? 'not-allowed' : 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.35rem'
+            }}
+            title="Capture current analytics metrics and selected date range to database"
+          >
+            {savingSnapshot ? 'Saving...' : '📸 Save Snapshot'}
+          </button>
+
+          {/* Refresh Data Button */}
+          <button
+            type="button"
+            onClick={() => fetchDashboardData(selectedRange)}
             disabled={loading}
-            style={{ padding: '0.5rem 1rem', fontSize: '0.875rem' }}
+            style={{ padding: '0.45rem 0.95rem', fontSize: '0.85rem' }}
           >
             {loading ? 'Refreshing...' : '🔄 Refresh Data'}
           </button>
         </div>
       </div>
 
+      {/* Snapshot Success Notification */}
+      {snapshotMsg && (
+        <div style={{ padding: '0.75rem 1rem', background: '#dcfce7', border: '1px solid #bbf7d0', borderRadius: '6px', color: '#15803d', fontSize: '0.875rem' }}>
+          ✅ {snapshotMsg}
+        </div>
+      )}
+
+      {/* Snapshot Error Notification */}
+      {snapshotError && (
+        <div style={{ padding: '0.75rem 1rem', background: '#fee2e2', border: '1px solid #fecaca', borderRadius: '6px', color: '#b91c1c', fontSize: '0.875rem' }}>
+          ⚠️ {snapshotError}
+        </div>
+      )}
+
       {/* Loading state indicator */}
       {loading && (
         <div style={{ padding: '0.75rem 1rem', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '6px', color: '#1d4ed8', fontSize: '0.875rem' }}>
-          ⏳ Loading dashboard analytics...
+          ⏳ Loading dashboard analytics ({RANGE_OPTIONS.find(r => r.key === selectedRange)?.label})...
         </div>
       )}
 
@@ -362,6 +509,107 @@ export default function DashboardPage() {
                     </td>
                   </tr>
                 ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* Snapshot History Table [CRM5-B3] */}
+      <div style={{ background: '#ffffff', borderRadius: '8px', border: '1px solid #e2e8f0', padding: '1.5rem', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.75rem' }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#0f172a' }}>
+                Snapshot History
+              </h3>
+              <span className="badge badge-blue">Audit Log</span>
+            </div>
+            <p style={{ fontSize: '0.85rem', color: '#64748b', marginTop: '0.2rem' }}>
+              Saved point-in-time executive analytics snapshots persisted in PostgreSQL.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={fetchSnapshots}
+            disabled={snapshotsLoading}
+            style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem', background: '#f1f5f9', color: '#334155', border: '1px solid #cbd5e1' }}
+          >
+            {snapshotsLoading ? 'Refreshing...' : '🔄 Refresh History'}
+          </button>
+        </div>
+
+        {snapshotsLoading ? (
+          <div style={{ padding: '2rem', textAlign: 'center', color: '#64748b' }}>
+            ⏳ Loading snapshot history from database...
+          </div>
+        ) : snapshotsError ? (
+          <div style={{ padding: '1rem', background: '#fee2e2', color: '#b91c1c', borderRadius: '6px', fontSize: '0.875rem' }}>
+            ⚠️ {snapshotsError}
+          </div>
+        ) : snapshots.length === 0 ? (
+          <div style={{ padding: '2.5rem', textAlign: 'center', color: '#64748b' }}>
+            No snapshots saved yet. Click <strong>"📸 Save Snapshot"</strong> above to capture the current analytics view.
+          </div>
+        ) : (
+          <div style={{ overflowX: 'auto' }}>
+            <table>
+              <thead>
+                <tr>
+                  <th>Snapshot ID</th>
+                  <th>Date Range</th>
+                  <th>Captured At</th>
+                  <th style={{ textAlign: 'center' }}>Total Leads</th>
+                  <th style={{ textAlign: 'center' }}>Open Opps</th>
+                  <th style={{ textAlign: 'right' }}>Won Revenue</th>
+                  <th style={{ textAlign: 'center' }}>Accepted Quotes</th>
+                </tr>
+              </thead>
+              <tbody>
+                {snapshots.map((snap) => {
+                  const m = snap.metrics || {};
+                  const rangeKey = snap.range || m.range || 'all_time';
+                  const rangeLabel = RANGE_OPTIONS.find(r => r.key === rangeKey)?.label || rangeKey;
+                  const rangeBadgeColor = rangeKey === 'this_week' ? 'badge-blue' : rangeKey === 'this_month' ? 'badge-green' : 'badge-amber';
+                  const formattedDate = snap.taken_at
+                    ? new Date(snap.taken_at).toLocaleString('en-IN', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit'
+                      })
+                    : '—';
+
+                  return (
+                    <tr key={snap.id}>
+                      <td>
+                        <strong>{snap.id}</strong>
+                      </td>
+                      <td>
+                        <span className={`badge ${rangeBadgeColor}`}>
+                          {rangeLabel}
+                        </span>
+                      </td>
+                      <td style={{ color: '#475569', fontSize: '0.875rem' }}>
+                        {formattedDate}
+                      </td>
+                      <td style={{ textAlign: 'center', fontWeight: 600 }}>
+                        {m.total_leads ?? '—'}
+                      </td>
+                      <td style={{ textAlign: 'center', fontWeight: 600 }}>
+                        {m.open_opportunities ?? '—'}
+                      </td>
+                      <td style={{ textAlign: 'right', fontWeight: 700, color: '#0f172a' }}>
+                        {formatMoney(m.won_value)}
+                      </td>
+                      <td style={{ textAlign: 'center', fontWeight: 600 }}>
+                        {m.quotes_accepted ?? '—'}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

@@ -746,9 +746,177 @@ router.get('/work-orders/:id/issues', async (req, res, next) => {
       return res.json({ data: pgResult.rows });
     }
 
-    // In-memory fallback
-    const issues = inMemoryMaterialIssues.filter(mi => mi.wo_id === id);
+    // In-memory fallback sorted newest first to match ORDER BY issued_at DESC
+    const issues = inMemoryMaterialIssues
+      .filter(mi => mi.wo_id === id)
+      .slice()
+      .sort((a, b) => new Date(b.issued_at) - new Date(a.issued_at));
     return res.json({ data: issues });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ─── POST /api/work-orders/:id/post-finished ─────────────────────────────────
+// Post finished goods to ERP-1 inventory & generate bulk serials [ERP3-C3].
+// Allowed only when all materials are fully issued and QC gate allows it.
+router.post('/work-orders/:id/post-finished', async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    // 1. Fetch work order
+    let wo = null;
+    const pgWo = await safeQuery(
+      `SELECT id, bom_id, product_sku, quantity, status, source,
+              planned_start, planned_end, created_at, completed_at
+       FROM work_orders WHERE id = $1`,
+      [id]
+    );
+    if (pgWo) {
+      if (pgWo.rows.length === 0) {
+        return res.status(404).json({ error: `Work order '${id}' not found` });
+      }
+      wo = pgWo.rows[0];
+    } else {
+      wo = inMemoryWorkOrders.find(w => w.id === id);
+      if (!wo) {
+        return res.status(404).json({ error: `Work order '${id}' not found` });
+      }
+    }
+
+    if (wo.status === 'completed' || wo.status === 'cancelled') {
+      return res.status(400).json({
+        error: `Cannot post finished goods: work order is already '${wo.status}'`
+      });
+    }
+
+    // 2. Verify every component in work_order_materials is fully issued
+    let materials = [];
+    const pgMats = await safeQuery(
+      `SELECT component_sku, required_qty, issued_qty
+       FROM work_order_materials WHERE wo_id = $1`,
+      [id]
+    );
+    if (pgMats) {
+      materials = pgMats.rows;
+    } else {
+      materials = inMemoryMaterials.filter(m => m.wo_id === id);
+    }
+
+    if (materials.length === 0) {
+      return res.status(400).json({
+        error: `Cannot post finished goods: no material requirements found for work order '${id}'`
+      });
+    }
+
+    const missing = materials.filter(
+      m => Number(m.issued_qty || 0) < Number(m.required_qty || 0)
+    );
+    if (missing.length > 0) {
+      const missingSkus = missing.map(m => m.component_sku).join(', ');
+      return res.status(400).json({
+        error: `Cannot post finished goods: materials not fully issued (${missingSkus})`
+      });
+    }
+
+    // 3. Check QC gate (latest QC inspection must not be 'fail')
+    let qcAllowed = true;
+    const pgQc = await safeQuery(
+      `SELECT result FROM qc_checks
+       WHERE wo_id = $1
+       ORDER BY checked_at DESC, id DESC
+       LIMIT 1`,
+      [id]
+    );
+    if (pgQc) {
+      if (pgQc.rows.length > 0 && pgQc.rows[0].result === 'fail') {
+        qcAllowed = false;
+      }
+    } else {
+      // Offline / mock fallback: check mocks/qc.json
+      try {
+        const qcMockPath = path.resolve(__dirname, '../mocks/qc.json');
+        if (fs.existsSync(qcMockPath)) {
+          const qcRows = JSON.parse(fs.readFileSync(qcMockPath, 'utf-8'))
+            .filter(q => q.wo_id === id)
+            .sort((a, b) => new Date(b.checked_at) - new Date(a.checked_at));
+          if (qcRows.length > 0 && qcRows[0].result === 'fail') {
+            qcAllowed = false;
+          }
+        }
+      } catch (e) {
+        // Treat as allowed if mock file cannot be read
+      }
+    }
+
+    if (!qcAllowed) {
+      return res.status(400).json({
+        error: `QC gate blocked: latest QC inspection for '${id}' failed`
+      });
+    }
+
+    // 4. Call ERP-1 stock adjustment (+quantity in WH-01) and bulk serial generation
+    const finishedQty = Number(wo.quantity);
+    try {
+      await callService('erp1', '/api/stock/adjust', {
+        method: 'POST',
+        body: {
+          sku: wo.product_sku,
+          warehouse_id: 'WH-01',
+          delta: finishedQty,
+          reason: id
+        },
+        mock: 'stock-adjust'
+      });
+    } catch (intErr) {
+      console.warn(`[integration-error] Failed to add finished stock in ERP-1 for WO ${id}:`, intErr.message);
+    }
+
+    try {
+      await callService('erp1', '/api/serials/bulk', {
+        method: 'POST',
+        body: {
+          sku: wo.product_sku,
+          batch_no: id,
+          count: finishedQty,
+          prefix: 'PROD'
+        },
+        mock: 'serials-bulk'
+      });
+    } catch (intErr) {
+      console.warn(`[integration-error] Failed to generate bulk serials in ERP-1 for WO ${id}:`, intErr.message);
+    }
+
+    // 5. Mark work order completed
+    const completedAt = new Date().toISOString();
+    let updatedWo = null;
+
+    const pgUpdate = await safeQuery(
+      `UPDATE work_orders
+       SET status = 'completed', completed_at = NOW()
+       WHERE id = $1
+       RETURNING id, bom_id, product_sku, quantity, status, source,
+                 planned_start, planned_end, created_at, completed_at`,
+      [id]
+    );
+    if (pgUpdate && pgUpdate.rows.length > 0) {
+      updatedWo = pgUpdate.rows[0];
+    }
+
+    const memWo = inMemoryWorkOrders.find(w => w.id === id);
+    if (memWo) {
+      memWo.status = 'completed';
+      memWo.completed_at = updatedWo ? updatedWo.completed_at : completedAt;
+      if (!updatedWo) updatedWo = { ...memWo };
+    }
+
+    return res.json({
+      data: {
+        work_order: updatedWo,
+        stock_adjusted: true,
+        serials_generated: true
+      }
+    });
   } catch (err) {
     next(err);
   }

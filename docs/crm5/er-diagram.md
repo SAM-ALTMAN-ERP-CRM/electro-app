@@ -21,6 +21,7 @@ erDiagram
 
     DASHBOARD_SNAPSHOTS {
         varchar(20) id PK "SNP-xxxx via snapshot_seq"
+        varchar(20) range "Date filter window: this_week | this_month | all_time"
         timestamptz taken_at "Snapshot capture timestamp (NOT NULL)"
         jsonb metrics "Point-in-time KPI metrics payload (NOT NULL)"
     }
@@ -88,6 +89,7 @@ All tables in `services/crm5/db/schema.sql` are designed for **Third Normal Form
 | `portal_visits` | `customer_id` | `VARCHAR(20)` | `NOT NULL`. Logical reference to CRM-3 customer ID (`CUST-0001`..`CUST-0008`). Indexed (`idx_portal_visits_customer_id`). |
 | `portal_visits` | `visited_at` | `TIMESTAMPTZ` | `NOT NULL DEFAULT NOW()`. Timestamp when customer portal overview was accessed. Indexed (`idx_portal_visits_visited_at`). |
 | `dashboard_snapshots` | `id` | `VARCHAR(20)` | Primary key (`SNP-0001`), auto-generated via `snapshot_seq`. |
+| `dashboard_snapshots` | `range` | `VARCHAR(20)` | `NOT NULL DEFAULT 'all_time'`. Filter scope (`this_week`, `this_month`, `all_time`) added in `[CRM5-B3]`. |
 | `dashboard_snapshots` | `taken_at` | `TIMESTAMPTZ` | `NOT NULL DEFAULT NOW()`. Timestamp when KPI snapshot was captured. Indexed (`idx_dashboard_snapshots_taken_at`). |
 | `dashboard_snapshots` | `metrics` | `JSONB` | `NOT NULL`. Immutable JSON snapshot of `total_leads`, `open_opportunities`, `won_value`, `quotes_accepted`, and `opportunities_by_stage`. |
 | `forecasts` | `id` | `VARCHAR(20)` | Primary key (`FCST-0001`), auto-generated via `forecast_seq`. |
