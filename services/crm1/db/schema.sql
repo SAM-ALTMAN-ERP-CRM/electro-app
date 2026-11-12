@@ -58,3 +58,19 @@ CREATE TABLE IF NOT EXISTS leads (
   sales_rep_id VARCHAR(20),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+-- Build Issue: [CRM1-B1] Opportunities table and API
+CREATE SEQUENCE IF NOT EXISTS opp_seq START 1;
+
+CREATE TABLE IF NOT EXISTS opportunities (
+  id VARCHAR(20) PRIMARY KEY DEFAULT ('OPP-' || LPAD(nextval('opp_seq')::TEXT, 4, '0')),
+  lead_id VARCHAR(20) REFERENCES leads(id) ON DELETE SET NULL,
+  customer_id VARCHAR(20),
+  title VARCHAR(150) NOT NULL,
+  expected_value NUMERIC(12, 2) NOT NULL DEFAULT 0.00,
+  stage VARCHAR(20) NOT NULL DEFAULT 'prospect'
+    CHECK (stage IN ('prospect', 'proposal', 'negotiation', 'won', 'lost')),
+  expected_close_date DATE,
+  sales_rep_id VARCHAR(20),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
