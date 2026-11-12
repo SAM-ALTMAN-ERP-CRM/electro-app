@@ -74,6 +74,65 @@ function inMemoryGetProductName(sku) {
 }
 
 // ---------------------------------------------------------------------------
+// GET /stock/check — Check total stock availability across all warehouses
+// ---------------------------------------------------------------------------
+router.get('/stock/check', async (req, res, next) => {
+  try {
+    const { sku, qty } = req.query;
+
+    if (!sku || typeof sku !== 'string' || !sku.trim()) {
+      return res.status(400).json({ error: 'SKU is required as a query parameter' });
+    }
+    const cleanSku = sku.trim();
+
+    if (qty === undefined || qty === null || qty === '') {
+      return res.status(400).json({ error: 'Quantity (qty) is required as a query parameter' });
+    }
+    const qtyNum = parseInt(qty, 10);
+    if (isNaN(qtyNum) || qtyNum <= 0) {
+      return res.status(400).json({ error: 'Quantity (qty) must be a positive integer greater than zero' });
+    }
+
+    try {
+      const dbRes = await pool.query(
+        'SELECT COALESCE(SUM(quantity), 0)::INT AS total FROM stock WHERE sku = $1',
+        [cleanSku]
+      );
+      const totalStock = dbRes.rows.length > 0 ? Number(dbRes.rows[0].total) : 0;
+      const isAvailable = totalStock >= qtyNum;
+
+      return res.json({
+        available: isAvailable,
+        total: totalStock,
+        data: {
+          available: isAvailable,
+          total: totalStock
+        }
+      });
+    } catch (dbErr) {
+      if (!isDbUnavailable(dbErr)) throw dbErr;
+    }
+
+    // In-memory fallback
+    const totalStock = inMemoryStock
+      .filter(s => s.sku === cleanSku)
+      .reduce((sum, s) => sum + Number(s.quantity || 0), 0);
+    const isAvailable = totalStock >= qtyNum;
+
+    return res.json({
+      available: isAvailable,
+      total: totalStock,
+      data: {
+        available: isAvailable,
+        total: totalStock
+      }
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ---------------------------------------------------------------------------
 // GET /stock/movements — Stock movement audit history (newest first)
 // ---------------------------------------------------------------------------
 router.get('/stock/movements', async (req, res, next) => {
@@ -450,6 +509,230 @@ router.post('/stock/adjust', async (req, res, next) => {
       delta: deltaNum,
       reason: cleanReason,
       movement_id: movementId
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// POST /transfers — Inter-warehouse stock transfer (dual update + 2 movements)
+// ---------------------------------------------------------------------------
+router.post('/transfers', async (req, res, next) => {
+  const { sku, from_wh, to_wh, qty } = req.body || {};
+
+  // 1. Validate inputs
+  if (!sku || typeof sku !== 'string' || !sku.trim()) {
+    return res.status(400).json({ error: 'SKU is required and must be a non-empty string' });
+  }
+  if (!from_wh || typeof from_wh !== 'string' || !from_wh.trim()) {
+    return res.status(400).json({ error: 'Source warehouse (from_wh) is required' });
+  }
+  if (!to_wh || typeof to_wh !== 'string' || !to_wh.trim()) {
+    return res.status(400).json({ error: 'Destination warehouse (to_wh) is required' });
+  }
+
+  const cleanSku = sku.trim();
+  const cleanFromWh = from_wh.trim();
+  const cleanToWh = to_wh.trim();
+
+  // Reject transfers to the same warehouse
+  if (cleanFromWh === cleanToWh) {
+    return res.status(400).json({ error: 'Source and destination warehouses cannot be the same' });
+  }
+
+  // Reject zero or negative quantities
+  const qtyNum = Number(qty);
+  if (!Number.isInteger(qtyNum) || qtyNum <= 0) {
+    return res.status(400).json({ error: 'Transfer quantity must be a positive integer greater than zero' });
+  }
+
+  // 2. Database transaction execution
+  let client = null;
+  try {
+    client = await pool.connect();
+    await client.query('BEGIN');
+
+    // Check source warehouse exists
+    const fromCheck = await client.query('SELECT id FROM warehouses WHERE id = $1', [cleanFromWh]);
+    if (fromCheck.rows.length === 0) {
+      await client.query('ROLLBACK');
+      client.release();
+      client = null;
+      return res.status(404).json({ error: `Source warehouse '${cleanFromWh}' not found` });
+    }
+
+    // Check destination warehouse exists
+    const toCheck = await client.query('SELECT id FROM warehouses WHERE id = $1', [cleanToWh]);
+    if (toCheck.rows.length === 0) {
+      await client.query('ROLLBACK');
+      client.release();
+      client = null;
+      return res.status(404).json({ error: `Destination warehouse '${cleanToWh}' not found` });
+    }
+
+    // Check SKU exists
+    const skuCheck = await client.query(
+      `SELECT id FROM products WHERE id = $1
+       UNION
+       SELECT DISTINCT sku AS id FROM stock WHERE sku = $1`,
+      [cleanSku]
+    );
+    if (skuCheck.rows.length === 0) {
+      await client.query('ROLLBACK');
+      client.release();
+      client = null;
+      return res.status(404).json({ error: `Product SKU '${cleanSku}' not found` });
+    }
+
+    // Lock and check source warehouse stock
+    const sourceStockRes = await client.query(
+      'SELECT quantity FROM stock WHERE sku = $1 AND warehouse_id = $2 FOR UPDATE',
+      [cleanSku, cleanFromWh]
+    );
+
+    const sourceCurrent = sourceStockRes.rows.length > 0 ? Number(sourceStockRes.rows[0].quantity) : 0;
+    if (sourceCurrent < qtyNum) {
+      await client.query('ROLLBACK');
+      client.release();
+      client = null;
+      return res.status(400).json({
+        error: `Insufficient stock at source warehouse ${cleanFromWh} (available: ${sourceCurrent}, requested: ${qtyNum})`
+      });
+    }
+
+    // Lock destination warehouse stock
+    const destStockRes = await client.query(
+      'SELECT quantity FROM stock WHERE sku = $1 AND warehouse_id = $2 FOR UPDATE',
+      [cleanSku, cleanToWh]
+    );
+    const destCurrent = destStockRes.rows.length > 0 ? Number(destStockRes.rows[0].quantity) : 0;
+
+    const sourceNew = sourceCurrent - qtyNum;
+    const destNew = destCurrent + qtyNum;
+
+    // Deduct source stock
+    await client.query(
+      'UPDATE stock SET quantity = $1 WHERE sku = $2 AND warehouse_id = $3',
+      [sourceNew, cleanSku, cleanFromWh]
+    );
+
+    // Increment destination stock (insert if not present)
+    await client.query(
+      `INSERT INTO stock (sku, warehouse_id, quantity)
+       VALUES ($1, $2, $3)
+       ON CONFLICT (sku, warehouse_id)
+       DO UPDATE SET quantity = $3`,
+      [cleanSku, cleanToWh, destNew]
+    );
+
+    // Log two movements: source negative, destination positive
+    await client.query(
+      `INSERT INTO stock_movements (sku, warehouse_id, delta, reason)
+       VALUES ($1, $2, $3, $4)`,
+      [cleanSku, cleanFromWh, -qtyNum, `Transfer to ${cleanToWh}`]
+    );
+
+    await client.query(
+      `INSERT INTO stock_movements (sku, warehouse_id, delta, reason)
+       VALUES ($1, $2, $3, $4)`,
+      [cleanSku, cleanToWh, qtyNum, `Transfer from ${cleanFromWh}`]
+    );
+
+    await client.query('COMMIT');
+    client.release();
+    client = null;
+
+    return res.json({
+      data: {
+        sku: cleanSku,
+        from_wh: cleanFromWh,
+        to_wh: cleanToWh,
+        qty: qtyNum,
+        source_new_stock: sourceNew,
+        target_new_stock: destNew
+      }
+    });
+  } catch (err) {
+    if (client) {
+      try {
+        await client.query('ROLLBACK');
+      } catch (rbErr) {
+        // Ignore rollback error
+      }
+      client.release();
+      client = null;
+    }
+
+    if (!isDbUnavailable(err)) {
+      return next(err);
+    }
+  }
+
+  // 3. In-memory fallback
+  const sourceWh = inMemoryWarehouses.find(w => w.id === cleanFromWh);
+  if (!sourceWh) {
+    return res.status(404).json({ error: `Source warehouse '${cleanFromWh}' not found` });
+  }
+
+  const destWh = inMemoryWarehouses.find(w => w.id === cleanToWh);
+  if (!destWh) {
+    return res.status(404).json({ error: `Destination warehouse '${cleanToWh}' not found` });
+  }
+
+  if (!inMemorySkuExists(cleanSku)) {
+    return res.status(404).json({ error: `Product SKU '${cleanSku}' not found` });
+  }
+
+  let sourceEntry = inMemoryStock.find(s => s.sku === cleanSku && s.warehouse_id === cleanFromWh);
+  const sourceCurrent = sourceEntry ? Number(sourceEntry.quantity) : 0;
+
+  if (sourceCurrent < qtyNum) {
+    return res.status(400).json({
+      error: `Insufficient stock at source warehouse ${cleanFromWh} (available: ${sourceCurrent}, requested: ${qtyNum})`
+    });
+  }
+
+  let destEntry = inMemoryStock.find(s => s.sku === cleanSku && s.warehouse_id === cleanToWh);
+  const destCurrent = destEntry ? Number(destEntry.quantity) : 0;
+
+  const sourceNew = sourceCurrent - qtyNum;
+  const destNew = destCurrent + qtyNum;
+
+  sourceEntry.quantity = sourceNew;
+
+  if (destEntry) {
+    destEntry.quantity = destNew;
+  } else {
+    inMemoryStock.push({ sku: cleanSku, warehouse_id: cleanToWh, quantity: destNew });
+  }
+
+  // Log 2 movements in reverse chronological order
+  const now = new Date().toISOString();
+  inMemoryMovements.unshift({
+    id: `MOV-${String(mockMovementCounter++).padStart(4, '0')}`,
+    sku: cleanSku,
+    warehouse_id: cleanToWh,
+    delta: qtyNum,
+    reason: `Transfer from ${cleanFromWh}`,
+    created_at: now
+  });
+
+  inMemoryMovements.unshift({
+    id: `MOV-${String(mockMovementCounter++).padStart(4, '0')}`,
+    sku: cleanSku,
+    warehouse_id: cleanFromWh,
+    delta: -qtyNum,
+    reason: `Transfer to ${cleanToWh}`,
+    created_at: now
+  });
+
+  return res.json({
+    data: {
+      sku: cleanSku,
+      from_wh: cleanFromWh,
+      to_wh: cleanToWh,
+      qty: qtyNum,
+      source_new_stock: sourceNew,
+      target_new_stock: destNew
     }
   });
 });
