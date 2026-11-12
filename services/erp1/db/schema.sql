@@ -72,4 +72,6 @@ CREATE TABLE IF NOT EXISTS alerts_log (
 -- Indexes for optimal lookup performance
 CREATE INDEX IF NOT EXISTS idx_products_category ON products(category);
 CREATE INDEX IF NOT EXISTS idx_stock_sku ON stock(sku);
+CREATE INDEX IF NOT EXISTS idx_serials_sku_status ON serials(sku, status);
+CREATE INDEX IF NOT EXISTS idx_serials_batch ON serials(batch_no);
 CREATE INDEX IF NOT EXISTS idx_alerts_log_sku_ack ON alerts_log(sku, acknowledged);
