@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import { api } from '../../../api';
 
 // Seed dealers contract (DLR-0001 to DLR-0005)
@@ -339,7 +340,11 @@ export default function DealersPage() {
                   }}
                 >
                   <td style={{ padding: '0.75rem 1rem', fontWeight: 600, color: '#1e293b' }}>{d.id}</td>
-                  <td style={{ padding: '0.75rem 1rem', fontWeight: 600, color: '#0f172a' }}>{d.name}</td>
+                  <td style={{ padding: '0.75rem 1rem' }}>
+                    <Link to={`/crm1/dealers/${d.id}`} style={{ color: '#0f172a', textDecoration: 'none', fontWeight: 600 }}>
+                      {d.name}
+                    </Link>
+                  </td>
                   <td style={{ padding: '0.75rem 1rem' }}>
                     <div style={{ color: '#1e293b' }}>{d.contact_person || '—'}</div>
                     <div style={{ color: '#64748b', fontSize: '0.75rem' }}>{d.phone || d.email}</div>
@@ -355,21 +360,39 @@ export default function DealersPage() {
                     </span>
                   </td>
                   <td style={{ padding: '0.75rem 1rem', textAlign: 'center' }}>
-                    <button
-                      onClick={() => handleSelectDealer(d)}
-                      style={{
-                        padding: '0.25rem 0.6rem',
-                        fontSize: '0.75rem',
-                        background: selectedDealer?.id === d.id ? '#2563eb' : '#f1f5f9',
-                        color: selectedDealer?.id === d.id ? '#ffffff' : '#334155',
-                        border: '1px solid #cbd5e1',
-                        borderRadius: '4px',
-                        cursor: 'pointer',
-                        fontWeight: 500
-                      }}
-                    >
-                      {selectedDealer?.id === d.id ? 'Viewing Quotes' : 'View Quotes'}
-                    </button>
+                    <div style={{ display: 'flex', gap: '0.4rem', justifyContent: 'center' }}>
+                      <Link
+                        to={`/crm1/dealers/${d.id}`}
+                        style={{
+                          padding: '0.25rem 0.6rem',
+                          fontSize: '0.75rem',
+                          background: '#2563eb',
+                          color: '#ffffff',
+                          border: 'none',
+                          borderRadius: '4px',
+                          textDecoration: 'none',
+                          fontWeight: 500,
+                          display: 'inline-block'
+                        }}
+                      >
+                        Details
+                      </Link>
+                      <button
+                        onClick={() => handleSelectDealer(d)}
+                        style={{
+                          padding: '0.25rem 0.6rem',
+                          fontSize: '0.75rem',
+                          background: selectedDealer?.id === d.id ? '#1e293b' : '#f1f5f9',
+                          color: selectedDealer?.id === d.id ? '#ffffff' : '#334155',
+                          border: '1px solid #cbd5e1',
+                          borderRadius: '4px',
+                          cursor: 'pointer',
+                          fontWeight: 500
+                        }}
+                      >
+                        {selectedDealer?.id === d.id ? 'Hide Quotes' : 'Quotes'}
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
