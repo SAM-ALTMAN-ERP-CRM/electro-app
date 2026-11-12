@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const fs = require('fs');
 const path = require('path');
-const { requireAuth } = require('../../_shared/auth');
+const { requireAuth, requireRole } = require('../../_shared/auth');
 const { makePool } = require('../../_shared/db');
 const { callService } = require('../../_shared/callService');
 
@@ -657,6 +657,246 @@ router.patch('/quotes/:id/status', async (req, res, next) => {
         created_at: updatedQuote.created_at,
         ...financials,
         items: quoteItems
+      }
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * GET /api/approvals ([CRM1-D3])
+ * Returns all quotes waiting for discount approval (needs_approval = true AND approved = false AND status = 'draft').
+ * Protected: requireRole('admin')
+ */
+router.get('/approvals', requireRole('admin'), async (req, res, next) => {
+  try {
+    let quotesList = [];
+
+    try {
+      let result;
+      try {
+        result = await pool.query(`
+          SELECT q.id, q.opportunity_id, q.customer_id, q.dealer_id, q.sales_rep_id,
+                 q.status, q.discount_percent, q.needs_approval, q.approved, q.rejection_reason, q.created_at,
+                 d.name AS dealer_name, d.tier AS dealer_tier
+          FROM quotes q
+          LEFT JOIN dealers d ON q.dealer_id = d.id
+          WHERE q.needs_approval = TRUE AND q.approved = FALSE AND q.status = 'draft'
+          ORDER BY q.created_at DESC
+        `);
+      } catch (joinErr) {
+        result = await pool.query(`
+          SELECT id, opportunity_id, customer_id, dealer_id, sales_rep_id,
+                 status, discount_percent, needs_approval, approved, rejection_reason, created_at
+          FROM quotes
+          WHERE needs_approval = TRUE AND approved = FALSE AND status = 'draft'
+          ORDER BY created_at DESC
+        `);
+      }
+
+      const rows = result.rows;
+      if (rows.length > 0) {
+        const quoteIds = rows.map(r => r.id);
+        const itemsResult = await pool.query(
+          `SELECT id, quote_id, sku, product_name, quantity, unit_price
+           FROM quote_items
+           WHERE quote_id = ANY($1)
+           ORDER BY id ASC`,
+          [quoteIds]
+        );
+
+        const itemsByQuote = {};
+        for (const item of itemsResult.rows) {
+          if (!itemsByQuote[item.quote_id]) itemsByQuote[item.quote_id] = [];
+          itemsByQuote[item.quote_id].push({
+            id: item.id,
+            quote_id: item.quote_id,
+            sku: item.sku,
+            product_name: item.product_name,
+            quantity: item.quantity,
+            unit_price: parseFloat(item.unit_price)
+          });
+        }
+
+        quotesList = rows.map(r => {
+          const items = itemsByQuote[r.id] || [];
+          const discountPercent = parseFloat(r.discount_percent);
+          const financials = calculateQuoteFinancials(items, discountPercent);
+          const dealerTier = r.dealer_tier || (r.dealer_id === 'DLR-0001' || r.dealer_id === 'DLR-0004' ? 'gold' : (r.dealer_id === 'DLR-0002' || r.dealer_id === 'DLR-0005' ? 'silver' : 'bronze'));
+
+          return {
+            id: r.id,
+            opportunity_id: r.opportunity_id,
+            customer_id: r.customer_id,
+            dealer_id: r.dealer_id,
+            dealer_name: r.dealer_name || null,
+            dealer_tier: dealerTier,
+            sales_rep_id: r.sales_rep_id,
+            status: r.status,
+            discount_percent: discountPercent,
+            needs_approval: r.needs_approval,
+            approved: r.approved,
+            rejection_reason: r.rejection_reason,
+            created_at: r.created_at,
+            ...financials,
+            total_amount: financials.total,
+            items
+          };
+        });
+      }
+    } catch (dbErr) {
+      console.warn('[crm1] Database query error on GET /approvals, falling back to memory:', dbErr.message);
+    }
+
+    // In-memory fallback
+    if (quotesList.length === 0) {
+      quotesList = inMemoryQuotes
+        .filter(q => q.needs_approval === true && q.approved === false && q.status === 'draft')
+        .map(q => {
+          const items = q.items || [];
+          const financials = calculateQuoteFinancials(items, q.discount_percent);
+          const dealerTier = q.dealer_tier || (q.dealer_id === 'DLR-0001' || q.dealer_id === 'DLR-0004' ? 'gold' : (q.dealer_id === 'DLR-0002' || q.dealer_id === 'DLR-0005' ? 'silver' : 'bronze'));
+          return {
+            id: q.id,
+            opportunity_id: q.opportunity_id,
+            customer_id: q.customer_id,
+            dealer_id: q.dealer_id,
+            dealer_name: q.dealer_name || null,
+            dealer_tier: dealerTier,
+            sales_rep_id: q.sales_rep_id,
+            status: q.status,
+            discount_percent: parseFloat(q.discount_percent),
+            needs_approval: q.needs_approval,
+            approved: q.approved,
+            rejection_reason: q.rejection_reason,
+            created_at: q.created_at,
+            ...financials,
+            total_amount: financials.total,
+            items
+          };
+        });
+    }
+
+    return res.json({ data: quotesList });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * PATCH /api/quotes/:id/approve ([CRM1-D3])
+ * Approves a quote that requires manager discount authorization.
+ * Protected: requireRole('admin')
+ */
+router.patch('/quotes/:id/approve', requireRole('admin'), async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    let updatedQuote = null;
+
+    try {
+      const updateResult = await pool.query(
+        `UPDATE quotes
+         SET approved = TRUE
+         WHERE id = $1
+         RETURNING id, opportunity_id, customer_id, dealer_id, sales_rep_id,
+                   status, discount_percent, needs_approval, approved, rejection_reason, created_at`,
+        [id]
+      );
+
+      if (updateResult.rows.length === 0) {
+        return res.status(404).json({ error: `Quote with ID '${id}' not found` });
+      }
+
+      updatedQuote = updateResult.rows[0];
+    } catch (dbErr) {
+      console.warn(`[crm1] Database update failed for approve on ${id}, falling back:`, dbErr.message);
+    }
+
+    // Always update in-memory fallback
+    const memQuote = inMemoryQuotes.find(q => q.id === id);
+    if (memQuote) {
+      memQuote.approved = true;
+      if (!updatedQuote) {
+        updatedQuote = memQuote;
+      }
+    }
+
+    if (!updatedQuote) {
+      return res.status(404).json({ error: `Quote with ID '${id}' not found` });
+    }
+
+    return res.json({
+      data: {
+        id: updatedQuote.id,
+        approved: true,
+        needs_approval: updatedQuote.needs_approval,
+        status: updatedQuote.status,
+        message: `Quote ${updatedQuote.id} approved successfully`
+      }
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * PATCH /api/quotes/:id/reject ([CRM1-D3])
+ * Rejects a quote and records the manager's rejection reason. Sets status = 'rejected'.
+ * Protected: requireRole('admin')
+ */
+router.patch('/quotes/:id/reject', requireRole('admin'), async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { reason } = req.body || {};
+
+    if (!reason || typeof reason !== 'string' || !reason.trim()) {
+      return res.status(400).json({ error: 'Rejection reason is required' });
+    }
+
+    let updatedQuote = null;
+
+    try {
+      const updateResult = await pool.query(
+        `UPDATE quotes
+         SET rejection_reason = $1, status = 'rejected'
+         WHERE id = $2
+         RETURNING id, opportunity_id, customer_id, dealer_id, sales_rep_id,
+                   status, discount_percent, needs_approval, approved, rejection_reason, created_at`,
+        [reason.trim(), id]
+      );
+
+      if (updateResult.rows.length === 0) {
+        return res.status(404).json({ error: `Quote with ID '${id}' not found` });
+      }
+
+      updatedQuote = updateResult.rows[0];
+    } catch (dbErr) {
+      console.warn(`[crm1] Database update failed for reject on ${id}, falling back:`, dbErr.message);
+    }
+
+    // Always update in-memory fallback
+    const memQuote = inMemoryQuotes.find(q => q.id === id);
+    if (memQuote) {
+      memQuote.rejection_reason = reason.trim();
+      memQuote.status = 'rejected';
+      memQuote.approved = false;
+      if (!updatedQuote) {
+        updatedQuote = memQuote;
+      }
+    }
+
+    if (!updatedQuote) {
+      return res.status(404).json({ error: `Quote with ID '${id}' not found` });
+    }
+
+    return res.json({
+      data: {
+        id: updatedQuote.id,
+        status: 'rejected',
+        rejection_reason: updatedQuote.rejection_reason,
+        approved: false,
+        message: `Quote ${updatedQuote.id} rejected`
       }
     });
   } catch (err) {
