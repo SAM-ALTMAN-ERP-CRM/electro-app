@@ -497,7 +497,25 @@ export default function LeadsPage() {
                   <td>{lead.email || '—'}</td>
                   <td>{lead.source}</td>
                   <td><span className={statusBadgeClass(lead.status)}>{lead.status}</span></td>
-                  <td>{lead.score ?? 0}</td>
+                  <td>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                      <span>{lead.score ?? 0}</span>
+                      {lead.score >= 60 && (
+                        <span
+                          className="badge"
+                          aria-label={`Hot lead, score ${lead.score}`}
+                          style={{
+                            background: '#ffedd5',
+                            border: '1px solid #fdba74',
+                            color: '#c2410c',
+                            whiteSpace: 'nowrap'
+                          }}
+                        >
+                          🔥 Hot (Score: {lead.score})
+                        </span>
+                      )}
+                    </div>
+                  </td>
                   <td>{assignedRepName(lead.sales_rep_id)}</td>
                   <td>
                     <div style={{ display: 'flex', gap: '0.5rem' }}>
