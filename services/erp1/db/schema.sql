@@ -1,13 +1,14 @@
 -- Database schema for ERP1: Inventory and Warehouses
 
+CREATE SEQUENCE IF NOT EXISTS product_id_seq START WITH 16;
 CREATE SEQUENCE IF NOT EXISTS alert_id_seq START WITH 1;
 CREATE SEQUENCE IF NOT EXISTS stock_movement_id_seq START WITH 1;
 
 -- Products table (SKU Master)
 CREATE TABLE IF NOT EXISTS products (
-  id VARCHAR(20) PRIMARY KEY,
+  id VARCHAR(20) PRIMARY KEY DEFAULT ('SKU-' || LPAD(nextval('product_id_seq')::TEXT, 4, '0')),
   name VARCHAR(255) NOT NULL UNIQUE,
-  category VARCHAR(50) NOT NULL,
+  category VARCHAR(50) NOT NULL CHECK (category IN ('TV', 'Audio', 'Mobile accessory', 'Appliance', 'Component')),
   brand VARCHAR(100) NOT NULL DEFAULT 'Electro',
   price NUMERIC(12,2) NOT NULL CHECK (price > 0),
   tax_rate NUMERIC(5,2) NOT NULL DEFAULT 18.00,

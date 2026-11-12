@@ -7,6 +7,7 @@ import CreditNotesPage from './pages/CreditNotesPage';
 import LedgerPage from './pages/LedgerPage';
 import ReportsPage from './pages/ReportsPage';
 import Payments from './pages/Payments';
+import Receivables from './pages/Receivables';
 
 /*
  * ERP-5 module registration.
@@ -43,6 +44,9 @@ export default {
     { path: 'ledger', label: 'General Ledger', element: <LedgerPage />, roles: ['admin', 'finance'] },
 
     // Financial Reports page: admin and finance
-    { path: 'reports', label: 'Finance Reports', element: <ReportsPage />, roles: ['admin', 'finance'] }
+    { path: 'reports', label: 'Finance Reports', element: <ReportsPage />, roles: ['admin', 'finance'] },
+
+    // Receivables ageing page: admin and finance
+    { path: 'receivables', label: 'Receivables', element: <Receivables />, roles: ['admin', 'finance'] }
   ]
 };

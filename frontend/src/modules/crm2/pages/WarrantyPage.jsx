@@ -1,6 +1,7 @@
 // [CRM2-B2] Warranty check screen
+// [CRM2-B3] Sync warranties from dispatch
 // Allows lookup of warranty status by serial number, shows result card with badge,
-// and lists all registered warranties below.
+// lists all registered warranties, and syncs dispatches from ERP-4.
 import React, { useState, useEffect, useCallback } from 'react';
 import { api } from '../../../api';
 
@@ -36,6 +37,7 @@ const styles = {
   fieldLabel: { fontSize: '0.75rem', fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' },
   fieldVal: { fontSize: '1rem', fontWeight: 500, color: '#0f172a', marginTop: '0.2rem' },
   errorBanner: { background: '#fee2e2', color: '#991b1b', padding: '0.85rem 1rem', borderRadius: '6px', marginTop: '1rem' },
+  successBanner: { background: '#dcfce7', color: '#166534', padding: '0.85rem 1rem', borderRadius: '6px', marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
   emptyState: { padding: '2rem', textAlign: 'center', color: '#64748b', background: '#f8fafc', borderRadius: '8px', border: '1px dashed #cbd5e1' },
   table: { width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.9rem' },
   th: { padding: '0.75rem 1rem', background: '#f1f5f9', color: '#475569', fontWeight: 600, borderBottom: '1px solid #cbd5e1' },
@@ -54,6 +56,10 @@ export default function WarrantyPage() {
   const [warranties, setWarranties] = useState([]);
   const [loadingList, setLoadingList] = useState(true);
   const [listError, setListError] = useState('');
+
+  // [CRM2-B3] Sync state
+  const [syncing, setSyncing] = useState(false);
+  const [syncMessage, setSyncMessage] = useState('');
 
   // Load all warranties
   const loadWarranties = useCallback(async () => {
@@ -105,6 +111,23 @@ export default function WarrantyPage() {
     handleSearch(null, serial);
   }
 
+  // [CRM2-B3] Sync warranties from ERP-4 dispatch
+  async function handleSync() {
+    setSyncing(true);
+    setSyncMessage('');
+    setListError('');
+    try {
+      const res = await api('crm2', '/api/warranty/sync', { method: 'POST' });
+      const added = res && res.added !== undefined ? res.added : 0;
+      setSyncMessage(`Added ${added} serial${added === 1 ? '' : 's'} from dispatch`);
+      await loadWarranties();
+    } catch (err) {
+      setListError(`Sync failed: ${err.message || 'Unknown error'}`);
+    } finally {
+      setSyncing(false);
+    }
+  }
+
   return (
     <div style={styles.container}>
       {/* Header */}
@@ -113,9 +136,34 @@ export default function WarrantyPage() {
           <h2 style={{ margin: 0 }}>Warranty Check</h2>
           <span className="badge badge-blue">CRM2</span>
         </div>
-        {/* Placeholder spot reserved for CRM2-B3 Sync button */}
-        <div id="warranty-actions-area"></div>
+        <div>
+          <button
+            type="button"
+            className="btn"
+            style={{ background: '#0284c7', color: '#ffffff', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+            onClick={handleSync}
+            disabled={syncing}
+          >
+            {syncing ? 'Syncing...' : 'Sync from dispatch'}
+          </button>
+        </div>
       </div>
+
+      {/* Sync Feedback Message */}
+      {syncMessage && (
+        <div style={styles.successBanner}>
+          <span>
+            <strong>✓ Sync completed:</strong> {syncMessage}
+          </span>
+          <button
+            type="button"
+            onClick={() => setSyncMessage('')}
+            style={{ background: 'transparent', border: 'none', color: '#166534', cursor: 'pointer', fontWeight: 'bold' }}
+          >
+            ✕
+          </button>
+        </div>
+      )}
 
       {/* Search Box Card */}
       <div style={styles.card}>

@@ -58,3 +58,17 @@ SELECT setval(
     (SELECT COALESCE(MAX(CAST(SUBSTRING(id FROM 6) AS INTEGER)), 0) FROM leads WHERE id LIKE 'LEAD-%')
   )
 );
+
+-- Build Issue: [CRM1-B1] Seed opportunities (OPP-0001 to OPP-0006)
+INSERT INTO opportunities (
+  id, lead_id, customer_id, title, expected_value, stage, sales_rep_id, created_at
+) VALUES
+  ('OPP-0001', 'LEAD-0001', 'CUST-0001', '55" Smart TV bulk purchase', 128970.00, 'won', 'EMP-0001', NOW() - INTERVAL '6 days'),
+  ('OPP-0002', 'LEAD-0002', 'CUST-0002', 'Corporate sound system setup', 89950.00, 'proposal', 'EMP-0002', NOW() - INTERVAL '5 days'),
+  ('OPP-0003', 'LEAD-0003', 'CUST-0003', 'Kitchen appliances bundle', 25490.00, 'negotiation', 'EMP-0003', NOW() - INTERVAL '4 days'),
+  ('OPP-0004', 'LEAD-0004', 'CUST-0004', 'Dealer annual TV quota', 474950.00, 'proposal', 'EMP-0001', NOW() - INTERVAL '3 days'),
+  ('OPP-0005', 'LEAD-0005', 'CUST-0005', 'Home audio upgrades', 35980.00, 'prospect', 'EMP-0004', NOW() - INTERVAL '2 days'),
+  ('OPP-0006', 'LEAD-0002', 'CUST-0006', 'Office TV installation', 94990.00, 'lost', 'EMP-0002', NOW() - INTERVAL '1 day')
+ON CONFLICT (id) DO NOTHING;
+
+SELECT setval('opp_seq', GREATEST(6, (SELECT COALESCE(MAX(CAST(SUBSTRING(id FROM 5) AS INTEGER)), 0) FROM opportunities WHERE id LIKE 'OPP-%')));

@@ -3,6 +3,7 @@ import DashboardPage from './pages/DashboardPage';
 import ReportsPage from './pages/ReportsPage';
 import ForecastPage from './pages/ForecastPage';
 import PortalPage from './pages/PortalPage';
+import OrderTrackingPage from './pages/OrderTrackingPage';
 
 /**
  * CRM-5 Portal and Dashboards module registration.
@@ -13,6 +14,8 @@ import PortalPage from './pages/PortalPage';
  * - Route 'dashboard' renders the executive Dashboard with sidebar menu entry (/crm5/dashboard)
  * - Route 'portal' renders the Customer Portal entry screen (/crm5/portal)
  * - Route 'portal/home' renders the Customer Portal overview screen (/crm5/portal/home)
+ * - Route 'portal/orders/:id' renders the Order Tracking page (/crm5/portal/orders/:id) [CRM5-A3]
+ * - Route 'orders/:id' renders the Order Tracking page (/crm5/orders/:id) [CRM5-A3]
  * - Route 'reports' renders the role-based Reports screen (/crm5/reports)
  * - Route 'forecast' renders the Forecast and Target tracking screen (/crm5/forecast)
  */
@@ -41,6 +44,16 @@ export default {
     {
       path: 'portal/home',
       element: <PortalPage />,
+      roles: ['admin', 'sales', 'support', 'warehouse', 'finance', 'hr']
+    },
+    {
+      path: 'portal/orders/:id',
+      element: <OrderTrackingPage />,
+      roles: ['admin', 'sales', 'support', 'warehouse', 'finance', 'hr']
+    },
+    {
+      path: 'orders/:id',
+      element: <OrderTrackingPage />,
       roles: ['admin', 'sales', 'support', 'warehouse', 'finance', 'hr']
     },
     {
