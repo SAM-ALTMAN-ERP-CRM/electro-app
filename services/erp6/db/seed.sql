@@ -81,3 +81,33 @@ SELECT setval(
   )
 );
 
+-- 4. Salary Slips Seed (Build Issues: [ERP6-C1] & [ERP6-C3])
+-- 5 realistic seed rows adhering to shared IDs (EMP-0001 to EMP-0005) for Month 2026-11
+INSERT INTO salary_slips (
+  id, employee_id, month, base_salary, hra, allowances, pf_deduction, absent_days, absent_deduction, commission, net_pay, status, generated_at
+) VALUES
+  ('SLIP-2611-0001', 'EMP-0001', '2026-11', 45000.00, 18000.00, 2000.00, 5400.00, 0, 0.00, 1600.00, 61200.00, 'generated', '2026-11-01T10:00:00Z'),
+  ('SLIP-2611-0002', 'EMP-0002', '2026-11', 45000.00, 18000.00, 2000.00, 5400.00, 1, 1500.00, 0.00, 58100.00, 'paid', '2026-11-01T10:00:00Z'),
+  ('SLIP-2611-0003', 'EMP-0003', '2026-11', 45000.00, 18000.00, 2000.00, 5400.00, 0, 0.00, 0.00, 59600.00, 'generated', '2026-11-01T10:00:00Z'),
+  ('SLIP-2611-0004', 'EMP-0004', '2026-11', 45000.00, 18000.00, 2000.00, 5400.00, 0, 0.00, 6000.00, 65600.00, 'generated', '2026-11-01T10:00:00Z'),
+  ('SLIP-2611-0005', 'EMP-0005', '2026-11', 40000.00, 16000.00, 2000.00, 4800.00, 0, 0.00, 0.00, 53200.00, 'paid', '2026-11-01T10:00:00Z')
+ON CONFLICT (employee_id, month) DO UPDATE SET
+  base_salary = EXCLUDED.base_salary,
+  hra = EXCLUDED.hra,
+  allowances = EXCLUDED.allowances,
+  pf_deduction = EXCLUDED.pf_deduction,
+  absent_days = EXCLUDED.absent_days,
+  absent_deduction = EXCLUDED.absent_deduction,
+  commission = EXCLUDED.commission,
+  net_pay = EXCLUDED.net_pay,
+  status = EXCLUDED.status;
+
+SELECT setval(
+  'salary_slip_seq',
+  GREATEST(
+    5,
+    (SELECT COALESCE(MAX(CAST(SUBSTRING(id FROM 11) AS INTEGER)), 0) FROM salary_slips WHERE id LIKE 'SLIP-2611-%')
+  )
+);
+
+

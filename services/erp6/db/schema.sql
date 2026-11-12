@@ -50,3 +50,29 @@ CREATE TABLE IF NOT EXISTS commissions (
 CREATE INDEX IF NOT EXISTS idx_commissions_sales_rep_id ON commissions(sales_rep_id);
 CREATE INDEX IF NOT EXISTS idx_commissions_month ON commissions(month);
 
+-- 4. Salary Slips table and sequence (Build Issues: [ERP6-C1] & [ERP6-C3])
+CREATE SEQUENCE IF NOT EXISTS salary_slip_seq START 1;
+
+CREATE TABLE IF NOT EXISTS salary_slips (
+  id VARCHAR(30) PRIMARY KEY DEFAULT ('SLIP-2611-' || LPAD(nextval('salary_slip_seq')::TEXT, 4, '0')),
+  employee_id VARCHAR(20) NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
+  month VARCHAR(7) NOT NULL,
+  base_salary NUMERIC(12, 2) NOT NULL,
+  hra NUMERIC(12, 2) NOT NULL,
+  allowances NUMERIC(12, 2) NOT NULL DEFAULT 2000.00,
+  pf_deduction NUMERIC(12, 2) NOT NULL,
+  absent_days INTEGER NOT NULL DEFAULT 0,
+  absent_deduction NUMERIC(12, 2) NOT NULL DEFAULT 0.00,
+  commission NUMERIC(12, 2) NOT NULL DEFAULT 0.00,
+  net_pay NUMERIC(12, 2) NOT NULL,
+  status VARCHAR(20) NOT NULL DEFAULT 'generated',
+  generated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CONSTRAINT uq_salary_slips_employee_month UNIQUE (employee_id, month)
+);
+
+-- Indexes for frequent lookups and filters
+CREATE INDEX IF NOT EXISTS idx_salary_slips_month ON salary_slips(month);
+CREATE INDEX IF NOT EXISTS idx_salary_slips_employee_id ON salary_slips(employee_id);
+CREATE INDEX IF NOT EXISTS idx_salary_slips_status ON salary_slips(status);
+
+
