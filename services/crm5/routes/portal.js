@@ -101,6 +101,159 @@ router.get('/portal/visits', async (req, res) => {
 });
 
 /**
+ * POST /api/portal/tickets (also /api/tickets) [CRM5-A3]
+ * Accepts support ticket submission from customer portal and forwards to CRM-2 POST /api/tickets.
+ * Sourced fields: customer_id, customer_name, subject, description, priority.
+ * When CRM-2 is offline or in mock mode, returns mock ticket ID 'TKT-MOCK'.
+ */
+async function createSupportTicket(req, res) {
+  try {
+    const body = req.body || {};
+    const { subject, description, priority, customer_id, customer_name } = body;
+
+    // 1. Validate customer identity
+    if (!customer_id || typeof customer_id !== 'string' || !customer_id.trim()) {
+      return res.status(400).json({ error: 'customer_id is required' });
+    }
+    const cleanCustomerId = customer_id.trim().toUpperCase();
+    if (!/^CUST-\d{4}$/.test(cleanCustomerId)) {
+      return res.status(400).json({ error: 'customer_id must be in format CUST-0001' });
+    }
+
+    if (!customer_name || typeof customer_name !== 'string' || !customer_name.trim()) {
+      return res.status(400).json({ error: 'customer_name is required' });
+    }
+    const cleanCustomerName = customer_name.trim();
+
+    // 2. Validate ticket content
+    if (!subject || typeof subject !== 'string' || !subject.trim()) {
+      return res.status(400).json({ error: 'subject is required' });
+    }
+    const cleanSubject = subject.trim();
+
+    if (!description || typeof description !== 'string' || !description.trim()) {
+      return res.status(400).json({ error: 'description is required' });
+    }
+    const cleanDescription = description.trim();
+
+    // 3. Validate priority (CRM-2 allowed values: low, medium, high)
+    const ALLOWED_PRIORITIES = ['low', 'medium', 'high'];
+    const cleanPriority = (priority ? String(priority).toLowerCase().trim() : 'medium');
+    if (!ALLOWED_PRIORITIES.includes(cleanPriority)) {
+      return res.status(400).json({
+        error: `priority must be one of: ${ALLOWED_PRIORITIES.join(', ')}`
+      });
+    }
+
+    // 4. Log attempted ticket creation for audit and debugging
+    console.log(`[crm5] Attempting ticket creation for ${cleanCustomerId} (${cleanCustomerName}): "${cleanSubject}" [priority: ${cleanPriority}]`);
+
+    const ticketPayload = {
+      customer_id: cleanCustomerId,
+      customer_name: cleanCustomerName,
+      subject: cleanSubject,
+      description: cleanDescription,
+      priority: cleanPriority
+    };
+
+    // 5. Call CRM-2 POST /api/tickets via callService
+    try {
+      const upstreamRes = await callService('crm2', '/api/tickets', {
+        method: 'POST',
+        body: ticketPayload,
+        mock: 'ticket-created'
+      });
+
+      const resultTicket = upstreamRes?.data || upstreamRes;
+      if (resultTicket && resultTicket.id) {
+        return res.status(201).json({ data: resultTicket });
+      }
+    } catch (upstreamErr) {
+      console.warn(`[crm5] CRM-2 service call failed (${upstreamErr.message}). Using mock integration fallback.`);
+    }
+
+    // Mock integration fallback (CRM2-A1 is MOCK):
+    // Returns mock ticket ID TKT-MOCK as required by CRM5-A3 issue specification
+    const mockTicket = {
+      id: 'TKT-MOCK',
+      customer_id: cleanCustomerId,
+      customer_name: cleanCustomerName,
+      subject: cleanSubject,
+      description: cleanDescription,
+      priority: cleanPriority,
+      status: 'open',
+      created_at: new Date().toISOString()
+    };
+
+    return res.status(201).json({
+      data: mockTicket,
+      message: 'Support ticket registered via CRM-2 mock integration.'
+    });
+  } catch (err) {
+    console.error('[crm5] createSupportTicket unexpected error:', err.message);
+    return res.status(500).json({ error: 'Internal server error submitting support ticket.' });
+  }
+}
+
+// Register ticket creation endpoints
+router.post('/portal/tickets', createSupportTicket);
+router.post('/tickets', createSupportTicket);
+
+/**
+ * GET /api/portal/orders/:id (also /api/orders/:id) [CRM5-A3]
+ * Retrieves single order details from ERP-4 GET /api/sales-orders/:id for tracking.
+ * Returns order status, item breakdown, customer details, and timestamps.
+ */
+async function getOrderTracking(req, res) {
+  try {
+    const rawId = req.params.id || req.params.orderId;
+    if (!rawId || !rawId.trim()) {
+      return res.status(400).json({ error: 'Order ID is required.' });
+    }
+    const orderId = rawId.trim().toUpperCase();
+
+    // 1. Attempt retrieval from ERP-4 via callService
+    let order = null;
+    try {
+      const erpRes = await callService('erp4', `/api/sales-orders/${orderId}`, {
+        method: 'GET',
+        mock: 'sales-orders'
+      });
+
+      if (Array.isArray(erpRes)) {
+        order = erpRes.find(o => o.id === orderId);
+      } else if (erpRes && (erpRes.id === orderId || erpRes.data?.id === orderId)) {
+        order = erpRes.data || erpRes;
+      }
+    } catch (err) {
+      console.warn(`[crm5] ERP-4 call failed for order ${orderId} (${err.message}). Checking local portal mock.`);
+    }
+
+    // 2. Fall back to CRM-5 local mock orders if ERP-4 service/mock did not resolve this order
+    if (!order || !order.id) {
+      const localOrders = loadMock('portal-orders');
+      order = localOrders.find(o => o.id === orderId);
+    }
+
+    // 3. Order not found in upstream or mock records
+    if (!order) {
+      return res.status(404).json({
+        error: `Sales order '${orderId}' not found in tracking system. Please check the order reference number.`
+      });
+    }
+
+    return res.json({ data: order });
+  } catch (err) {
+    console.error('[crm5] getOrderTracking error:', err.message);
+    return res.status(500).json({ error: 'Internal server error retrieving order tracking data.' });
+  }
+}
+
+// Register order tracking endpoints
+router.get('/portal/orders/:id', getOrderTracking);
+router.get('/orders/:id', getOrderTracking);
+
+/**
  * Shared handler to fetch a customer's full portal overview:
  * - Customer contact and GST details
  * - Order history (My Orders)
@@ -194,4 +347,29 @@ async function getCustomerOverview(req, res) {
 router.get('/portal/:customerId/overview', getCustomerOverview);
 router.get('/portal/:customerId', getCustomerOverview);
 
+/**
+ * Step status calculation helper (pure logic, shared for tests and verification)
+ */
+function getStepStatus(orderStatus, stepKey) {
+  const normalized = (orderStatus || '').toLowerCase().trim();
+  const sequence = ['created', 'confirmed', 'dispatched', 'delivered'];
+  const currentIndex = sequence.indexOf(normalized);
+
+  if (currentIndex === -1) {
+    return 'pending';
+  }
+
+  const stepIndex = sequence.indexOf(stepKey);
+  if (stepIndex < currentIndex) {
+    return 'completed';
+  } else if (stepIndex === currentIndex) {
+    return 'current';
+  } else {
+    return 'pending';
+  }
+}
+
+router.getStepStatus = getStepStatus;
+
 module.exports = router;
+

@@ -85,6 +85,15 @@ function validateLeadInput(body) {
   };
 }
 
+function calculateLeadScore(lead) {
+  const sourcePoints = { dealer: 30, web: 20, 'walk-in': 10 };
+  const score = (sourcePoints[lead.source] || 0)
+    + (lead.email ? 10 : 0)
+    + (lead.phone ? 10 : 0)
+    + (lead.product_interest ? 10 : 0);
+
+  return Math.min(100, score);
+}
 function handleDatabaseError(res, error, operation) {
   console.error(`[crm1] ${operation} failed:`, error.message);
   if (error.code === '23505') {
@@ -116,6 +125,17 @@ router.get('/leads', async (req, res) => {
   }
 });
 
+router.get('/leads/hot', async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT ${LEAD_COLUMNS} FROM leads WHERE score >= $1 ORDER BY id ASC`,
+      [60]
+    );
+    return res.json({ data: result.rows });
+  } catch (error) {
+    return handleDatabaseError(res, error, 'GET /leads/hot');
+  }
+});
 router.get('/leads/:id', async (req, res) => {
   try {
     const result = await pool.query(
@@ -138,10 +158,11 @@ router.post('/leads', async (req, res) => {
   }
 
   const lead = input.value;
+  const score = calculateLeadScore(lead);
   try {
     const result = await pool.query(
-      `INSERT INTO leads (name, phone, email, source, product_interest, status, sales_rep_id)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)
+      `INSERT INTO leads (name, phone, email, source, product_interest, status, score, sales_rep_id)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
        RETURNING ${LEAD_COLUMNS}`,
       [
         lead.name,
@@ -150,6 +171,7 @@ router.post('/leads', async (req, res) => {
         lead.source,
         lead.product_interest,
         lead.status || 'new',
+        score,
         lead.sales_rep_id
       ]
     );
@@ -166,12 +188,13 @@ router.put('/leads/:id', async (req, res) => {
   }
 
   const lead = input.value;
+  const score = calculateLeadScore(lead);
   try {
     const result = await pool.query(
       `UPDATE leads
        SET name = $1, phone = $2, email = $3, source = $4, product_interest = $5,
-           status = COALESCE($6, status), sales_rep_id = $7
-       WHERE id = $8
+           score = $6, status = COALESCE($7, status), sales_rep_id = $8
+       WHERE id = $9
        RETURNING ${LEAD_COLUMNS}`,
       [
         lead.name,
@@ -179,6 +202,7 @@ router.put('/leads/:id', async (req, res) => {
         lead.email,
         lead.source,
         lead.product_interest,
+        score,
         lead.status,
         lead.sales_rep_id,
         req.params.id

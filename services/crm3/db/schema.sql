@@ -62,6 +62,7 @@ CREATE TABLE IF NOT EXISTS customer_tags (
 
 CREATE INDEX IF NOT EXISTS idx_customers_type ON customers(type);
 CREATE INDEX IF NOT EXISTS idx_customers_city ON customers(city);
+CREATE INDEX IF NOT EXISTS idx_customers_phone ON customers(phone);
 CREATE INDEX IF NOT EXISTS idx_customers_email ON customers(email);
 CREATE INDEX IF NOT EXISTS idx_contacts_customer_id ON contacts(customer_id);
 CREATE INDEX IF NOT EXISTS idx_segments_customer_type ON segments(customer_type);

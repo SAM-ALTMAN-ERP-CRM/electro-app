@@ -70,3 +70,15 @@ ON CONFLICT (ticket_id) DO NOTHING;
 
 -- Move the assignment sequence past the seeded IDs so the next new assignment is ASG-0004.
 SELECT setval('crm2_assignment_seq', GREATEST((SELECT last_value FROM crm2_assignment_seq), 3));
+
+-- [CRM2-C1] rmas
+-- 3 seed RMAs using real ticket IDs TKT-0001..0003 and in-warranty serials TV55-2611-0001..0003.
+-- Statuses: requested, approved (outcome repair), and rejected.
+INSERT INTO rmas (id, ticket_id, serial_number, reason, status, outcome, requested_at, decided_at) VALUES
+  ('RMA-0001', 'TKT-0001', 'TV55-2611-0001', 'Screen flickers after warm-up. Customer wants a full unit replacement.', 'requested', NULL,     now() - interval '3 hours',  NULL),
+  ('RMA-0002', 'TKT-0002', 'TV55-2611-0002', 'No audio on HDMI input. Part repair is not feasible per engineer report.',   'approved',  'repair', now() - interval '30 hours', now() - interval '25 hours'),
+  ('RMA-0003', 'TKT-0003', 'TV55-2611-0003', 'Remote not pairing. Customer insists on a replacement remote.',              'rejected',  NULL,     now() - interval '3 days',   now() - interval '2 days')
+ON CONFLICT (id) DO NOTHING;
+
+-- Move the RMA sequence past the seeded IDs so the next new RMA is RMA-0004.
+SELECT setval('crm2_rma_seq', GREATEST((SELECT last_value FROM crm2_rma_seq), 3));
