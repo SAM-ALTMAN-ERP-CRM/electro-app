@@ -25,3 +25,16 @@ ON CONFLICT (id) DO NOTHING;
 
 SELECT setval('quote_seq', GREATEST(4, (SELECT COALESCE(MAX(CAST(SUBSTRING(id FROM 5) AS INTEGER)), 0) FROM quotes WHERE id LIKE 'QUO-%')));
 SELECT setval('quote_items_seq', GREATEST(7, (SELECT COALESCE(MAX(CAST(SUBSTRING(id FROM 4) AS INTEGER)), 0) FROM quote_items WHERE id LIKE 'QI-%')));
+
+-- Build Issue: [CRM1-D1] Seed dealers (DLR-0001 to DLR-0005)
+INSERT INTO dealers (
+  id, name, contact_person, phone, email, city, tier, credit_limit, status, created_at
+) VALUES
+  ('DLR-0001', 'BrightHome Retail', 'Rahul Deshmukh', '020-25671199', 'rahul@brighthome.in', 'Pune', 'gold', 1500000.00, 'active', NOW() - INTERVAL '30 days'),
+  ('DLR-0002', 'Gadget Hub', 'Suresh Rao', '080-22345678', 'contact@gadgethub.in', 'Bengaluru', 'silver', 800000.00, 'active', NOW() - INTERVAL '25 days'),
+  ('DLR-0003', 'Metro Electronics', 'Amit Verma', '011-23456789', 'amit@metroelec.com', 'Delhi', 'gold', 2000000.00, 'active', NOW() - INTERVAL '20 days'),
+  ('DLR-0004', 'Western Appliance Mart', 'Manoj Joshi', '022-26789012', 'manoj@westernmart.com', 'Mumbai', 'bronze', 300000.00, 'active', NOW() - INTERVAL '15 days'),
+  ('DLR-0005', 'Royal Vision Hub', 'Priya S.', '044-24567890', 'priya@royalvision.com', 'Chennai', 'silver', 600000.00, 'active', NOW() - INTERVAL '10 days')
+ON CONFLICT (id) DO NOTHING;
+
+SELECT setval('dealer_seq', GREATEST(5, (SELECT COALESCE(MAX(CAST(SUBSTRING(id FROM 5) AS INTEGER)), 0) FROM dealers WHERE id LIKE 'DLR-%')));
