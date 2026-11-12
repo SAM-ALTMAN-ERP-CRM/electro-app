@@ -26,3 +26,19 @@ CREATE TABLE IF NOT EXISTS quote_items (
   quantity INT NOT NULL CHECK (quantity > 0),
   unit_price NUMERIC(12, 2) NOT NULL
 );
+
+-- Build Issue: [CRM1-D1] Dealers table and API
+CREATE SEQUENCE IF NOT EXISTS dealer_seq START 1;
+
+CREATE TABLE IF NOT EXISTS dealers (
+  id VARCHAR(20) PRIMARY KEY DEFAULT ('DLR-' || LPAD(nextval('dealer_seq')::TEXT, 4, '0')),
+  name VARCHAR(150) NOT NULL,
+  contact_person VARCHAR(100),
+  phone VARCHAR(20),
+  email VARCHAR(100),
+  city VARCHAR(50) NOT NULL,
+  tier VARCHAR(20) NOT NULL CHECK (tier IN ('gold', 'silver', 'bronze')),
+  credit_limit NUMERIC(12, 2) NOT NULL DEFAULT 100000.00,
+  status VARCHAR(20) NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'inactive')),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);

@@ -4,6 +4,7 @@ import PipelinePage from './pages/PipelinePage';
 import QuotesListPage from './pages/QuotesListPage';
 import QuoteBuilderPage from './pages/QuoteBuilderPage';
 import DealersPage from './pages/DealersPage';
+import DealerDetailPage from './pages/DealerDetailPage';
 import ApprovalsPage from './pages/ApprovalsPage';
 
 /**
@@ -52,6 +53,11 @@ export default {
       path: 'dealers',
       label: 'Dealers',
       element: <DealersPage />,
+      roles: ['admin', 'sales']
+    },
+    {
+      path: 'dealers/:id',
+      element: <DealerDetailPage />,
       roles: ['admin', 'sales']
     },
     {
