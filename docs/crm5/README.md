@@ -77,11 +77,13 @@ Defined in `frontend/src/modules/crm5/index.jsx` (all routes accessible to `["ad
 | `/crm5` | *(Default landing)* | `DashboardPage.jsx` | Executive Sales & Pipeline Dashboard |
 | `/crm5/dashboard` | `Dashboard` | `DashboardPage.jsx` | 4 KPI cards, CSS stage bar chart, stage drill-down table |
 | `/crm5/portal` | `Customer Portal` | `PortalPage.jsx` | Customer ID lookup box + quick Section 5 demo chips |
-| `/crm5/portal/home` | *(Hidden route)* | `PortalPage.jsx` | Customer profile banner + My Orders / Tickets / Invoices |
-| `/crm5/reports` | `Reports` | `ReportsPage.jsx` | Role-gated report catalog, admin role preview, live result table |
-| `/crm5/forecast` | `Forecast` | `ForecastPage.jsx` | Weighted pipeline card, target realization bar, monthly target CRUD |
+| `/crm5/portal/home` | *(Hidden route)* | `PortalPage.jsx` | Customer profile banner, Raise a Ticket form, My Orders / Tickets / Invoices |
+| `/crm5/portal/orders/:id` | *(Hidden route)* | `OrderTrackingPage.jsx` | 4-step order fulfillment tracker (`created`, `confirmed`, `dispatched`, `delivered`) |
+| `/crm5/orders/:id` | *(Hidden route)* | `OrderTrackingPage.jsx` | Alias route for order fulfillment tracking |
+| `/crm5/reports` | `Reports` | `ReportsPage.jsx` | Role-gated report catalog, admin preview, browser CSV export & `@media print` |
+| `/crm5/forecast` | `Forecast` | `ForecastPage.jsx` | Weighted pipeline card, target realization bar, monthly target CRUD, 6-month won trend |
 
-> **Pending Tier 3 UI Extensions**: `/crm5/portal/orders/:id` & ticket creation form (`[CRM5-A3]`), dashboard date range filter & snapshot history (`[CRM5-B3]`), 6-month won-value trend & estimate (`[CRM5-C3]`), and browser CSV export + `@media print` styles (`[CRM5-D3]`).
+*(All 12 CRM-5 build issues `A1..A3`, `B1..B3`, `C1..C3`, and `D1..D3` are registered and merged on `main`.)*
 
 ---
 
@@ -101,12 +103,14 @@ All routes except `/api/health` are protected by `requireAuth` (`services/_share
 | `GET` | `/api/portal/visits` | `requireAuth` | Returns up to 20 most recent customer portal visit logs (`PV-xxxx`). |
 | `GET` | `/api/portal/:customerId/overview` | `requireAuth` | Aggregates customer profile, orders, tickets, invoices, and stats; logs visit in `portal_visits`; returns `404` for unknown ID. |
 | `GET` | `/api/portal/:customerId` | `requireAuth` | Alias for `/api/portal/:customerId/overview`. |
+| `POST` | `/api/portal/tickets` | `requireAuth` | Validates and forwards portal support ticket creation to CRM-2 (`POST /api/tickets`), returning ticket ID (`TKT-xxxx` or `TKT-MOCK`). Alias: `POST /api/tickets`. |
+| `GET` | `/api/portal/orders/:id` | `requireAuth` | Fetches sales order status from ERP-4 (`GET /api/sales-orders/:id`) and maps 4-step fulfillment progress. Alias: `GET /api/orders/:id`. |
 
 ### Executive Dashboards (`services/crm5/routes/dashboard.js`)
 | Method | Path | Auth | Description |
 |---|---|---|---|
-| `GET` | `/api/dashboard/sales-summary` | `requireAuth` | Aggregates CRM-1 leads, opportunities by stage, won value in INR, and accepted quotes (`mocks/sales-summary.json` fallback). |
-| `POST` | `/api/dashboard/snapshot` | `requireAuth` | Persists a point-in-time KPI metrics payload into `dashboard_snapshots` (`201 Created`, `SNP-xxxx`). |
+| `GET` | `/api/dashboard/sales-summary` | `requireAuth` | Aggregates CRM-1 leads, opportunities by stage, won value in INR, and accepted quotes; supports `?range=this_week|this_month|all_time` (`created_at` filter). |
+| `POST` | `/api/dashboard/snapshot` | `requireAuth` | Persists a point-in-time KPI metrics payload and `range` into `dashboard_snapshots` (`201 Created`, `SNP-xxxx`). |
 | `GET` | `/api/dashboard/snapshots` | `requireAuth` | Lists saved historical KPI snapshots sorted newest first. |
 
 ### Sales Forecasts & Weighted Pipeline (`services/crm5/routes/forecasts.js`)
@@ -114,6 +118,7 @@ All routes except `/api/health` are protected by `requireAuth` (`services/_share
 |---|---|---|---|
 | `GET` | `/api/forecast/weighted` | `requireAuth` | Calculates weighted pipeline (`prospect` 10%, `proposal` 30%, `negotiation` 60%) and realization % vs current month target. |
 | `GET` | `/api/forecasts/weighted` | `requireAuth` | Alias for `/api/forecast/weighted`. |
+| `GET` | `/api/forecast/trend` | `requireAuth` | Aggregates last 6 months of `won` opportunity revenue and computes `next_month_estimate` = 3-month rolling average. Alias: `GET /api/forecasts/trend`. |
 | `GET` | `/api/forecasts` | `requireAuth` | Lists all monthly targets (`FCST-xxxx`) ordered by `month DESC`. |
 | `POST` | `/api/forecasts` | `requireAuth` | Creates or upserts (`ON CONFLICT (month)`) a monthly target (`YYYY-MM`, non-negative `target_amount`). |
 | `PUT` | `/api/forecasts/:id` | `requireAuth` | Updates `target_amount` and `notes` for an existing forecast (`404` if not found). |
@@ -146,8 +151,8 @@ flowchart LR
 | **Row 10** | `CRM5-A1`, `A3` | **ERP-4** (`5204`) | `GET /api/sales-orders?customer_id=`, `GET /api/sales-orders/:id` | Merged (`services/erp4/routes/salesOrders.js`) | `portal-orders.json` |
 | **Row 10** | `CRM5-A1`, `A3` | **CRM-2** (`5102`) | `GET /api/tickets?customer_id=`, `POST /api/tickets` | Merged (`services/crm2/routes/tickets.js`) | `portal-tickets.json` |
 | **Row 10** | `CRM5-A1` | **ERP-5** (`5205`) | `GET /api/invoices?customer_id=` | Merged (`services/erp5/routes/invoices.js`) | `portal-invoices.json` |
-| **Row 11** | `CRM5-B1`, `B3`, `D1` | **CRM-1** (`5101`) | `GET /api/leads` (`CRM1-A1`) | **Pending (Chase CRM-1)** | `sales-summary.json`, `reports.json` |
-| **Row 11** | `CRM5-B1`, `C1`, `C3` | **CRM-1** (`5101`) | `GET /api/opportunities` (`CRM1-B1`) | **Pending (Chase CRM-1)** | `opportunities.json`, `sales-summary.json` |
+| **Row 11** | `CRM5-B1`, `B3`, `D1` | **CRM-1** (`5101`) | `GET /api/leads` (`CRM1-A1`) | Merged (`services/crm1/routes/leads.js`) | `sales-summary.json`, `reports.json` |
+| **Row 11** | `CRM5-B1`, `C1`, `C3` | **CRM-1** (`5101`) | `GET /api/opportunities` (`CRM1-B1`) | Merged (`services/crm1/routes/opportunities.js`) | `opportunities.json`, `sales-summary.json` |
 | **Row 11** | `CRM5-B1` | **CRM-1** (`5101`) | `GET /api/quotes` (`CRM1-C1`) | Merged (`services/crm1/routes/quotes.js`) | `sales-summary.json` |
 | **Row 12** | `CRM5-D1` | **CRM-2** (`5102`), **CRM-3** (`5103`) | `GET /api/tickets`, `GET /api/customers` | Merged | `reports.json` |
 | **Row 29** | All CRM-5 APIs | **ERP-5** (`5205`) | Shared JWT authentication (`services/_shared/auth.js`) | Merged (`services/erp5/routes/auth.js`) | `AUTH_REQUIRED=false` in dev |
@@ -176,18 +181,22 @@ grep -rnE "BrowserRouter|localhost|fetch\(" frontend/src/modules/crm5/ || echo "
 Verify `frontend/src/modules/crm5/index.jsx` registers every implemented page under `id: 'crm5'` and roles `['admin', 'sales', 'support', 'warehouse', 'finance', 'hr']`:
 - [x] `''` and `'dashboard'` -> `DashboardPage`
 - [x] `'portal'` and `'portal/home'` -> `PortalPage`
+- [x] `'portal/orders/:id'` and `'orders/:id'` -> `OrderTrackingPage` (`[CRM5-A3]`)
 - [x] `'forecast'` -> `ForecastPage`
 - [x] `'reports'` -> `ReportsPage`
-- [ ] `'portal/orders/:id'` -> *(Pending merge of `#52 [CRM5-A3]`)*
 
 ### 3. Dependency & Integration Chase List (`Depends on`)
-- **Chase CRM-1 (Member A & Member B)**: Merge `[CRM1-A1]` (Leads API, issue `#1`) and `[CRM1-B1]` (Opportunities API) so `GET /api/dashboard/sales-summary` and `GET /api/forecast/weighted` resolve live leads and opportunities when `USE_MOCKS=false`.
-- **CRM-5 Internal Wave 3 Integration Follow-up**: Update `services/crm5/routes/portal.js` (currently calling `callService('crm5', ...)` mock endpoints) and `services/crm5/routes/reports.js` to call live upstream teams (`crm3`, `erp4`, `crm2`, `erp5`, `crm1`) before switching `USE_MOCKS=false`.
+- **Upstream Providers**: `CRM1-A1` (`leads.js`), `CRM1-B1` (`opportunities.js`), `CRM1-C1` (`quotes.js`), `CRM2-A1` (`tickets.js`), `CRM3-A1` (`customers.js`), `ERP4-A1` (`salesOrders.js`), and `ERP5-A1` (`invoices.js`) are all merged on `main`.
+- **CRM-5 Integration Alignment (per QA `[CRM5-R4]` Bug Register)**:
+  - Point `services/crm5/routes/portal.js` overview calls at `crm3`, `erp4`, `crm2`, `erp5` (currently `getCustomerOverview` calls `callService('crm5', ...)` mocks while `createSupportTicket` and `getOrderTracking` already call `crm2` and `erp4`).
+  - Point `services/crm5/routes/reports.js` at the `reports` DB table + live `crm1`/`crm2`/`crm3` APIs when `USE_MOCKS=false`.
 
 ---
 
 ## 7. Related Documentation
 
 - [CRM-5 5-Step Demo Script](./demo.md)
+- [CRM-5 API Specification](./api.md)
+- [CRM-5 QA Test Cases & Cross-Team Verification](./tests.md)
 - [CRM-5 Issues Pack](./issues.md)
 - CRM-5 ER Diagram & Data Dictionary (`docs/crm5/er-diagram.md`, delivered in `[CRM5-R2]`)

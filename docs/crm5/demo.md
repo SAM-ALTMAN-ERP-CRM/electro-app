@@ -68,15 +68,18 @@ Expected response:
    - Confirm 5 colored horizontal CSS bars (`Prospect`, `Proposal`, `Negotiation`, `Won`, `Lost`) scale proportionally to deal counts.
    - Click the **Negotiation** bar (or the **Negotiation** filter button above the **Contributing Opportunities** table) to filter the drill-down table to `OPP-0003` (`CUST-0003`, Rep `EMP-0003`, `₹1,12,980.00`).
    - Confirm `OPP-0001` (`CUST-0001`, `EMP-0001`) and `OPP-0002` (`CUST-0004`, `EMP-0002`) appear when **All Stages** is selected.
-4. **Test Backend Summary & Snapshot APIs**:
+4. **Filter by Date Range & Save Snapshot (`[CRM5-B3]`)**:
+   - Switch the date range selector (`this_week`, `this_month`, `all_time`) and confirm `?range=` updates the KPI cards and stage counts.
+   - Click **Save Snapshot** and verify a new `SNP-xxxx` row appears in the **Snapshot History** table at the bottom.
+5. **Test Backend Summary & Snapshot APIs**:
    ```bash
-   # Fetch aggregated sales summary
-   curl -s http://localhost:5105/api/dashboard/sales-summary
+   # Fetch aggregated sales summary (with optional ?range=this_month)
+   curl -s "http://localhost:5105/api/dashboard/sales-summary?range=all_time"
 
    # Save a dashboard KPI snapshot (returns 201 Created with SNP-xxxx)
    curl -s -X POST http://localhost:5105/api/dashboard/snapshot \
      -H "Content-Type: application/json" \
-     -d '{"metrics":{"total_leads":12,"open_opportunities":7,"won_value":209970.00,"quotes_accepted":4}}'
+     -d '{"range":"all_time","metrics":{"total_leads":12,"open_opportunities":7,"won_value":209970.00,"quotes_accepted":4}}'
 
    # List historical snapshots (SNP-0001..SNP-0005 + newly saved snapshot)
    curl -s http://localhost:5105/api/dashboard/snapshots
@@ -99,14 +102,18 @@ Expected response:
      - **My Orders**: `SO-0001` (`QUO-0001`, Rep `EMP-0001`, `₹61,336.40`, `delivered` green badge) and `SO-0005` (`QUO-0005`, Rep `EMP-0002`, `₹42,990.00` for 1x `SKU-0001`, `confirmed` purple badge).
      - **My Tickets**: `TKT-0001` (`Display panel flickering on OLED 65`, Engineer `EMP-0005`, `in-progress`) and `TKT-0005` (`Firmware update support for Soundbar 2.1`, `SKU-0004`, Engineer `EMP-0006`, `resolved`).
      - **My Invoices**: `INV-0001` (`SO-0001`, `₹61,336.40`, `paid`) and `INV-0005` (`SO-0005`, `₹42,990.00`, `issued`).
-3. **Verify Friendly Error Handling (`CUST-9999`)**:
+3. **Raise a Support Ticket & Track Order Fulfillment (`[CRM5-A3]`)**:
+   - On `/crm5/portal/home?id=CUST-0001`, use the **Raise a Ticket** form (`subject`, `description`, `priority: "high"`) to post via `POST /api/portal/tickets` and confirm the returned ticket ID (`TKT-xxxx` or `TKT-MOCK`).
+   - Click order `SO-0001` (or navigate to `http://localhost:3000/crm5/portal/orders/SO-0001`) and confirm the 4-step tracker highlights `created` → `confirmed` → `dispatched` → `delivered`.
+4. **Verify Friendly Error Handling (`CUST-9999`)**:
    - Click **← Switch Customer**, enter `CUST-9999`, and submit.
    - Verify an amber/red notice displays: *"Customer ID 'CUST-9999' was not found in our records..."* (API returns HTTP `404`).
-4. **Verify Visit Telemetry via API**:
+5. **Verify Visit Telemetry & Order APIs**:
    ```bash
    # Trigger overview API for CUST-0001 and inspect logged visit PV-xxxx
    curl -s http://localhost:5105/api/portal/CUST-0001/overview
    curl -s http://localhost:5105/api/portal/visits
+   curl -s http://localhost:5105/api/portal/orders/SO-0001
    ```
 
 ---
@@ -130,9 +137,12 @@ Expected response:
    - In **Set Monthly Sales Target**, enter Month `2027-01`, Target Amount `220000`, Notes `Q1 enterprise SKU-0001 rollout`, and click **+ Set Target**.
    - Confirm `2027-01` appears in the **Monthly Sales Target Records** table formatted as `₹2,20,000.00`.
    - Click **✏️ Edit** on `2026-11` (`FCST-0004`), change target to `186748`, and save — confirm the realization bar updates to **`50%`**.
-4. **Verify via API**:
+4. **Inspect 6-Month Won Trend & Next-Month Estimate (`[CRM5-C3]`)**:
+   - Scroll to the 6-month CSS bar chart showing monthly `won` revenue and verify the **Next-Month Estimate** equals the 3-month rolling average formula displayed on the page.
+5. **Verify via API**:
    ```bash
    curl -s http://localhost:5105/api/forecast/weighted
+   curl -s http://localhost:5105/api/forecast/trend
    curl -s -X POST http://localhost:5105/api/forecasts \
      -H "Content-Type: application/json" \
      -d '{"month":"2027-01","target_amount":220000.00,"notes":"Q1 enterprise SKU-0001 rollout"}'
@@ -154,9 +164,10 @@ Expected response:
      - Select `Sales`: catalog narrows to `sales-by-rep` (`EMP-0001`..`EMP-0004`) and `conversion-rate`.
      - Select `Support`: catalog narrows to `tickets-by-priority` (`TKT-0001..0004`, `CUST-0001..0004`, `EMP-0005..0007`) and `sla-breaches` (`WH-01`).
      - Select `Finance` / `HR`: shows `won-revenue-by-month` (18% GST breakdown) or `rep-performance`.
-3. **Execute a Report**:
+3. **Execute Report, Export CSV & Print (`[CRM5-D3]`)**:
    - Click **▶ Run Report** on `tickets-by-priority` (or `sales-by-rep`).
    - Confirm the **Report Results** table renders with formatted INR currency values and colored status/priority badges (`HIGH`, `URGENT`, `RESOLVED`).
+   - Click **📥 Download CSV** to download an Excel-ready CSV file, and test **Print** to verify `@media print` hides the shell sidebar and action buttons.
 4. **Verify Role Enforcement via API (`403 Forbidden`)**:
    ```bash
    # Sales role sees only sales reports

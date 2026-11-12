@@ -21,11 +21,14 @@ describe('[CRM5-R1] Team Lead: README, demo script & module consistency', () => 
       '/api/health',
       '/api/portal/customers',
       '/api/portal/visits',
+      '/api/portal/tickets',
+      '/api/portal/orders/:id',
       '/api/portal/:customerId/overview',
       '/api/dashboard/sales-summary',
       '/api/dashboard/snapshot',
       '/api/dashboard/snapshots',
       '/api/forecast/weighted',
+      '/api/forecast/trend',
       '/api/forecasts',
       '/api/reports',
       '/api/reports/:id/run'
@@ -60,7 +63,7 @@ describe('[CRM5-R1] Team Lead: README, demo script & module consistency', () => 
 
   it('frontend/src/modules/crm5 complies with monorepo shell & folder rules', () => {
     assert.match(moduleIndex, /id:\s*'crm5'/);
-    for (const routePath of ["''", "'dashboard'", "'portal'", "'portal/home'", "'reports'", "'forecast'"]) {
+    for (const routePath of ["''", "'dashboard'", "'portal'", "'portal/home'", "'portal/orders/:id'", "'orders/:id'", "'reports'", "'forecast'"]) {
       assert.ok(moduleIndex.includes(routePath), `index.jsx missing route ${routePath}`);
     }
 
