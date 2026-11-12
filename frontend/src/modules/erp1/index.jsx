@@ -1,6 +1,7 @@
 import React from 'react';
 import Alerts from './pages/Alerts';
 import ProductsPage from './pages/ProductsPage';
+import SerialsPage from './pages/SerialsPage';
 
 function Placeholder() {
   return (
@@ -10,7 +11,7 @@ function Placeholder() {
         <span className="badge badge-blue">ERP1</span>
       </div>
       <p style={{ color: '#64748b', fontSize: '1rem', lineHeight: '1.6' }}>
-        Welcome to ERP-1 Inventory & Warehouses. Navigate to Products or Stock Alerts to manage catalog, monitor inventory levels, and view shortfalls.
+        Welcome to ERP-1 Inventory & Warehouses. Navigate to Products, Serial Numbers, or Stock Alerts to manage catalog, serials, and inventory levels.
       </p>
       <div style={{ marginTop: '1.5rem', padding: '1.25rem', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
         <h4 style={{ marginBottom: '0.5rem', color: '#0f172a' }}>Quick Links:</h4>
@@ -18,6 +19,11 @@ function Placeholder() {
           <li>
             <a href="/erp1/products" style={{ color: '#2563eb', textDecoration: 'none', fontWeight: 500 }}>
               Product Catalog & SKU Master →
+            </a>
+          </li>
+          <li>
+            <a href="/erp1/serials" style={{ color: '#2563eb', textDecoration: 'none', fontWeight: 500 }}>
+              Serial Numbers & Batches →
             </a>
           </li>
           <li>
@@ -45,6 +51,11 @@ export default {
       path: 'products',
       label: 'Products',
       element: <ProductsPage />
+    },
+    {
+      path: 'serials',
+      label: 'Serial Numbers',
+      element: <SerialsPage />
     },
     {
       path: 'alerts',
