@@ -23,8 +23,18 @@ export default function StockPage() {
     delta: '',
     reason: ''
   });
-  const [formError, setFormError] = useState(null);
-  const [submitting, setSubmitting] = useState(false);
+  const [adjustError, setAdjustError] = useState(null);
+  const [adjustSubmitting, setAdjustSubmitting] = useState(false);
+
+  // Transfer stock form state (ERP1-B3)
+  const [transferData, setTransferData] = useState({
+    sku: '',
+    from_wh: 'WH-01',
+    to_wh: 'WH-02',
+    qty: ''
+  });
+  const [transferError, setTransferError] = useState(null);
+  const [transferSubmitting, setTransferSubmitting] = useState(false);
 
   /**
    * Fetch products from existing ERP-1 product API for product names and dropdown
@@ -88,6 +98,13 @@ export default function StockPage() {
     return () => { isMounted = false; };
   }, []);
 
+  // Re-fetch when filter is cleared
+  useEffect(() => {
+    if (skuFilter === '') {
+      fetchStock();
+    }
+  }, [skuFilter]);
+
   /**
    * Handle filter changes
    */
@@ -104,48 +121,40 @@ export default function StockPage() {
     setSkuFilter('');
   };
 
-  // Re-fetch when filter is cleared
-  useEffect(() => {
-    if (skuFilter === '') {
-      fetchStock();
-    }
-  }, [skuFilter]);
-
   /**
    * Handle Adjust Stock form input change
    */
-  const handleInputChange = (e) => {
+  const handleAdjustInputChange = (e) => {
     const { name, value } = e.target;
     setAdjustData(prev => ({ ...prev, [name]: value }));
   };
 
   /**
-   * Submit stock adjustment
+   * Submit stock adjustment (ERP1-B1 / ERP1-B2)
    */
   const handleAdjustSubmit = async (e) => {
     e.preventDefault();
-    setFormError(null);
+    setAdjustError(null);
     setFeedback(null);
 
-    // Validation
     const cleanSku = adjustData.sku.trim();
     if (!cleanSku) {
-      setFormError('Please select or enter a SKU');
+      setAdjustError('Please select or enter a SKU');
       return;
     }
     if (!adjustData.warehouse_id) {
-      setFormError('Please select a warehouse');
+      setAdjustError('Please select a warehouse');
       return;
     }
 
     const deltaNum = parseInt(adjustData.delta, 10);
     if (isNaN(deltaNum) || deltaNum === 0 || deltaNum !== Number(adjustData.delta)) {
-      setFormError('Quantity change (delta) must be a non-zero integer (+ to add, - to deduct)');
+      setAdjustError('Quantity change (delta) must be a non-zero integer (+ to add, - to deduct)');
       return;
     }
 
     try {
-      setSubmitting(true);
+      setAdjustSubmitting(true);
 
       const payload = {
         sku: cleanSku,
@@ -163,19 +172,88 @@ export default function StockPage() {
       const changeText = deltaNum > 0 ? `+${deltaNum}` : `${deltaNum}`;
       setFeedback(`Successfully adjusted stock for ${cleanSku} at ${adjustData.warehouse_id} by ${changeText} (New qty: ${updatedData.new_quantity ?? 'updated'}).`);
 
-      // Reset delta and reason in form
       setAdjustData(prev => ({
         ...prev,
         delta: '',
         reason: ''
       }));
 
-      // Refresh stock matrix
       await fetchStock();
     } catch (err) {
-      setFormError(err.message || 'Failed to adjust stock');
+      setAdjustError(err.message || 'Failed to adjust stock');
     } finally {
-      setSubmitting(false);
+      setAdjustSubmitting(false);
+    }
+  };
+
+  /**
+   * Handle Transfer form input change
+   */
+  const handleTransferInputChange = (e) => {
+    const { name, value } = e.target;
+    setTransferData(prev => ({ ...prev, [name]: value }));
+  };
+
+  /**
+   * Submit stock transfer (ERP1-B3)
+   */
+  const handleTransferSubmit = async (e) => {
+    e.preventDefault();
+    setTransferError(null);
+    setFeedback(null);
+
+    const cleanSku = transferData.sku.trim();
+    if (!cleanSku) {
+      setTransferError('Please select or enter a SKU to transfer');
+      return;
+    }
+    if (!transferData.from_wh) {
+      setTransferError('Please select source warehouse (from_wh)');
+      return;
+    }
+    if (!transferData.to_wh) {
+      setTransferError('Please select destination warehouse (to_wh)');
+      return;
+    }
+    if (transferData.from_wh === transferData.to_wh) {
+      setTransferError('Source and destination warehouses cannot be the same');
+      return;
+    }
+
+    const qtyNum = parseInt(transferData.qty, 10);
+    if (isNaN(qtyNum) || qtyNum <= 0 || qtyNum !== Number(transferData.qty)) {
+      setTransferError('Transfer quantity must be a positive integer greater than zero');
+      return;
+    }
+
+    try {
+      setTransferSubmitting(true);
+
+      const payload = {
+        sku: cleanSku,
+        from_wh: transferData.from_wh,
+        to_wh: transferData.to_wh,
+        qty: qtyNum
+      };
+
+      const res = await api('erp1', '/api/transfers', {
+        method: 'POST',
+        body: payload
+      });
+
+      const resultData = res?.data || res;
+      setFeedback(`Stock transfer completed: Moved ${qtyNum} unit(s) of ${cleanSku} from ${transferData.from_wh} to ${transferData.to_wh} (Source stock now: ${resultData.source_new_stock ?? 'updated'}, Dest stock now: ${resultData.target_new_stock ?? 'updated'}).`);
+
+      setTransferData(prev => ({
+        ...prev,
+        qty: ''
+      }));
+
+      await fetchStock();
+    } catch (err) {
+      setTransferError(err.message || 'Failed to transfer stock');
+    } finally {
+      setTransferSubmitting(false);
     }
   };
 
@@ -185,11 +263,11 @@ export default function StockPage() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <h1 style={{ margin: 0, fontSize: '1.75rem', fontWeight: 600, color: '#0f172a' }}>Multi-Warehouse Stock</h1>
+            <h1 style={{ margin: 0, fontSize: '1.75rem', fontWeight: 600, color: '#0f172a' }}>Multi-Warehouse Stock & Transfers</h1>
             <span className="badge badge-blue">ERP-1</span>
           </div>
           <p style={{ margin: '0.25rem 0 0 0', color: '#64748b', fontSize: '0.875rem' }}>
-            Real-time physical inventory across Mumbai (WH-01), Delhi (WH-02), and Bengaluru (WH-03) warehouses.
+            Physical inventory matrix across Mumbai (WH-01), Delhi (WH-02), and Bengaluru (WH-03) warehouses.
           </p>
         </div>
         <div style={{ display: 'flex', gap: '0.75rem' }}>
@@ -351,7 +429,7 @@ export default function StockPage() {
                   <th style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>WH-02 (Delhi)</th>
                   <th style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>WH-03 (Bengaluru)</th>
                   <th style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>Total Stock</th>
-                  <th style={{ padding: '0.75rem 1rem', textAlign: 'center' }}>Action</th>
+                  <th style={{ padding: '0.75rem 1rem', textAlign: 'center' }}>Quick Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -385,27 +463,47 @@ export default function StockPage() {
                           {total}
                         </span>
                       </td>
-                      <td style={{ padding: '0.75rem 1rem', textAlign: 'center' }}>
+                      <td style={{ padding: '0.75rem 1rem', textAlign: 'center', whiteSpace: 'nowrap' }}>
                         <button
                           type="button"
                           onClick={() => {
                             setAdjustData(prev => ({ ...prev, sku: item.sku }));
-                            // Scroll to form
                             const formEl = document.getElementById('adjust-stock-card');
                             if (formEl) formEl.scrollIntoView({ behavior: 'smooth' });
                           }}
                           style={{
-                            padding: '0.25rem 0.6rem',
+                            padding: '0.25rem 0.5rem',
                             fontSize: '0.75rem',
                             borderRadius: '4px',
                             border: '1px solid #cbd5e1',
                             background: '#f8fafc',
                             cursor: 'pointer',
                             color: '#2563eb',
-                            fontWeight: 500
+                            fontWeight: 500,
+                            marginRight: '0.4rem'
                           }}
                         >
                           Adjust
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setTransferData(prev => ({ ...prev, sku: item.sku }));
+                            const formEl = document.getElementById('transfer-stock-card');
+                            if (formEl) formEl.scrollIntoView({ behavior: 'smooth' });
+                          }}
+                          style={{
+                            padding: '0.25rem 0.5rem',
+                            fontSize: '0.75rem',
+                            borderRadius: '4px',
+                            border: '1px solid #cbd5e1',
+                            background: '#f8fafc',
+                            cursor: 'pointer',
+                            color: '#0891b2',
+                            fontWeight: 500
+                          }}
+                        >
+                          Transfer
                         </button>
                       </td>
                     </tr>
@@ -417,193 +515,380 @@ export default function StockPage() {
         )}
       </div>
 
-      {/* Adjust Stock Form Card */}
-      <div id="adjust-stock-card" style={{
-        background: '#fff',
-        borderRadius: '8px',
-        border: '1px solid #e2e8f0',
-        padding: '1.5rem',
-        marginBottom: '2rem'
-      }}>
-        <div style={{ marginBottom: '1rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.75rem' }}>
-          <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 600, color: '#0f172a' }}>Adjust Warehouse Stock</h2>
-          <p style={{ margin: '0.25rem 0 0 0', color: '#64748b', fontSize: '0.875rem' }}>
-            Record positive adjustments (receipts, found stock) or negative adjustments (damages, scrap).
-          </p>
-        </div>
-
-        {formError && (
-          <div style={{
-            padding: '0.75rem 1rem',
-            marginBottom: '1rem',
-            borderRadius: '6px',
-            background: '#fef2f2',
-            border: '1px solid #fecaca',
-            color: '#991b1b',
-            fontSize: '0.875rem'
-          }}>
-            ⚠️ {formError}
+      {/* Grid of Forms: Adjust Stock + Transfer Stock */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(480px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
+        {/* Adjust Stock Form Card (ERP1-B1/B2) */}
+        <div id="adjust-stock-card" style={{
+          background: '#fff',
+          borderRadius: '8px',
+          border: '1px solid #e2e8f0',
+          padding: '1.5rem'
+        }}>
+          <div style={{ marginBottom: '1rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.75rem' }}>
+            <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 600, color: '#0f172a' }}>Adjust Warehouse Stock</h2>
+            <p style={{ margin: '0.25rem 0 0 0', color: '#64748b', fontSize: '0.8125rem' }}>
+              Record additions (+ delta) or deductions (- delta).
+            </p>
           </div>
-        )}
 
-        <form onSubmit={handleAdjustSubmit}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem', marginBottom: '1.25rem' }}>
-            {/* SKU Input / Select */}
-            <div>
-              <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, color: '#334155', marginBottom: '0.35rem' }}>
-                Product SKU *
-              </label>
-              {products.length > 0 ? (
+          {adjustError && (
+            <div style={{
+              padding: '0.65rem 0.85rem',
+              marginBottom: '1rem',
+              borderRadius: '6px',
+              background: '#fef2f2',
+              border: '1px solid #fecaca',
+              color: '#991b1b',
+              fontSize: '0.8125rem'
+            }}>
+              ⚠️ {adjustError}
+            </div>
+          )}
+
+          <form onSubmit={handleAdjustSubmit}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1rem' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 500, color: '#334155', marginBottom: '0.25rem' }}>
+                  Product SKU *
+                </label>
+                {products.length > 0 ? (
+                  <select
+                    name="sku"
+                    value={adjustData.sku}
+                    onChange={handleAdjustInputChange}
+                    required
+                    style={{
+                      width: '100%',
+                      padding: '0.45rem 0.65rem',
+                      borderRadius: '6px',
+                      border: '1px solid #cbd5e1',
+                      fontSize: '0.8125rem',
+                      background: '#fff'
+                    }}
+                  >
+                    <option value="">-- Select SKU --</option>
+                    {products.map(p => (
+                      <option key={p.id} value={p.id}>
+                        {p.id} - {p.name}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <input
+                    type="text"
+                    name="sku"
+                    value={adjustData.sku}
+                    onChange={handleAdjustInputChange}
+                    placeholder="e.g. SKU-0001"
+                    required
+                    style={{
+                      width: '100%',
+                      padding: '0.45rem 0.65rem',
+                      borderRadius: '6px',
+                      border: '1px solid #cbd5e1',
+                      fontSize: '0.8125rem'
+                    }}
+                  />
+                )}
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 500, color: '#334155', marginBottom: '0.25rem' }}>
+                  Warehouse *
+                </label>
                 <select
-                  name="sku"
-                  value={adjustData.sku}
-                  onChange={handleInputChange}
+                  name="warehouse_id"
+                  value={adjustData.warehouse_id}
+                  onChange={handleAdjustInputChange}
                   required
                   style={{
                     width: '100%',
-                    padding: '0.5rem 0.75rem',
+                    padding: '0.45rem 0.65rem',
                     borderRadius: '6px',
                     border: '1px solid #cbd5e1',
-                    fontSize: '0.875rem',
+                    fontSize: '0.8125rem',
                     background: '#fff'
                   }}
                 >
-                  <option value="">-- Select SKU --</option>
-                  {products.map(p => (
-                    <option key={p.id} value={p.id}>
-                      {p.id} - {p.name}
+                  {WAREHOUSE_LIST.map(w => (
+                    <option key={w.id} value={w.id}>
+                      {w.id} ({w.name})
                     </option>
                   ))}
                 </select>
-              ) : (
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 500, color: '#334155', marginBottom: '0.25rem' }}>
+                  Quantity Change (+/-) *
+                </label>
                 <input
-                  type="text"
-                  name="sku"
-                  value={adjustData.sku}
-                  onChange={handleInputChange}
-                  placeholder="e.g. SKU-0001"
+                  type="number"
+                  name="delta"
+                  value={adjustData.delta}
+                  onChange={handleAdjustInputChange}
+                  placeholder="e.g. 10 or -5"
                   required
                   style={{
                     width: '100%',
-                    padding: '0.5rem 0.75rem',
+                    padding: '0.45rem 0.65rem',
                     borderRadius: '6px',
                     border: '1px solid #cbd5e1',
-                    fontSize: '0.875rem'
+                    fontSize: '0.8125rem'
                   }}
                 />
-              )}
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 500, color: '#334155', marginBottom: '0.25rem' }}>
+                  Reason
+                </label>
+                <input
+                  type="text"
+                  name="reason"
+                  value={adjustData.reason}
+                  onChange={handleAdjustInputChange}
+                  placeholder="e.g. Cycle count"
+                  style={{
+                    width: '100%',
+                    padding: '0.45rem 0.65rem',
+                    borderRadius: '6px',
+                    border: '1px solid #cbd5e1',
+                    fontSize: '0.8125rem'
+                  }}
+                />
+              </div>
             </div>
 
-            {/* Warehouse Select */}
-            <div>
-              <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, color: '#334155', marginBottom: '0.35rem' }}>
-                Warehouse *
-              </label>
-              <select
-                name="warehouse_id"
-                value={adjustData.warehouse_id}
-                onChange={handleInputChange}
-                required
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
+              <button
+                type="button"
+                onClick={() => {
+                  setAdjustData({ sku: '', warehouse_id: 'WH-01', delta: '', reason: '' });
+                  setAdjustError(null);
+                }}
                 style={{
-                  width: '100%',
-                  padding: '0.5rem 0.75rem',
+                  padding: '0.45rem 0.85rem',
                   borderRadius: '6px',
                   border: '1px solid #cbd5e1',
-                  fontSize: '0.875rem',
-                  background: '#fff'
+                  background: '#fff',
+                  cursor: 'pointer',
+                  fontSize: '0.8125rem'
                 }}
               >
-                {WAREHOUSE_LIST.map(w => (
-                  <option key={w.id} value={w.id}>
-                    {w.id} ({w.name})
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Quantity Change (Delta) */}
-            <div>
-              <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, color: '#334155', marginBottom: '0.35rem' }}>
-                Quantity Change (+/-) *
-              </label>
-              <input
-                type="number"
-                name="delta"
-                value={adjustData.delta}
-                onChange={handleInputChange}
-                placeholder="e.g. 10 or -5"
-                required
+                Reset
+              </button>
+              <button
+                type="submit"
+                disabled={adjustSubmitting}
                 style={{
-                  width: '100%',
-                  padding: '0.5rem 0.75rem',
+                  padding: '0.45rem 1rem',
                   borderRadius: '6px',
-                  border: '1px solid #cbd5e1',
-                  fontSize: '0.875rem'
+                  border: 'none',
+                  background: '#2563eb',
+                  color: '#fff',
+                  cursor: adjustSubmitting ? 'not-allowed' : 'pointer',
+                  fontWeight: 600,
+                  fontSize: '0.8125rem'
                 }}
-              />
-              <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
-                Positive to add, negative to deduct
-              </span>
+              >
+                {adjustSubmitting ? 'Applying...' : 'Apply Adjustment'}
+              </button>
             </div>
+          </form>
+        </div>
 
-            {/* Reason */}
-            <div>
-              <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, color: '#334155', marginBottom: '0.35rem' }}>
-                Reason
-              </label>
-              <input
-                type="text"
-                name="reason"
-                value={adjustData.reason}
-                onChange={handleInputChange}
-                placeholder="e.g. Physical cycle count"
-                style={{
-                  width: '100%',
-                  padding: '0.5rem 0.75rem',
-                  borderRadius: '6px',
-                  border: '1px solid #cbd5e1',
-                  fontSize: '0.875rem'
-                }}
-              />
-            </div>
+        {/* Inter-Warehouse Transfer Form Card (ERP1-B3) */}
+        <div id="transfer-stock-card" style={{
+          background: '#fff',
+          borderRadius: '8px',
+          border: '1px solid #e2e8f0',
+          padding: '1.5rem'
+        }}>
+          <div style={{ marginBottom: '1rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.75rem' }}>
+            <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 600, color: '#0f172a' }}>Transfer Stock Between Warehouses</h2>
+            <p style={{ margin: '0.25rem 0 0 0', color: '#64748b', fontSize: '0.8125rem' }}>
+              Atomically transfer stock from one warehouse to another in a single transaction.
+            </p>
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
-            <button
-              type="button"
-              onClick={() => {
-                setAdjustData({ sku: '', warehouse_id: 'WH-01', delta: '', reason: '' });
-                setFormError(null);
-              }}
-              style={{
-                padding: '0.5rem 1rem',
-                borderRadius: '6px',
-                border: '1px solid #cbd5e1',
-                background: '#fff',
-                cursor: 'pointer',
-                fontSize: '0.875rem'
-              }}
-            >
-              Reset
-            </button>
-            <button
-              type="submit"
-              disabled={submitting}
-              style={{
-                padding: '0.5rem 1.25rem',
-                borderRadius: '6px',
-                border: 'none',
-                background: '#2563eb',
-                color: '#fff',
-                cursor: submitting ? 'not-allowed' : 'pointer',
-                fontWeight: 600,
-                fontSize: '0.875rem'
-              }}
-            >
-              {submitting ? 'Applying Adjustment...' : 'Apply Adjustment'}
-            </button>
-          </div>
-        </form>
+          {transferError && (
+            <div style={{
+              padding: '0.65rem 0.85rem',
+              marginBottom: '1rem',
+              borderRadius: '6px',
+              background: '#fef2f2',
+              border: '1px solid #fecaca',
+              color: '#991b1b',
+              fontSize: '0.8125rem'
+            }}>
+              ⚠️ {transferError}
+            </div>
+          )}
+
+          <form onSubmit={handleTransferSubmit}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1rem' }}>
+              {/* SKU */}
+              <div style={{ gridColumn: 'span 2' }}>
+                <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 500, color: '#334155', marginBottom: '0.25rem' }}>
+                  Product SKU *
+                </label>
+                {products.length > 0 ? (
+                  <select
+                    name="sku"
+                    value={transferData.sku}
+                    onChange={handleTransferInputChange}
+                    required
+                    style={{
+                      width: '100%',
+                      padding: '0.45rem 0.65rem',
+                      borderRadius: '6px',
+                      border: '1px solid #cbd5e1',
+                      fontSize: '0.8125rem',
+                      background: '#fff'
+                    }}
+                  >
+                    <option value="">-- Select SKU --</option>
+                    {products.map(p => (
+                      <option key={p.id} value={p.id}>
+                        {p.id} - {p.name}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <input
+                    type="text"
+                    name="sku"
+                    value={transferData.sku}
+                    onChange={handleTransferInputChange}
+                    placeholder="e.g. SKU-0001"
+                    required
+                    style={{
+                      width: '100%',
+                      padding: '0.45rem 0.65rem',
+                      borderRadius: '6px',
+                      border: '1px solid #cbd5e1',
+                      fontSize: '0.8125rem'
+                    }}
+                  />
+                )}
+              </div>
+
+              {/* Source Warehouse */}
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 500, color: '#334155', marginBottom: '0.25rem' }}>
+                  Source Warehouse (From) *
+                </label>
+                <select
+                  name="from_wh"
+                  value={transferData.from_wh}
+                  onChange={handleTransferInputChange}
+                  required
+                  style={{
+                    width: '100%',
+                    padding: '0.45rem 0.65rem',
+                    borderRadius: '6px',
+                    border: '1px solid #cbd5e1',
+                    fontSize: '0.8125rem',
+                    background: '#fff'
+                  }}
+                >
+                  {WAREHOUSE_LIST.map(w => (
+                    <option key={w.id} value={w.id}>
+                      {w.id} ({w.name})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Destination Warehouse */}
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 500, color: '#334155', marginBottom: '0.25rem' }}>
+                  Destination Warehouse (To) *
+                </label>
+                <select
+                  name="to_wh"
+                  value={transferData.to_wh}
+                  onChange={handleTransferInputChange}
+                  required
+                  style={{
+                    width: '100%',
+                    padding: '0.45rem 0.65rem',
+                    borderRadius: '6px',
+                    border: '1px solid #cbd5e1',
+                    fontSize: '0.8125rem',
+                    background: '#fff'
+                  }}
+                >
+                  {WAREHOUSE_LIST.map(w => (
+                    <option key={w.id} value={w.id}>
+                      {w.id} ({w.name})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Quantity */}
+              <div style={{ gridColumn: 'span 2' }}>
+                <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 500, color: '#334155', marginBottom: '0.25rem' }}>
+                  Quantity to Transfer *
+                </label>
+                <input
+                  type="number"
+                  name="qty"
+                  min="1"
+                  value={transferData.qty}
+                  onChange={handleTransferInputChange}
+                  placeholder="e.g. 5"
+                  required
+                  style={{
+                    width: '100%',
+                    padding: '0.45rem 0.65rem',
+                    borderRadius: '6px',
+                    border: '1px solid #cbd5e1',
+                    fontSize: '0.8125rem'
+                  }}
+                />
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
+              <button
+                type="button"
+                onClick={() => {
+                  setTransferData({ sku: '', from_wh: 'WH-01', to_wh: 'WH-02', qty: '' });
+                  setTransferError(null);
+                }}
+                style={{
+                  padding: '0.45rem 0.85rem',
+                  borderRadius: '6px',
+                  border: '1px solid #cbd5e1',
+                  background: '#fff',
+                  cursor: 'pointer',
+                  fontSize: '0.8125rem'
+                }}
+              >
+                Reset
+              </button>
+              <button
+                type="submit"
+                disabled={transferSubmitting}
+                style={{
+                  padding: '0.45rem 1rem',
+                  borderRadius: '6px',
+                  border: 'none',
+                  background: '#0891b2',
+                  color: '#fff',
+                  cursor: transferSubmitting ? 'not-allowed' : 'pointer',
+                  fontWeight: 600,
+                  fontSize: '0.8125rem'
+                }}
+              >
+                {transferSubmitting ? 'Transferring...' : 'Execute Transfer'}
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   );
