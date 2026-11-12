@@ -17,7 +17,8 @@ const FALLBACK_ORDERS = [
   { id: 'SO-0002', customer_id: 'CUST-0004', quote_id: 'QUO-0002', total_amount: 76183.16, status: 'dispatched', sales_rep_id: 'EMP-0002', created_at: '2026-11-05T14:15:00.000Z', items_count: 4 },
   { id: 'SO-0003', customer_id: 'CUST-0003', quote_id: 'QUO-0003', total_amount: 133316.40, status: 'confirmed', sales_rep_id: 'EMP-0003', created_at: '2026-11-07T11:00:00.000Z', items_count: 2 },
   { id: 'SO-0004', customer_id: 'CUST-0002', quote_id: 'QUO-0004', total_amount: 53100.00, status: 'delivered', sales_rep_id: 'EMP-0001', created_at: '2026-11-08T09:45:00.000Z', items_count: 3 },
-  { id: 'SO-0005', customer_id: 'CUST-0001', quote_id: 'QUO-0005', total_amount: 42990.00, status: 'confirmed', sales_rep_id: 'EMP-0002', created_at: '2026-11-09T16:20:00.000Z', items_count: 1 }
+  { id: 'SO-0005', customer_id: 'CUST-0001', quote_id: 'QUO-0005', total_amount: 42990.00, status: 'confirmed', sales_rep_id: 'EMP-0002', created_at: '2026-11-09T16:20:00.000Z', items_count: 1 },
+  { id: 'SO-0006', customer_id: 'CUST-0001', quote_id: 'QUO-0006', total_amount: 25960.00, status: 'created', sales_rep_id: 'EMP-0001', created_at: '2026-11-10T12:00:00.000Z', items_count: 2 }
 ];
 
 // Fallback tickets
@@ -57,6 +58,15 @@ export default function PortalPage() {
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [infoNotice, setInfoNotice] = useState('');
+
+  // Raise Ticket Form State [CRM5-A3]
+  const [showTicketForm, setShowTicketForm] = useState(false);
+  const [ticketSubject, setTicketSubject] = useState('');
+  const [ticketDescription, setTicketDescription] = useState('');
+  const [ticketPriority, setTicketPriority] = useState('medium');
+  const [submittingTicket, setSubmittingTicket] = useState(false);
+  const [ticketSuccess, setTicketSuccess] = useState(null);
+  const [ticketError, setTicketError] = useState(null);
 
   // Currency formatter in INR
   const formatMoney = (val) => {
@@ -125,7 +135,8 @@ export default function PortalPage() {
     setInfoNotice('');
 
     try {
-      const data = await api('crm5', `/api/portal/${cleanId}/overview`);
+      const res = await api('crm5', `/api/portal/${cleanId}/overview`);
+      const data = res?.data || res;
       if (data && data.customer) {
         setActiveCustomer(data.customer);
         setOrders(data.orders || []);
@@ -190,7 +201,7 @@ export default function PortalPage() {
     }
   }, [location.pathname, queryCustomerId, loadCustomerOverview]);
 
-  // Handle form submission
+  // Handle customer ID search submission
   const handleSubmit = (e) => {
     if (e && e.preventDefault) e.preventDefault();
     if (!inputCustomerId.trim()) {
@@ -210,8 +221,95 @@ export default function PortalPage() {
     setInvoices([]);
     setStats(null);
     setErrorMessage('');
+    setShowTicketForm(false);
+    setTicketSuccess(null);
+    setTicketError(null);
     sessionStorage.removeItem('portal_last_customer_id');
     navigate('/crm5/portal');
+  };
+
+  // Handle Raise Support Ticket Submission [CRM5-A3]
+  const handleRaiseTicketSubmit = async (e) => {
+    if (e && e.preventDefault) e.preventDefault();
+    if (submittingTicket) return;
+
+    // Validate customer context
+    if (!activeCustomer || !activeCustomer.id || !activeCustomer.name) {
+      setTicketError('Customer account context is unavailable. Please verify your login session before raising a ticket.');
+      return;
+    }
+
+    // Validate form inputs
+    if (!ticketSubject.trim()) {
+      setTicketError('Please provide a ticket subject describing the inquiry.');
+      return;
+    }
+
+    if (!ticketDescription.trim()) {
+      setTicketError('Please provide a detailed description of the support request.');
+      return;
+    }
+
+    try {
+      setSubmittingTicket(true);
+      setTicketError(null);
+      setTicketSuccess(null);
+
+      // Sourced fields: customer_id and customer_name from activeCustomer context
+      const payload = {
+        customer_id: activeCustomer.id,
+        customer_name: activeCustomer.name,
+        subject: ticketSubject.trim(),
+        description: ticketDescription.trim(),
+        priority: ticketPriority
+      };
+
+      const res = await api('crm5', '/api/portal/tickets', {
+        method: 'POST',
+        body: payload
+      });
+
+      const created = res?.data || res;
+      const ticketId = created?.id || 'TKT-MOCK';
+
+      setTicketSuccess({
+        id: ticketId,
+        subject: payload.subject,
+        priority: payload.priority,
+        status: created?.status || 'open'
+      });
+
+      // Clear form inputs only upon successful submission
+      setTicketSubject('');
+      setTicketDescription('');
+      setTicketPriority('medium');
+
+      // Optimistically add created ticket to the tickets list
+      const newTicketRecord = {
+        id: ticketId,
+        customer_id: activeCustomer.id,
+        subject: payload.subject,
+        priority: payload.priority,
+        status: created?.status || 'open',
+        assigned_engineer: created?.assigned_engineer || 'EMP-0005',
+        created_at: created?.created_at || new Date().toISOString()
+      };
+      setTickets(prev => [newTicketRecord, ...prev]);
+
+      // Update statistics
+      setStats(prev => prev ? {
+        ...prev,
+        total_tickets: (prev.total_tickets || 0) + 1,
+        open_tickets: (prev.open_tickets || 0) + 1
+      } : null);
+
+    } catch (err) {
+      console.error('Failed to submit support ticket:', err);
+      // Preserve entered form values on failure, display clear error
+      setTicketError(err.message || 'Failed to submit support ticket to CRM-2. Your inputs have been preserved.');
+    } finally {
+      setSubmittingTicket(false);
+    }
   };
 
   return (
@@ -226,7 +324,7 @@ export default function PortalPage() {
             <span className="badge badge-purple">CRM-5</span>
           </div>
           <p style={{ color: '#64748b', margin: '0.25rem 0 0 0', fontSize: '0.9rem' }}>
-            Track order fulfillment status, monitor active support tickets, and review GST invoices.
+            Track order fulfillment status, raise support tickets, and review GST invoices.
           </p>
         </div>
 
@@ -461,7 +559,7 @@ export default function PortalPage() {
             </div>
           )}
 
-          {/* CARD 1: MY ORDERS */}
+          {/* CARD 1: MY ORDERS (with Track Order links [CRM5-A3]) */}
           <div style={{
             backgroundColor: '#ffffff',
             borderRadius: '12px',
@@ -469,13 +567,13 @@ export default function PortalPage() {
             border: '1px solid #e2e8f0',
             boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
           }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '8px' }}>
               <div>
                 <h3 style={{ fontSize: '1.15rem', fontWeight: 600, margin: 0, color: '#1e293b' }}>
                   📦 My Orders
                 </h3>
                 <span style={{ fontSize: '0.85rem', color: '#64748b' }}>
-                  Hardware and electronic appliances procurement orders
+                  Hardware and electronic appliances procurement orders with live ERP-4 tracking
                 </span>
               </div>
               <span className="badge badge-blue">{orders.length} Records</span>
@@ -497,13 +595,30 @@ export default function PortalPage() {
                       <th style={{ padding: '0.75rem' }}>Sales Rep</th>
                       <th style={{ padding: '0.75rem' }}>Total Amount</th>
                       <th style={{ padding: '0.75rem' }}>Status</th>
+                      <th style={{ padding: '0.75rem', textAlign: 'right' }}>Track Order</th>
                     </tr>
                   </thead>
                   <tbody>
                     {orders.map((order) => (
                       <tr key={order.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                        <td style={{ padding: '0.75rem', fontWeight: 600, fontFamily: 'monospace' }}>
-                          {order.id}
+                        <td style={{ padding: '0.75rem', fontWeight: 700, fontFamily: 'monospace' }}>
+                          <button
+                            type="button"
+                            onClick={() => navigate(`/crm5/portal/orders/${order.id}`)}
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              color: '#2563eb',
+                              cursor: 'pointer',
+                              fontFamily: 'monospace',
+                              fontWeight: 700,
+                              padding: 0,
+                              textDecoration: 'underline'
+                            }}
+                            title={`Track order ${order.id}`}
+                          >
+                            {order.id}
+                          </button>
                         </td>
                         <td style={{ padding: '0.75rem', color: '#64748b' }}>
                           {formatDate(order.created_at)}
@@ -525,6 +640,25 @@ export default function PortalPage() {
                             {order.status}
                           </span>
                         </td>
+                        <td style={{ padding: '0.75rem', textAlign: 'right' }}>
+                          <button
+                            type="button"
+                            onClick={() => navigate(`/crm5/portal/orders/${order.id}`)}
+                            style={{
+                              padding: '4px 10px',
+                              fontSize: '12px',
+                              fontWeight: '600',
+                              backgroundColor: '#eff6ff',
+                              color: '#1d4ed8',
+                              border: '1px solid #bfdbfe',
+                              borderRadius: '6px',
+                              cursor: 'pointer',
+                              transition: 'all 0.15s ease'
+                            }}
+                          >
+                            Track →
+                          </button>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -533,7 +667,7 @@ export default function PortalPage() {
             )}
           </div>
 
-          {/* CARD 2: MY TICKETS */}
+          {/* CARD 2: MY TICKETS (with Raise Support Ticket form [CRM5-A3]) */}
           <div style={{
             backgroundColor: '#ffffff',
             borderRadius: '12px',
@@ -541,18 +675,235 @@ export default function PortalPage() {
             border: '1px solid #e2e8f0',
             boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
           }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '8px' }}>
               <div>
                 <h3 style={{ fontSize: '1.15rem', fontWeight: 600, margin: 0, color: '#1e293b' }}>
-                  🛠️ My Tickets
+                  🛠️ My Support Tickets
                 </h3>
                 <span style={{ fontSize: '0.85rem', color: '#64748b' }}>
-                  Technical support inquiries and warranty service requests
+                  Technical support inquiries and warranty service desk powered by CRM-2
                 </span>
               </div>
-              <span className="badge badge-amber">{tickets.length} Inquiries</span>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <span className="badge badge-amber">{tickets.length} Inquiries</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowTicketForm(prev => !prev);
+                    setTicketError(null);
+                  }}
+                  style={{
+                    padding: '6px 12px',
+                    fontSize: '12px',
+                    fontWeight: '600',
+                    backgroundColor: showTicketForm ? '#f3f4f6' : '#10b981',
+                    color: showTicketForm ? '#374151' : '#ffffff',
+                    border: showTicketForm ? '1px solid #d1d5db' : 'none',
+                    borderRadius: '6px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  {showTicketForm ? '✕ Close Form' : '➕ Raise a Ticket'}
+                </button>
+              </div>
             </div>
 
+            {/* Success state banner with prominent ticket ID */}
+            {ticketSuccess && (
+              <div style={{
+                backgroundColor: '#ecfdf5',
+                border: '1px solid #a7f3d0',
+                borderRadius: '8px',
+                padding: '14px 16px',
+                marginBottom: '16px',
+                color: '#065f46',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center'
+              }}>
+                <div>
+                  <div style={{ fontSize: '15px', fontWeight: '700' }}>
+                    ✅ Ticket Created Successfully!
+                  </div>
+                  <div style={{ marginTop: '4px', fontSize: '13px' }}>
+                    Your support reference number is <strong style={{ fontSize: '14px', fontFamily: 'monospace', color: '#047857' }}>{ticketSuccess.id}</strong>.
+                    Our technical support team is reviewing your inquiry.
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setTicketSuccess(null)}
+                  style={{ background: 'none', border: 'none', color: '#065f46', fontSize: '16px', cursor: 'pointer', fontWeight: 'bold' }}
+                >
+                  ✕
+                </button>
+              </div>
+            )}
+
+            {/* Error state banner with feedback */}
+            {ticketError && (
+              <div style={{
+                backgroundColor: '#fef2f2',
+                border: '1px solid #fecaca',
+                borderRadius: '8px',
+                padding: '12px 16px',
+                marginBottom: '16px',
+                color: '#991b1b',
+                fontSize: '13px',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center'
+              }}>
+                <div>
+                  <strong>⚠️ Support Submission Error:</strong> {ticketError}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setTicketError(null)}
+                  style={{ background: 'none', border: 'none', color: '#991b1b', fontSize: '16px', cursor: 'pointer', fontWeight: 'bold' }}
+                >
+                  ✕
+                </button>
+              </div>
+            )}
+
+            {/* CUSTOMER-FACING "RAISE A TICKET" FORM [CRM5-A3] */}
+            {showTicketForm && (
+              <div style={{
+                backgroundColor: '#f8fafc',
+                border: '1px solid #cbd5e1',
+                borderRadius: '10px',
+                padding: '20px',
+                marginBottom: '20px'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                  <h4 style={{ margin: 0, fontSize: '15px', fontWeight: '700', color: '#0f172a' }}>
+                    Raise a New Support Ticket
+                  </h4>
+                  {/* Sourced Customer Identity Notice */}
+                  <span style={{ fontSize: '12px', color: '#475569', backgroundColor: '#e2e8f0', padding: '3px 8px', borderRadius: '4px' }}>
+                    Submitting as: <strong>{activeCustomer.name}</strong> ({activeCustomer.id})
+                  </span>
+                </div>
+
+                <p style={{ margin: '0 0 16px 0', fontSize: '12px', color: '#64748b' }}>
+                  Your customer identity (<code>{activeCustomer.id}</code> · {activeCustomer.name}) is automatically associated with this ticket.
+                </p>
+
+                <form onSubmit={handleRaiseTicketSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                  {/* Subject Input */}
+                  <div>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#334155', marginBottom: '4px' }}>
+                      Ticket Subject <span style={{ color: '#ef4444' }}>*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={ticketSubject}
+                      onChange={(e) => setTicketSubject(e.target.value)}
+                      placeholder="e.g. Backlight flickering on OLED 65 or remote connectivity query"
+                      required
+                      disabled={submittingTicket}
+                      style={{
+                        width: '100%',
+                        padding: '8px 12px',
+                        borderRadius: '6px',
+                        border: '1px solid #cbd5e1',
+                        fontSize: '13px',
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                  </div>
+
+                  {/* Priority Selector */}
+                  <div>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#334155', marginBottom: '4px' }}>
+                      Priority Level <span style={{ color: '#ef4444' }}>*</span>
+                    </label>
+                    <select
+                      value={ticketPriority}
+                      onChange={(e) => setTicketPriority(e.target.value)}
+                      disabled={submittingTicket}
+                      style={{
+                        width: '100%',
+                        padding: '8px 12px',
+                        borderRadius: '6px',
+                        border: '1px solid #cbd5e1',
+                        fontSize: '13px',
+                        backgroundColor: '#ffffff',
+                        boxSizing: 'border-box'
+                      }}
+                    >
+                      <option value="low">Low (General inquiry, standard response)</option>
+                      <option value="medium">Medium (Component impairment, regular business hours)</option>
+                      <option value="high">High (Device offline, business-critical priority)</option>
+                    </select>
+                  </div>
+
+                  {/* Description Textarea */}
+                  <div>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#334155', marginBottom: '4px' }}>
+                      Detailed Problem Description <span style={{ color: '#ef4444' }}>*</span>
+                    </label>
+                    <textarea
+                      value={ticketDescription}
+                      onChange={(e) => setTicketDescription(e.target.value)}
+                      placeholder="Please explain the technical issue in detail, including equipment serial number, error codes, and troubleshooting steps attempted..."
+                      rows="4"
+                      required
+                      disabled={submittingTicket}
+                      style={{
+                        width: '100%',
+                        padding: '8px 12px',
+                        borderRadius: '6px',
+                        border: '1px solid #cbd5e1',
+                        fontSize: '13px',
+                        fontFamily: 'inherit',
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                  </div>
+
+                  {/* Submit / Cancel Buttons */}
+                  <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                    <button
+                      type="submit"
+                      disabled={submittingTicket}
+                      style={{
+                        backgroundColor: submittingTicket ? '#9ca3af' : '#2563eb',
+                        color: '#ffffff',
+                        border: 'none',
+                        borderRadius: '6px',
+                        padding: '8px 18px',
+                        fontSize: '13px',
+                        fontWeight: '600',
+                        cursor: submittingTicket ? 'not-allowed' : 'pointer'
+                      }}
+                    >
+                      {submittingTicket ? 'Submitting to CRM-2...' : 'Submit Support Ticket'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowTicketForm(false)}
+                      disabled={submittingTicket}
+                      style={{
+                        backgroundColor: '#ffffff',
+                        color: '#475569',
+                        border: '1px solid #cbd5e1',
+                        borderRadius: '6px',
+                        padding: '8px 14px',
+                        fontSize: '13px',
+                        fontWeight: '500',
+                        cursor: submittingTicket ? 'not-allowed' : 'pointer'
+                      }}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
+
+            {/* Tickets Table */}
             {tickets.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '2rem', color: '#94a3b8', backgroundColor: '#f8fafc', borderRadius: '8px' }}>
                 No support tickets recorded for this account.

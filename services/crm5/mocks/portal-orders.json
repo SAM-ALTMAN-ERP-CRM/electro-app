@@ -2,51 +2,142 @@
   {
     "id": "SO-0001",
     "customer_id": "CUST-0001",
+    "customer_name": "Rajesh Kumar",
     "quote_id": "QUO-0001",
     "total_amount": 61336.40,
     "status": "delivered",
     "sales_rep_id": "EMP-0001",
     "created_at": "2026-11-04T10:30:00.000Z",
-    "items_count": 2
+    "items_count": 2,
+    "items": [
+      {
+        "id": 1,
+        "sku": "SKU-0001",
+        "product_name": "4K Ultra HD Smart TV 55-inch",
+        "quantity": 1,
+        "unit_price": 51980.00
+      },
+      {
+        "id": 2,
+        "sku": "SKU-0002",
+        "product_name": "HDMI 2.1 Ultra High Speed Cable 2m",
+        "quantity": 2,
+        "unit_price": 4678.20
+      }
+    ]
   },
   {
     "id": "SO-0002",
     "customer_id": "CUST-0004",
+    "customer_name": "Sunita Rao",
     "quote_id": "QUO-0002",
     "total_amount": 76183.16,
     "status": "dispatched",
     "sales_rep_id": "EMP-0002",
     "created_at": "2026-11-05T14:15:00.000Z",
-    "items_count": 4
+    "items_count": 4,
+    "items": [
+      {
+        "id": 1,
+        "sku": "SKU-0003",
+        "product_name": "Dolby Atmos Wireless Soundbar System",
+        "quantity": 2,
+        "unit_price": 32281.00
+      },
+      {
+        "id": 2,
+        "sku": "SKU-0004",
+        "product_name": "Universal Wall Mount Bracket Kit",
+        "quantity": 2,
+        "unit_price": 5810.58
+      }
+    ]
   },
   {
     "id": "SO-0003",
     "customer_id": "CUST-0003",
+    "customer_name": "Vikram Sethi",
     "quote_id": "QUO-0003",
     "total_amount": 133316.40,
     "status": "confirmed",
     "sales_rep_id": "EMP-0003",
     "created_at": "2026-11-07T11:00:00.000Z",
-    "items_count": 2
+    "items_count": 2,
+    "items": [
+      {
+        "id": 1,
+        "sku": "SKU-0005",
+        "product_name": "OLED Curved Gaming Monitor 48-inch",
+        "quantity": 1,
+        "unit_price": 112980.00
+      },
+      {
+        "id": 2,
+        "sku": "SKU-0006",
+        "product_name": "Pro Gaming Headset with Spatial Audio",
+        "quantity": 1,
+        "unit_price": 20336.40
+      }
+    ]
   },
   {
     "id": "SO-0004",
     "customer_id": "CUST-0002",
+    "customer_name": "Anita Desai",
     "quote_id": "QUO-0004",
     "total_amount": 53100.00,
     "status": "delivered",
     "sales_rep_id": "EMP-0001",
     "created_at": "2026-11-08T09:45:00.000Z",
-    "items_count": 3
+    "items_count": 3,
+    "items": [
+      {
+        "id": 1,
+        "sku": "SKU-0007",
+        "product_name": "Smart Home Hub Gateway v2",
+        "quantity": 3,
+        "unit_price": 17700.00
+      }
+    ]
   },
   {
     "id": "SO-0005",
     "customer_id": "CUST-0001",
+    "customer_name": "Rajesh Kumar",
     "quote_id": "QUO-0005",
     "total_amount": 42990.00,
     "status": "confirmed",
     "sales_rep_id": "EMP-0002",
     "created_at": "2026-11-09T16:20:00.000Z",
-    "items_count": 1
+    "items_count": 1,
+    "items": [
+      {
+        "id": 1,
+        "sku": "SKU-0008",
+        "product_name": "Commercial Display Audio Receiver",
+        "quantity": 1,
+        "unit_price": 42990.00
+      }
+    ]
+  },
+  {
+    "id": "SO-0006",
+    "customer_id": "CUST-0001",
+    "customer_name": "Rajesh Kumar",
+    "quote_id": "QUO-0006",
+    "total_amount": 25960.00,
+    "status": "created",
+    "sales_rep_id": "EMP-0001",
+    "created_at": "2026-11-10T12:00:00.000Z",
+    "items_count": 2,
+    "items": [
+      {
+        "id": 1,
+        "sku": "SKU-0009",
+        "product_name": "Wireless Noise Cancelling Earbuds Pro",
+        "quantity": 2,
+        "unit_price": 12980.00
+      }
+    ]
   }
 ]

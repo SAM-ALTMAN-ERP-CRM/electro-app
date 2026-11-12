@@ -1,0 +1,542 @@
+{
+  "info": {
+    "name": "CRM-5 Portal & Analytics API Collection",
+    "description": "Postman v2.1.0 testing collection for Team CRM-5 (Port 5105, crm5_db) covering Health, Customer Portal, Executive Sales Dashboard, Weighted Forecasts, Role-Based Reports, and Section 7 Cross-Team Verification (Rows 10, 11, 12, 29).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:5105", "type": "string" },
+    { "key": "crm1_url", "value": "http://localhost:5101", "type": "string" },
+    { "key": "crm2_url", "value": "http://localhost:5102", "type": "string" },
+    { "key": "crm3_url", "value": "http://localhost:5103", "type": "string" },
+    { "key": "erp4_url", "value": "http://localhost:5204", "type": "string" },
+    { "key": "erp5_url", "value": "http://localhost:5205", "type": "string" },
+    { "key": "jwt_token", "value": "", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "1. Auth & Health",
+      "item": [
+        {
+          "name": "CRM-5 Health Check",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/health"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Service is crm5 on port 5105', function () {",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.status).to.eql('ok');",
+                  "  pm.expect(json.team).to.eql('crm5');",
+                  "  pm.expect(Number(json.port)).to.eql(5105);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login via ERP-5 (Row 29 - admin@demo.com)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@demo.com\",\n  \"password\": \"demo123\"\n}"
+            },
+            "url": "{{erp5_url}}/api/auth/login"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Login returns 200 and JWT token', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.data.token).to.be.a('string');",
+                  "  pm.collectionVariables.set('jwt_token', json.data.token);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "2. Customer Self-Service Portal (CRM5-A1)",
+      "item": [
+        {
+          "name": "List Portal Customers",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{jwt_token}}" }],
+            "url": "{{base_url}}/api/portal/customers"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Returns CUST-xxxx array', function () {",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.data).to.be.an('array');",
+                  "  pm.expect(json.data[0].id).to.include('CUST-');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Customer Overview (CUST-0001)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{jwt_token}}" }],
+            "url": "{{base_url}}/api/portal/CUST-0001/overview"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Includes customer, orders, tickets, invoices, and stats', function () {",
+                  "  var d = pm.response.json().data;",
+                  "  pm.expect(d.customer.id).to.eql('CUST-0001');",
+                  "  pm.expect(d.orders).to.be.an('array');",
+                  "  pm.expect(d.tickets).to.be.an('array');",
+                  "  pm.expect(d.invoices).to.be.an('array');",
+                  "  pm.expect(d.stats.total_orders).to.be.a('number');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Customer Overview Alias (CUST-0001)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{jwt_token}}" }],
+            "url": "{{base_url}}/api/portal/CUST-0001"
+          }
+        },
+        {
+          "name": "Get Unknown Customer Overview (404)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{jwt_token}}" }],
+            "url": "{{base_url}}/api/portal/CUST-9999/overview"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Unknown customer returns 404', function () { pm.response.to.have.status(404); });",
+                  "pm.test('Returns friendly error message', function () {",
+                  "  pm.expect(pm.response.json().error).to.include('CUST-9999');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List Recent Portal Visits",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{jwt_token}}" }],
+            "url": "{{base_url}}/api/portal/visits"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Visits start with PV-', function () {",
+                  "  var rows = pm.response.json().data;",
+                  "  pm.expect(rows).to.be.an('array');",
+                  "  pm.expect(rows[0].id).to.include('PV-');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "3. Executive Sales Dashboard & Snapshots (CRM5-B1)",
+      "item": [
+        {
+          "name": "Get Sales Summary",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{jwt_token}}" }],
+            "url": "{{base_url}}/api/dashboard/sales-summary"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Contains 4 KPI metrics and stage array', function () {",
+                  "  var d = pm.response.json().data;",
+                  "  pm.expect(d.total_leads).to.be.a('number');",
+                  "  pm.expect(d.open_opportunities).to.be.a('number');",
+                  "  pm.expect(d.won_value).to.be.a('number');",
+                  "  pm.expect(d.quotes_accepted).to.be.a('number');",
+                  "  pm.expect(d.opportunities_by_stage.length).to.be.at.least(5);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create Dashboard Snapshot",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"metrics\": {\n    \"total_leads\": 12,\n    \"open_opportunities\": 7,\n    \"won_value\": 209970.00,\n    \"quotes_accepted\": 4\n  }\n}"
+            },
+            "url": "{{base_url}}/api/dashboard/snapshot"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 201', function () { pm.response.to.have.status(201); });",
+                  "pm.test('Snapshot has SNP- ID', function () {",
+                  "  pm.expect(pm.response.json().data.id).to.include('SNP-');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create Dashboard Snapshot Invalid Payload (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"metrics\": \"invalid-string\"\n}"
+            },
+            "url": "{{base_url}}/api/dashboard/snapshot"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Invalid metrics payload returns 400', function () { pm.response.to.have.status(400); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List Dashboard Snapshots",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{jwt_token}}" }],
+            "url": "{{base_url}}/api/dashboard/snapshots"
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Sales Forecasts & Weighted Pipeline (CRM5-C1)",
+      "item": [
+        {
+          "name": "Get Weighted Pipeline",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{jwt_token}}" }],
+            "url": "{{base_url}}/api/forecast/weighted"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Weighted pipeline value matches stage weights', function () {",
+                  "  var d = pm.response.json().data;",
+                  "  pm.expect(d.weighted_pipeline_value).to.eql(93374);",
+                  "  pm.expect(d.breakdown.length).to.eql(3);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Weighted Pipeline Alias",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{jwt_token}}" }],
+            "url": "{{base_url}}/api/forecasts/weighted"
+          }
+        },
+        {
+          "name": "List Monthly Forecasts",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{jwt_token}}" }],
+            "url": "{{base_url}}/api/forecasts"
+          }
+        },
+        {
+          "name": "Create or Upsert Monthly Forecast",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"month\": \"2027-01\",\n  \"target_amount\": 220000.00,\n  \"notes\": \"New Year corporate expansion\"\n}"
+            },
+            "url": "{{base_url}}/api/forecasts"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 201', function () { pm.response.to.have.status(201); });",
+                  "pm.test('Returns FCST-xxxx record', function () {",
+                  "  pm.expect(pm.response.json().data.id).to.include('FCST-');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create Forecast Invalid Month (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"month\": \"invalid\",\n  \"target_amount\": 100000\n}"
+            },
+            "url": "{{base_url}}/api/forecasts"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Invalid month returns 400', function () { pm.response.to.have.status(400); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update Forecast Target (FCST-0001)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"target_amount\": 135000.00,\n  \"notes\": \"Updated Q3 August target\"\n}"
+            },
+            "url": "{{base_url}}/api/forecasts/FCST-0001"
+          }
+        },
+        {
+          "name": "Delete Forecast Target (FCST-0005)",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{jwt_token}}" }],
+            "url": "{{base_url}}/api/forecasts/FCST-0005"
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Role-Based Reports (CRM5-D1)",
+      "item": [
+        {
+          "name": "List Reports (Admin - All)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" },
+              { "key": "x-user-role", "value": "admin" }
+            ],
+            "url": "{{base_url}}/api/reports"
+          }
+        },
+        {
+          "name": "List Reports (Sales Role Preview)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{jwt_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/api/reports?role=sales",
+              "host": ["{{base_url}}"],
+              "path": ["api", "reports"],
+              "query": [{ "key": "role", "value": "sales" }]
+            }
+          }
+        },
+        {
+          "name": "Run Report (sales-by-rep)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" },
+              { "key": "x-user-role", "value": "admin" }
+            ],
+            "url": "{{base_url}}/api/reports/sales-by-rep/run"
+          }
+        },
+        {
+          "name": "Run Forbidden Report (403 as support)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" },
+              { "key": "x-user-role", "value": "support" }
+            ],
+            "url": "{{base_url}}/api/reports/won-revenue-by-month/run"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Unauthorized role returns 403 Forbidden', function () { pm.response.to.have.status(403); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "6. Section 7 Cross-Team Verification (Rows 10, 11, 12)",
+      "item": [
+        {
+          "name": "Row 10a: CRM-3 Customer CUST-0001",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{jwt_token}}" }],
+            "url": "{{crm3_url}}/api/customers/CUST-0001"
+          }
+        },
+        {
+          "name": "Row 10b: ERP-4 Sales Orders for CUST-0001",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{jwt_token}}" }],
+            "url": "{{erp4_url}}/api/sales-orders?customer_id=CUST-0001"
+          }
+        },
+        {
+          "name": "Row 10c: CRM-2 Tickets for CUST-0001",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{jwt_token}}" }],
+            "url": "{{crm2_url}}/api/tickets?customer_id=CUST-0001"
+          }
+        },
+        {
+          "name": "Row 10d: ERP-5 Invoices for CUST-0001",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{jwt_token}}" }],
+            "url": "{{erp5_url}}/api/invoices?customer_id=CUST-0001"
+          }
+        },
+        {
+          "name": "Row 11a: CRM-1 Quotes",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{jwt_token}}" }],
+            "url": "{{crm1_url}}/api/quotes"
+          }
+        },
+        {
+          "name": "Row 11b: CRM-1 Leads (CRM1-A1)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{jwt_token}}" }],
+            "url": "{{crm1_url}}/api/leads"
+          }
+        },
+        {
+          "name": "Row 11c: CRM-1 Opportunities (CRM1-B1)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{jwt_token}}" }],
+            "url": "{{crm1_url}}/api/opportunities"
+          }
+        },
+        {
+          "name": "Row 12a: CRM-2 All Tickets",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{jwt_token}}" }],
+            "url": "{{crm2_url}}/api/tickets"
+          }
+        },
+        {
+          "name": "Row 12b: CRM-3 All Customers",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{jwt_token}}" }],
+            "url": "{{crm3_url}}/api/customers"
+          }
+        }
+      ]
+    }
+  ]
+}
