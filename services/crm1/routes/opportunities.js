@@ -4,6 +4,7 @@ const path = require('path');
 const fs = require('fs');
 const { requireAuth } = require('../../_shared/auth');
 const { makePool } = require('../../_shared/db');
+const { callService } = require('../../_shared/callService');
 
 const pool = makePool('crm1_db');
 
@@ -11,6 +12,20 @@ const pool = makePool('crm1_db');
 router.use(requireAuth);
 
 const VALID_STAGES = ['prospect', 'proposal', 'negotiation', 'won', 'lost'];
+
+const ALLOWED_NEXT_STAGES = {
+  prospect: ['proposal', 'lost'],
+  proposal: ['negotiation', 'lost'],
+  negotiation: ['won', 'lost'],
+  won: ['lost']
+};
+
+const NEXT_STAGE_LABELS = {
+  prospect: 'proposal or lost',
+  proposal: 'negotiation or lost',
+  negotiation: 'won or lost',
+  won: 'lost'
+};
 
 // In-memory fallback for testing and standalone/offline development
 const SEED_OPPORTUNITIES = [
@@ -22,8 +37,14 @@ const SEED_OPPORTUNITIES = [
   { id: 'OPP-0006', lead_id: 'LEAD-0002', customer_id: 'CUST-0006', title: 'Office TV installation', expected_value: 94990.00, stage: 'lost', expected_close_date: '2026-11-10', sales_rep_id: 'EMP-0002', created_at: '2026-11-11T16:00:00.000Z' }
 ];
 
-let inMemoryOpportunities = [...SEED_OPPORTUNITIES];
+let inMemoryOpportunities = SEED_OPPORTUNITIES.map(o => ({ ...o }));
 let oppCounter = 7;
+
+// Helper to reset in-memory store for integration test isolation
+router._resetInMemory = () => {
+  inMemoryOpportunities = SEED_OPPORTUNITIES.map(o => ({ ...o }));
+  oppCounter = 7;
+};
 
 // In-memory known seed leads for fallback lead_id validation
 const KNOWN_SEED_LEAD_IDS = new Set(['LEAD-0001', 'LEAD-0002', 'LEAD-0003', 'LEAD-0004', 'LEAD-0005']);
@@ -105,6 +126,56 @@ router.get('/opportunities', async (req, res, next) => {
     return res.json({ data: inMemoryOpportunities.map(formatOpportunity) });
   } catch (err) {
     console.error('[crm1] GET /opportunities error:', err.message);
+    next(err);
+  }
+});
+
+/**
+ * GET /api/opportunities/summary ([CRM1-B3])
+ * Returns counts and total monetary expected values for all five pipeline stages.
+ * Defined BEFORE /:id route so Express does not interpret 'summary' as an ID.
+ */
+router.get('/opportunities/summary', async (req, res, next) => {
+  try {
+    const summary = {
+      prospect: { count: 0, total_value: 0 },
+      proposal: { count: 0, total_value: 0 },
+      negotiation: { count: 0, total_value: 0 },
+      won: { count: 0, total_value: 0 },
+      lost: { count: 0, total_value: 0 }
+    };
+
+    const dbResult = await safeQuery(
+      `SELECT stage, COUNT(*)::int AS count, COALESCE(SUM(expected_value), 0)::numeric(12,2) AS total_value
+       FROM opportunities
+       GROUP BY stage`
+    );
+
+    if (dbResult !== null) {
+      for (const row of dbResult.rows) {
+        if (summary[row.stage]) {
+          summary[row.stage] = {
+            count: Number(row.count),
+            total_value: Number(parseFloat(row.total_value).toFixed(2))
+          };
+        }
+      }
+      return res.json({ data: summary });
+    }
+
+    // In-memory fallback aggregation
+    for (const stage of VALID_STAGES) {
+      const items = inMemoryOpportunities.filter(o => o.stage === stage);
+      const count = items.length;
+      const total_value = Number(
+        items.reduce((sum, o) => sum + (Number(o.expected_value) || 0), 0).toFixed(2)
+      );
+      summary[stage] = { count, total_value };
+    }
+
+    return res.json({ data: summary });
+  } catch (err) {
+    console.error('[crm1] GET /opportunities/summary error:', err.message);
     next(err);
   }
 });
@@ -328,8 +399,8 @@ router.put('/opportunities/:id', async (req, res, next) => {
 });
 
 /**
- * PATCH /api/opportunities/:id/stage
- * Updates opportunity stage.
+ * PATCH /api/opportunities/:id/stage ([CRM1-B3])
+ * Updates opportunity stage with strict progression rules and Won Gate.
  */
 router.patch('/opportunities/:id/stage', async (req, res, next) => {
   try {
@@ -343,11 +414,62 @@ router.patch('/opportunities/:id/stage', async (req, res, next) => {
 
     // Check if opportunity exists
     const existingDb = await safeQuery(`SELECT ${OPP_COLUMNS} FROM opportunities WHERE id = $1`, [id]);
+    let existing = null;
     if (existingDb !== null) {
       if (existingDb.rows.length === 0) {
         return res.status(404).json({ error: 'Opportunity not found' });
       }
+      existing = existingDb.rows[0];
+    } else {
+      existing = inMemoryOpportunities.find(o => o.id === id);
+      if (!existing) {
+        return res.status(404).json({ error: 'Opportunity not found' });
+      }
+    }
 
+    const currentStage = existing.stage;
+
+    // Terminal stage rule: lost is terminal and cannot be reopened
+    if (currentStage === 'lost') {
+      return res.status(400).json({ error: 'Cannot transition a lost opportunity' });
+    }
+
+    // Strict forward progression rule (or move to lost)
+    const allowed = ALLOWED_NEXT_STAGES[currentStage] || [];
+    if (!allowed.includes(cleanStage)) {
+      return res.status(400).json({
+        error: `Cannot skip stages. Next allowed stage: ${NEXT_STAGE_LABELS[currentStage]}`
+      });
+    }
+
+    // Won Gate: Moving to won requires an accepted quotation
+    if (cleanStage === 'won') {
+      let quotesData;
+      try {
+        quotesData = await callService(
+          'crm1',
+          `/api/quotes?opportunity_id=${id}&status=accepted`,
+          { mock: 'quotes-accepted' }
+        );
+      } catch (serviceErr) {
+        console.error(`[crm1] Won Gate callService error for ${id}:`, serviceErr.message);
+        return res.status(502).json({ error: `Failed to verify quotation status: ${serviceErr.message}` });
+      }
+
+      const quotesList = Array.isArray(quotesData)
+        ? quotesData
+        : (quotesData && Array.isArray(quotesData.data) ? quotesData.data : []);
+
+      const hasAcceptedQuote = quotesList.some(
+        q => q.opportunity_id === id && q.status === 'accepted'
+      );
+
+      if (!hasAcceptedQuote) {
+        return res.status(400).json({ error: 'Cannot close as won without an accepted quote' });
+      }
+    }
+
+    if (existingDb !== null) {
       const updateResult = await safeQuery(
         `UPDATE opportunities
          SET stage = $1
@@ -362,10 +484,10 @@ router.patch('/opportunities/:id/stage', async (req, res, next) => {
 
     // In-memory update
     const memIdx = inMemoryOpportunities.findIndex(o => o.id === id);
-    if (memIdx === -1) {
-      return res.status(404).json({ error: 'Opportunity not found' });
-    }
-    inMemoryOpportunities[memIdx].stage = cleanStage;
+    inMemoryOpportunities[memIdx] = {
+      ...inMemoryOpportunities[memIdx],
+      stage: cleanStage
+    };
     return res.json({ data: formatOpportunity(inMemoryOpportunities[memIdx]) });
   } catch (err) {
     console.error(`[crm1] PATCH /opportunities/${req.params.id}/stage error:`, err.message);
