@@ -746,8 +746,11 @@ router.get('/work-orders/:id/issues', async (req, res, next) => {
       return res.json({ data: pgResult.rows });
     }
 
-    // In-memory fallback
-    const issues = inMemoryMaterialIssues.filter(mi => mi.wo_id === id);
+    // In-memory fallback sorted newest first to match ORDER BY issued_at DESC
+    const issues = inMemoryMaterialIssues
+      .filter(mi => mi.wo_id === id)
+      .slice()
+      .sort((a, b) => new Date(b.issued_at) - new Date(a.issued_at));
     return res.json({ data: issues });
   } catch (err) {
     next(err);

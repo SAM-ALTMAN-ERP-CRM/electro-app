@@ -50,13 +50,31 @@ const SEED_WORK_ORDERS = {
   'WO-0005': { id: 'WO-0005', bom_id: 'BOM-0002', product_sku: 'SKU-0003', quantity: 15, status: 'planned', source: 'shortage', planned_start: '2026-11-18', planned_end: '2026-11-25', created_at: '2026-11-08T14:20:00.000Z', completed_at: null }
 };
 
-const INITIAL_ISSUES_LOG = [
-  { id: 'ISSUE-001', component_sku: 'SKU-0101', qty: 50, issued_at: '2026-11-12 10:15', warehouse_id: 'WH-01' },
-  { id: 'ISSUE-002', component_sku: 'SKU-0102', qty: 30, issued_at: '2026-11-12 11:30', warehouse_id: 'WH-01' },
-  { id: 'ISSUE-003', component_sku: 'SKU-0103', qty: 50, issued_at: '2026-11-12 11:45', warehouse_id: 'WH-01' },
-  { id: 'ISSUE-004', component_sku: 'SKU-0104', qty: 50, issued_at: '2026-11-12 12:00', warehouse_id: 'WH-01' },
-  { id: 'ISSUE-005', component_sku: 'SKU-0105', qty: 50, issued_at: '2026-11-12 12:15', warehouse_id: 'WH-01' }
-];
+// Seed material issue logs matching services/erp3/mocks/material-issues.json
+const SEED_ISSUES_MAP = {
+  'WO-0001': [],
+  'WO-0002': [
+    { id: 'MI-0003', wo_id: 'WO-0002', component_sku: 'SKU-0103', qty: 25, issued_at: '2026-11-05T10:10:00.000Z' },
+    { id: 'MI-0002', wo_id: 'WO-0002', component_sku: 'SKU-0102', qty: 25, issued_at: '2026-11-05T10:05:00.000Z' },
+    { id: 'MI-0001', wo_id: 'WO-0002', component_sku: 'SKU-0101', qty: 25, issued_at: '2026-11-05T10:00:00.000Z' }
+  ],
+  'WO-0003': [
+    { id: 'MI-0005', wo_id: 'WO-0003', component_sku: 'SKU-0102', qty: 30, issued_at: '2026-10-20T09:05:00.000Z' },
+    { id: 'MI-0004', wo_id: 'WO-0003', component_sku: 'SKU-0101', qty: 30, issued_at: '2026-10-20T09:00:00.000Z' }
+  ],
+  'WO-0004': [],
+  'WO-0005': []
+};
+
+// Format ISO timestamp into clean YYYY-MM-DD HH:MM text
+function formatTimestamp(ts) {
+  if (!ts) return '—';
+  const str = String(ts);
+  if (str.includes('T')) {
+    return str.replace('T', ' ').substring(0, 16);
+  }
+  return str.substring(0, 16);
+}
 
 export default function WorkOrderDetailPage() {
   const { id } = useParams();
@@ -69,17 +87,22 @@ export default function WorkOrderDetailPage() {
   const [notification, setNotification] = useState('');
   const [actionInProgress, setActionInProgress] = useState(false);
 
-  // Material issuance inputs & log (ERP3-C1 / ERP3-C2)
+  // Material issuance inputs, loading state & history log (ERP3-C1 / ERP3-C2)
   const [issueInputs, setIssueInputs] = useState({});
-  const [issuesLog, setIssuesLog] = useState(INITIAL_ISSUES_LOG);
+  const [issuesLog, setIssuesLog] = useState([]);
+  const [issuingSku, setIssuingSku] = useState(null);
   const [qcStatusAllowed] = useState(true);
 
-  // Fetch work order details and its materials [ERP3-B3]
+  // Fetch work order details, required materials [ERP3-B3], and issue history [ERP3-C1]
   const fetchWorkOrderDetail = useCallback(async () => {
     setLoading(true);
     setError('');
     try {
-      const data = await api('erp3', `/api/work-orders/${woId}`);
+      const [data, issuesData] = await Promise.all([
+        api('erp3', `/api/work-orders/${woId}`),
+        api('erp3', `/api/work-orders/${woId}/issues`).catch(() => null)
+      ]);
+
       if (data) {
         setWorkOrder(data);
         if (Array.isArray(data.materials)) {
@@ -92,11 +115,13 @@ export default function WorkOrderDetailPage() {
             setMaterials(SEED_MATERIALS_MAP[woId] || []);
           }
         }
+        setIssuesLog(Array.isArray(issuesData) ? issuesData : (SEED_ISSUES_MAP[woId] || []));
       } else {
         const fallback = SEED_WORK_ORDERS[woId];
         if (fallback) {
           setWorkOrder(fallback);
           setMaterials(SEED_MATERIALS_MAP[woId] || []);
+          setIssuesLog(SEED_ISSUES_MAP[woId] || []);
         } else {
           setError(`Work order '${woId}' not found.`);
         }
@@ -107,6 +132,7 @@ export default function WorkOrderDetailPage() {
       if (fallback) {
         setWorkOrder(fallback);
         setMaterials(SEED_MATERIALS_MAP[woId] || []);
+        setIssuesLog(SEED_ISSUES_MAP[woId] || []);
       } else {
         setError(err.message || `Failed to load details for work order '${woId}'.`);
       }
@@ -155,46 +181,106 @@ export default function WorkOrderDetailPage() {
     }
   };
 
-  // Issue material handler (ERP3-C1 / ERP3-C2)
+  // Track quantity typed into a component row's issue box (ERP3-C2)
   const handleIssueChange = (sku, val) => {
-    setIssueInputs(prev => ({ ...prev, [sku]: Number(val) }));
+    setIssueInputs(prev => ({ ...prev, [sku]: val }));
   };
 
+  // Issue selected quantity for a component and update both the table and history log
   const handleIssueMaterial = async (sku, pendingQty) => {
-    const qtyToIssue = issueInputs[sku] !== undefined ? issueInputs[sku] : pendingQty;
-    if (qtyToIssue <= 0) {
-      setNotification('Issue quantity must be greater than 0.');
+    setError('');
+    setNotification('');
+
+    const rawValue = issueInputs[sku] !== undefined ? issueInputs[sku] : pendingQty;
+    const qtyToIssue = parseFloat(rawValue);
+
+    if (isNaN(qtyToIssue) || qtyToIssue <= 0) {
+      setError('Issue quantity must be greater than 0.');
       return;
     }
     if (qtyToIssue > pendingQty) {
-      setNotification(`Cannot issue ${qtyToIssue} units. Maximum pending is ${pendingQty}.`);
+      setError(`Cannot issue ${qtyToIssue} units of ${sku}. Maximum pending is ${pendingQty}.`);
       return;
     }
 
+    setIssuingSku(sku);
     try {
-      await api('erp3', `/api/work-orders/${woId}/issue`, {
+      const res = await api('erp3', `/api/work-orders/${woId}/issue`, {
         method: 'POST',
         body: { component_sku: sku, qty: qtyToIssue }
       });
+
+      // Update issued quantity in the materials table from backend response
+      const updatedIssued = res && res.issued_qty !== undefined ? parseFloat(res.issued_qty) : null;
+      setMaterials(prev =>
+        prev.map(m =>
+          m.component_sku === sku
+            ? { ...m, issued_qty: updatedIssued !== null ? updatedIssued : (parseFloat(m.issued_qty) || 0) + qtyToIssue }
+            : m
+        )
+      );
+
+      // Refresh history table from GET /api/work-orders/:id/issues
+      try {
+        const freshIssues = await api('erp3', `/api/work-orders/${woId}/issues`);
+        if (Array.isArray(freshIssues)) {
+          setIssuesLog(freshIssues);
+        }
+      } catch {
+        const createdEntry = {
+          id: res?.id || `MI-${String(issuesLog.length + 1).padStart(4, '0')}`,
+          wo_id: woId,
+          component_sku: sku,
+          qty: qtyToIssue,
+          issued_at: res?.issued_at || new Date().toISOString()
+        };
+        setIssuesLog(prev => [createdEntry, ...prev]);
+      }
+
+      // Reset row box to default (remaining pending qty)
+      setIssueInputs(prev => {
+        const next = { ...prev };
+        delete next[sku];
+        return next;
+      });
+      setNotification(`Successfully issued ${qtyToIssue} units of ${sku} from WH-01.`);
     } catch (err) {
-      console.info('Simulated material issue fallback:', err.message);
+      // Surface API validation/HTTP errors directly instead of masking them
+      const isOffline =
+        err.message &&
+        (err.message.includes('Failed to fetch') || err.message.includes('NetworkError'));
+      if (!isOffline) {
+        setError(err.message || `Failed to issue material '${sku}'.`);
+        return;
+      }
+
+      // Offline demo fallback when backend is unreachable
+      console.info('Backend offline, simulating material issue fallback:', err.message);
+      setMaterials(prev =>
+        prev.map(m =>
+          m.component_sku === sku
+            ? { ...m, issued_qty: (parseFloat(m.issued_qty) || 0) + qtyToIssue }
+            : m
+        )
+      );
+
+      const newLog = {
+        id: `MI-${String(issuesLog.length + 1).padStart(4, '0')}`,
+        wo_id: woId,
+        component_sku: sku,
+        qty: qtyToIssue,
+        issued_at: new Date().toISOString()
+      };
+      setIssuesLog(prev => [newLog, ...prev]);
+      setIssueInputs(prev => {
+        const next = { ...prev };
+        delete next[sku];
+        return next;
+      });
+      setNotification(`Successfully issued ${qtyToIssue} units of ${sku} from WH-01 (offline mode).`);
+    } finally {
+      setIssuingSku(null);
     }
-
-    // Update local state
-    setMaterials(prev =>
-      prev.map(m => m.component_sku === sku ? { ...m, issued_qty: (parseFloat(m.issued_qty) || 0) + qtyToIssue } : m)
-    );
-
-    const newLog = {
-      id: `ISSUE-00${issuesLog.length + 1}`,
-      component_sku: sku,
-      qty: qtyToIssue,
-      issued_at: new Date().toISOString().replace('T', ' ').substring(0, 16),
-      warehouse_id: 'WH-01'
-    };
-    setIssuesLog(prev => [newLog, ...prev]);
-    setNotification(`Successfully issued ${qtyToIssue} units of ${sku} from WH-01.`);
-    setIssueInputs(prev => ({ ...prev, [sku]: 0 }));
   };
 
   // Post finished goods handler (ERP3-C3)
@@ -332,7 +418,12 @@ export default function WorkOrderDetailPage() {
         </div>
       </div>
 
-      {/* Notifications */}
+      {/* Error & Success Notifications */}
+      {error && (
+        <div style={{ background: '#fee2e2', border: '1px solid #ef4444', color: '#b91c1c', padding: '0.75rem 1rem', borderRadius: '6px', marginBottom: '1.25rem', fontSize: '0.875rem' }}>
+          {error}
+        </div>
+      )}
       {notification && (
         <div style={{ background: '#dcfce7', border: '1px solid #22c55e', color: '#15803d', padding: '0.75rem 1rem', borderRadius: '6px', marginBottom: '1.25rem', fontSize: '0.875rem' }}>
           {notification}
@@ -384,15 +475,15 @@ export default function WorkOrderDetailPage() {
         </div>
       </div>
 
-      {/* 3. Work Order Materials & Component Issuance (BOM Requirements [ERP3-B3] + Issuance Table [ERP3-C2]) */}
+      {/* 3. Issue Materials Section (ERP3-B3 / ERP3-C2) */}
       <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '1.5rem', marginBottom: '1.5rem' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
           <div>
             <h3 style={{ margin: 0, fontSize: '1.1rem', color: '#0f172a' }}>
-              Work Order Materials & Component Issuance (ERP3-B3 / ERP3-C2)
+              Issue Materials
             </h3>
             <p style={{ margin: '0.25rem 0 0 0', color: '#64748b', fontSize: '0.825rem' }}>
-              Components copied from active BOM ({workOrder?.bom_id}) to assemble {workOrder?.quantity} units.
+              Required components from BOM ({workOrder?.bom_id}) to assemble {workOrder?.quantity} units. Enter quantity and click Issue to release from WH-01.
             </p>
           </div>
           <span style={{ fontSize: '0.8rem', background: '#f1f5f9', padding: '0.25rem 0.6rem', borderRadius: '4px', color: '#475569', fontWeight: 500 }}>
@@ -413,7 +504,7 @@ export default function WorkOrderDetailPage() {
                 <th style={{ padding: '0.75rem 1rem', textAlign: 'right', color: '#64748b', fontWeight: 600 }}>ISSUED</th>
                 <th style={{ padding: '0.75rem 1rem', textAlign: 'right', color: '#64748b', fontWeight: 600 }}>PENDING</th>
                 <th style={{ padding: '0.75rem 1rem', textAlign: 'center', color: '#64748b', fontWeight: 600 }}>STATUS</th>
-                <th style={{ padding: '0.75rem 1rem', textAlign: 'center', color: '#64748b', fontWeight: 600 }}>ISSUE ACTION</th>
+                <th style={{ padding: '0.75rem 1rem', textAlign: 'center', color: '#64748b', fontWeight: 600 }}>ISSUE</th>
               </tr>
             </thead>
             <tbody>
@@ -422,6 +513,8 @@ export default function WorkOrderDetailPage() {
                 const issQty = parseFloat(m.issued_qty) || 0;
                 const pending = Math.max(0, reqQty - issQty);
                 const isDone = pending === 0 && reqQty > 0;
+                const isCancelled = currentStatus === 'cancelled';
+                const isIssuingThis = issuingSku === m.component_sku;
 
                 return (
                   <tr key={m.component_sku} style={{ borderBottom: '1px solid #f1f5f9' }}>
@@ -448,25 +541,29 @@ export default function WorkOrderDetailPage() {
                       )}
                     </td>
                     <td style={{ padding: '0.75rem 1rem', textAlign: 'center' }}>
-                      {isDone ? (
-                        <span style={{ color: '#94a3b8' }}>—</span>
+                      {isDone || isCancelled ? (
+                        <span style={{ color: '#94a3b8' }}>{isCancelled && !isDone ? 'Cancelled' : '—'}</span>
                       ) : (
                         <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
                           <input
                             type="number"
                             min="1"
                             max={pending}
+                            step="any"
+                            aria-label={`Quantity to issue for ${m.component_sku}`}
                             value={issueInputs[m.component_sku] !== undefined ? issueInputs[m.component_sku] : pending}
                             onChange={(e) => handleIssueChange(m.component_sku, e.target.value)}
-                            style={{ width: '65px', padding: '0.3rem 0.4rem', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.85rem', fontFamily: 'monospace', textAlign: 'center' }}
+                            disabled={isIssuingThis}
+                            style={{ width: '70px', padding: '0.3rem 0.4rem', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.85rem', fontFamily: 'monospace', textAlign: 'center' }}
                           />
                           <button
                             type="button"
                             onClick={() => handleIssueMaterial(m.component_sku, pending)}
+                            disabled={isIssuingThis}
                             className="btn btn-primary"
-                            style={{ padding: '0.3rem 0.65rem', fontSize: '0.75rem' }}
+                            style={{ padding: '0.3rem 0.7rem', fontSize: '0.75rem' }}
                           >
-                            Issue
+                            {isIssuingThis ? 'Issuing...' : 'Issue'}
                           </button>
                         </div>
                       )}
@@ -477,6 +574,64 @@ export default function WorkOrderDetailPage() {
             </tbody>
           </table>
         )}
+
+        {/* History table directly below Issue Materials table */}
+        <div style={{ marginTop: '1.5rem', borderTop: '1px solid #e2e8f0', paddingTop: '1.25rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+            <h4 style={{ margin: 0, fontSize: '0.95rem', color: '#0f172a' }}>
+              Material Issues History
+            </h4>
+            <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
+              {issuesLog.length} {issuesLog.length === 1 ? 'record' : 'records'}
+            </span>
+          </div>
+
+          {issuesLog.length === 0 ? (
+            <div style={{ padding: '1.25rem', textAlign: 'center', background: '#f8fafc', borderRadius: '6px', color: '#64748b', fontSize: '0.85rem' }}>
+              No material issues recorded for this work order yet.
+            </div>
+          ) : (
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+              <thead>
+                <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+                  <th style={{ padding: '0.6rem 1rem', textAlign: 'left', color: '#64748b', fontWeight: 600 }}>ISSUE ID</th>
+                  <th style={{ padding: '0.6rem 1rem', textAlign: 'left', color: '#64748b', fontWeight: 600 }}>COMPONENT</th>
+                  <th style={{ padding: '0.6rem 1rem', textAlign: 'right', color: '#64748b', fontWeight: 600 }}>QUANTITY</th>
+                  <th style={{ padding: '0.6rem 1rem', textAlign: 'left', color: '#64748b', fontWeight: 600 }}>WAREHOUSE</th>
+                  <th style={{ padding: '0.6rem 1rem', textAlign: 'left', color: '#64748b', fontWeight: 600 }}>ISSUED AT</th>
+                </tr>
+              </thead>
+              <tbody>
+                {issuesLog.map((log) => {
+                  const matchedMat = materials.find(m => m.component_sku === log.component_sku);
+                  const compName = log.component_name || matchedMat?.component_name;
+                  return (
+                    <tr key={log.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                      <td style={{ padding: '0.6rem 1rem', fontFamily: 'monospace', fontWeight: 600, color: '#0f172a' }}>
+                        {log.id}
+                      </td>
+                      <td style={{ padding: '0.6rem 1rem' }}>
+                        <span style={{ fontFamily: 'monospace', color: '#2563eb', fontWeight: 600 }}>{log.component_sku}</span>
+                        {compName && (
+                          <span style={{ color: '#475569', marginLeft: '0.45rem', fontSize: '0.8rem' }}>({compName})</span>
+                        )}
+                      </td>
+                      <td style={{ padding: '0.6rem 1rem', textAlign: 'right', fontFamily: 'monospace', fontWeight: 600 }}>
+                        {parseFloat(log.qty)}
+                      </td>
+                      <td style={{ padding: '0.6rem 1rem', color: '#64748b', fontFamily: 'monospace' }}>
+                        {log.warehouse_id || 'WH-01'}
+                      </td>
+                      <td style={{ padding: '0.6rem 1rem', color: '#64748b' }}>
+                        {formatTimestamp(log.issued_at)}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
+        </div>
       </div>
 
       {/* 4. Finished Goods Posting Gate (ERP3-C3) */}
@@ -528,37 +683,6 @@ export default function WorkOrderDetailPage() {
         >
           {currentStatus === 'completed' ? '✓ Finished Goods Posted (Completed)' : 'Post Finished Goods to Inventory (WH-01)'}
         </button>
-      </div>
-
-      {/* 5. Issuance History Log (ERP3-C1) */}
-      <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden' }}>
-        <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #e2e8f0' }}>
-          <h4 style={{ margin: 0, fontSize: '0.95rem', color: '#0f172a' }}>
-            Material Issues History Log (ERP3-C1)
-          </h4>
-        </div>
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
-          <thead>
-            <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-              <th style={{ padding: '0.6rem 1rem', textAlign: 'left', color: '#64748b', fontWeight: 600 }}>TRANSACTION</th>
-              <th style={{ padding: '0.6rem 1rem', textAlign: 'left', color: '#64748b', fontWeight: 600 }}>COMPONENT</th>
-              <th style={{ padding: '0.6rem 1rem', textAlign: 'right', color: '#64748b', fontWeight: 600 }}>QUANTITY</th>
-              <th style={{ padding: '0.6rem 1rem', textAlign: 'left', color: '#64748b', fontWeight: 600 }}>WAREHOUSE</th>
-              <th style={{ padding: '0.6rem 1rem', textAlign: 'left', color: '#64748b', fontWeight: 600 }}>TIMESTAMP</th>
-            </tr>
-          </thead>
-          <tbody>
-            {issuesLog.map((log) => (
-              <tr key={log.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                <td style={{ padding: '0.6rem 1rem', fontFamily: 'monospace', fontWeight: 600, color: '#0f172a' }}>{log.id}</td>
-                <td style={{ padding: '0.6rem 1rem', fontFamily: 'monospace', color: '#2563eb' }}>{log.component_sku}</td>
-                <td style={{ padding: '0.6rem 1rem', textAlign: 'right', fontFamily: 'monospace' }}>{log.qty}</td>
-                <td style={{ padding: '0.6rem 1rem', color: '#64748b' }}>{log.warehouse_id}</td>
-                <td style={{ padding: '0.6rem 1rem', color: '#64748b' }}>{log.issued_at}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
       </div>
     </div>
   );
