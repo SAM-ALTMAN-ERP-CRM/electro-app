@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="600" viewBox="0 0 960 600" role="img" aria-labelledby="title desc">
+  <title id="title">CRM-2 RMA Detail Wireframe</title>
+  <desc id="desc">RMA review, warranty check status, approve/reject decisions, and ERP-4 handoff indicator</desc>
+  <rect width="960" height="600" fill="#f8fafc"/>
+  <rect x="20" y="20" width="920" height="560" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5"/>
+
+  <!-- Breadcrumb & Header -->
+  <text x="50" y="55" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#64748b">&lt; Back to RMAs</text>
+  <text x="50" y="85" font-family="system-ui, -apple-system, sans-serif" font-size="22" font-weight="700" fill="#0f172a">RMA RMA-0001: TV55-2611-0001</text>
+  <rect x="430" y="68" width="75" height="22" rx="11" fill="#dcfce7"/>
+  <text x="440" y="83" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#15803d">approved</text>
+  <line x1="50" y1="110" x2="910" y2="110" stroke="#e2e8f0" stroke-width="1"/>
+
+  <!-- Left: RMA Details -->
+  <rect x="50" y="130" width="500" height="420" rx="6" fill="#f8fafc" stroke="#e2e8f0"/>
+  <text x="70" y="160" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="700" fill="#0f172a">Return Request Information</text>
+
+  <text x="70" y="195" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#64748b">Support Ticket</text>
+  <text x="70" y="215" font-family="monospace" font-size="13" font-weight="600" fill="#2563eb">TKT-0001 (TV screen flickers)</text>
+
+  <text x="70" y="250" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#64748b">Serial Number &amp; Customer</text>
+  <text x="70" y="270" font-family="system-ui, -apple-system, sans-serif" font-size="13" fill="#0f172a">TV55-2611-0001 · CUST-0001 (Aarav Mehta)</text>
+
+  <text x="70" y="305" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#64748b">Defect / Return Reason</text>
+  <text x="70" y="325" font-family="system-ui, -apple-system, sans-serif" font-size="13" fill="#334155">Defective display panel. Customer reports flickering within 10 minutes.</text>
+
+  <text x="70" y="365" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#64748b">Warranty Verification Status</text>
+  <rect x="70" y="380" width="100" height="24" rx="12" fill="#dcfce7"/>
+  <text x="82" y="396" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#15803d">In warranty</text>
+  <text x="180" y="396" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#64748b">(Warranty check passed)</text>
+
+  <!-- Right: Actions & Handoff -->
+  <rect x="570" y="130" width="340" height="420" rx="6" fill="#ffffff" stroke="#e2e8f0"/>
+  <text x="590" y="160" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="700" fill="#0f172a">Review Decision &amp; Handoff</text>
+
+  <rect x="590" y="190" width="300" height="85" rx="6" fill="#f1f5f9"/>
+  <text x="605" y="215" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="600" fill="#0f172a">ERP-4 Return Handoff Status</text>
+  <text x="605" y="235" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#15803d">✓ Dispatched to ERP-4 Returns</text>
+  <text x="605" y="255" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#64748b">Return Order reference: RET-0001</text>
+
+  <text x="590" y="310" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#64748b">Decision Notes</text>
+  <rect x="590" y="325" width="300" height="70" rx="6" fill="#ffffff" stroke="#cbd5e1"/>
+  <text x="605" y="350" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#94a3b8">Inspection approved by lead...</text>
+
+  <rect x="590" y="420" width="140" height="36" rx="6" fill="#16a34a"/>
+  <text x="625" y="443" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="600" fill="#ffffff">Approve</text>
+  <rect x="750" y="420" width="140" height="36" rx="6" fill="#dc2626"/>
+  <text x="790" y="443" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="600" fill="#ffffff">Reject</text>
+</svg>

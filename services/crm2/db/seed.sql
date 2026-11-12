@@ -48,3 +48,25 @@ INSERT INTO warranties (serial_number, sku, product_name, customer_id, purchase_
   ('TV55-2611-0004', 'SKU-0001', '55-inch 4K Smart TV', 'CUST-0004', CURRENT_DATE - INTERVAL '2 years',  12),
   ('TV55-2611-0005', 'SKU-0001', '55-inch 4K Smart TV', 'CUST-0005', CURRENT_DATE - INTERVAL '2 years',  12)
 ON CONFLICT (serial_number) DO NOTHING;
+
+-- [CRM2-D1] service_centres and ticket_assignments
+-- 4 seed service centres in major cities with capacities and phone numbers.
+INSERT INTO service_centres (id, name, city, phone, capacity, active) VALUES
+  ('SC-0001', 'Mumbai Central Electronics Care', 'Mumbai',    '+91 22 2490 1100', 50, true),
+  ('SC-0002', 'Pune Deccan Repair Hub',          'Pune',      '+91 20 2553 2200', 30, true),
+  ('SC-0003', 'Delhi Connaught Service Plaza',   'Delhi',     '+91 11 2334 3300', 45, true),
+  ('SC-0004', 'Bengaluru Koramangala Tech Care', 'Bengaluru', '+91 80 2552 4400', 40, true)
+ON CONFLICT (id) DO NOTHING;
+
+-- Move the service centre sequence past the seeded IDs so the next new centre is SC-0005.
+SELECT setval('crm2_centre_seq', GREATEST((SELECT last_value FROM crm2_centre_seq), 4));
+
+-- Seed assignments for tickets TKT-0001 to TKT-0003
+INSERT INTO ticket_assignments (id, ticket_id, centre_id, assigned_at) VALUES
+  ('ASG-0001', 'TKT-0001', 'SC-0001', now() - interval '5 hours'),
+  ('ASG-0002', 'TKT-0002', 'SC-0002', now() - interval '24 hours'),
+  ('ASG-0003', 'TKT-0003', 'SC-0004', now() - interval '2 days')
+ON CONFLICT (ticket_id) DO NOTHING;
+
+-- Move the assignment sequence past the seeded IDs so the next new assignment is ASG-0004.
+SELECT setval('crm2_assignment_seq', GREATEST((SELECT last_value FROM crm2_assignment_seq), 3));
