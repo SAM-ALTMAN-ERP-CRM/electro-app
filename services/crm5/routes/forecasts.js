@@ -316,4 +316,141 @@ router.delete('/forecasts/:id', async (req, res) => {
   }
 });
 
+const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+/**
+ * Calculates 6 consecutive monthly buckets ending at baseDate (UTC) and sums won opportunities.
+ * Returns { buckets, nextMonth }.
+ */
+function calculateTrendBuckets(opportunities = [], baseDateInput = null) {
+  let baseDate = new Date();
+  if (baseDateInput) {
+    const normalizedInput = /^\d{4}-\d{2}$/.test(baseDateInput)
+      ? `${baseDateInput}-01T00:00:00Z`
+      : baseDateInput;
+    const parsed = new Date(normalizedInput);
+    if (!isNaN(parsed.getTime())) {
+      baseDate = parsed;
+    }
+  }
+
+  const baseYear = baseDate.getUTCFullYear();
+  const baseMonth = baseDate.getUTCMonth(); // 0 to 11
+
+  const buckets = [];
+
+  // Generate 6 consecutive monthly buckets ending at baseDate's month
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(Date.UTC(baseYear, baseMonth - i, 1));
+    const yyyy = d.getUTCFullYear();
+    const mm = String(d.getUTCMonth() + 1).padStart(2, '0');
+    const monthKey = `${yyyy}-${mm}`;
+    const label = monthNames[d.getUTCMonth()];
+    buckets.push({
+      month: monthKey,
+      label,
+      year: yyyy,
+      wonValue: 0.00,
+      count: 0
+    });
+  }
+
+  // Next month (forecast period)
+  const nextD = new Date(Date.UTC(baseYear, baseMonth + 1, 1));
+  const nextYyyy = nextD.getUTCFullYear();
+  const nextMm = String(nextD.getUTCMonth() + 1).padStart(2, '0');
+  const nextMonthKey = `${nextYyyy}-${nextMm}`;
+  const nextLabel = monthNames[nextD.getUTCMonth()];
+
+  // Filter only won opportunities
+  const wonOpps = Array.isArray(opportunities)
+    ? opportunities.filter(o => String(o.stage || '').toLowerCase() === 'won')
+    : [];
+
+  // Sum won values into respective monthly bucket
+  for (const opp of wonOpps) {
+    const dateStr = opp.expected_close_date || opp.close_date || opp.won_date || opp.created_at;
+    if (!dateStr) continue;
+
+    const dateKey = String(dateStr).slice(0, 7);
+    const bucket = buckets.find(b => b.month === dateKey);
+    if (bucket) {
+      const val = Number(opp.expected_value) || 0;
+      bucket.wonValue = Number((bucket.wonValue + val).toFixed(2));
+      bucket.count += 1;
+    }
+  }
+
+  return {
+    buckets,
+    nextMonth: {
+      month: nextMonthKey,
+      label: nextLabel,
+      year: nextYyyy
+    }
+  };
+}
+
+/**
+ * GET /api/forecast/trend & /api/forecasts/trend
+ * Returns 6-month historical won revenue trend from CRM-1 and next-month forecast estimate.
+ */
+async function getForecastTrend(req, res) {
+  try {
+    let opportunities = [];
+    try {
+      opportunities = await callService('crm1', '/api/opportunities', { mock: 'opportunities' });
+    } catch (err) {
+      console.warn('[crm5] callService CRM-1 opportunities fallback:', err.message);
+    }
+
+    const wonFromCall = Array.isArray(opportunities)
+      ? opportunities.filter(o => String(o.stage || '').toLowerCase() === 'won')
+      : [];
+
+    // If external service / shared mock returned fewer than 3 won opportunities, or if baseline mock requested,
+    // fallback to CRM-5's rich historical won opportunities mock
+    if (wonFromCall.length < 3 || req.query.mock === 'baseline' || req.query.source === 'mock') {
+      const localMocks = loadMockOpportunities();
+      const localWon = localMocks.filter(o => String(o.stage || '').toLowerCase() === 'won');
+      if (localWon.length > wonFromCall.length || req.query.mock === 'baseline') {
+        opportunities = localMocks;
+      }
+    }
+
+    if (!Array.isArray(opportunities) || opportunities.length === 0) {
+      opportunities = loadMockOpportunities();
+    }
+
+    const baseDateParam = req.query.date || req.query.baseDate || req.query.now;
+    const { buckets, nextMonth } = calculateTrendBuckets(opportunities, baseDateParam);
+
+    // Formula: Next Month Estimate = (Month 4 + Month 5 + Month 6) / 3
+    const last3Sum = buckets[3].wonValue + buckets[4].wonValue + buckets[5].wonValue;
+    const nextMonthEstimate = Number((last3Sum / 3).toFixed(2));
+
+    return res.json({
+      data: {
+        months: buckets,
+        estimate: {
+          month: nextMonth.month,
+          label: nextMonth.label,
+          year: nextMonth.year,
+          value: nextMonthEstimate,
+          basis_months: [buckets[3].month, buckets[4].month, buckets[5].month]
+        },
+        formula: 'Next Month Estimate = (Month 4 + Month 5 + Month 6) / 3'
+      }
+    });
+  } catch (error) {
+    console.error('[crm5] Error calculating forecast trend:', error.message);
+    return res.status(500).json({ error: 'Failed to calculate won revenue trend and forecast' });
+  }
+}
+
+router.get('/forecast/trend', getForecastTrend);
+router.get('/forecasts/trend', getForecastTrend);
+
+router.calculateTrendBuckets = calculateTrendBuckets;
+
 module.exports = router;

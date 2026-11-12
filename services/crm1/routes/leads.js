@@ -94,7 +94,6 @@ function calculateLeadScore(lead) {
 
   return Math.min(100, score);
 }
-
 function handleDatabaseError(res, error, operation) {
   console.error(`[crm1] ${operation} failed:`, error.message);
   if (error.code === '23505') {
@@ -137,7 +136,6 @@ router.get('/leads/hot', async (req, res) => {
     return handleDatabaseError(res, error, 'GET /leads/hot');
   }
 });
-
 router.get('/leads/:id', async (req, res) => {
   try {
     const result = await pool.query(
