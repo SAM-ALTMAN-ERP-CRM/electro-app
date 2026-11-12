@@ -1,0 +1,50 @@
+[
+  {
+    "id": "EMP-0001",
+    "name": "Rohan Kulkarni",
+    "email": "rohan.kulkarni@electro.com",
+    "phone": "9820011101",
+    "department_id": "DEP-01",
+    "role_title": "Sales Rep",
+    "manager_id": null,
+    "join_date": "2025-01-15",
+    "base_salary": "45000.00",
+    "active": true
+  },
+  {
+    "id": "EMP-0002",
+    "name": "Neha Sharma",
+    "email": "neha.sharma@electro.com",
+    "phone": "9820011102",
+    "department_id": "DEP-01",
+    "role_title": "Sales Rep",
+    "manager_id": null,
+    "join_date": "2025-02-01",
+    "base_salary": "45000.00",
+    "active": true
+  },
+  {
+    "id": "EMP-0003",
+    "name": "Vikram Singh",
+    "email": "vikram.singh@electro.com",
+    "phone": "9820011103",
+    "department_id": "DEP-01",
+    "role_title": "Sales Rep",
+    "manager_id": null,
+    "join_date": "2025-02-15",
+    "base_salary": "45000.00",
+    "active": true
+  },
+  {
+    "id": "EMP-0004",
+    "name": "Anjali Rao",
+    "email": "anjali.rao@electro.com",
+    "phone": "9820011104",
+    "department_id": "DEP-01",
+    "role_title": "Sales Rep",
+    "manager_id": null,
+    "join_date": "2025-03-01",
+    "base_salary": "45000.00",
+    "active": true
+  }
+]

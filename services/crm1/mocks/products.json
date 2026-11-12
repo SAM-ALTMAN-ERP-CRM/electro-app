@@ -1,0 +1,52 @@
+[
+  {
+    "id": "SKU-0001",
+    "name": "55-inch 4K Smart TV",
+    "category": "TV",
+    "brand": "Electro",
+    "price": "42990.00",
+    "tax_rate": 18,
+    "reorder_level": 10,
+    "active": true
+  },
+  {
+    "id": "SKU-0002",
+    "name": "43-inch Full HD TV",
+    "category": "TV",
+    "brand": "Electro",
+    "price": "24990.00",
+    "tax_rate": 18,
+    "reorder_level": 10,
+    "active": true
+  },
+  {
+    "id": "SKU-0003",
+    "name": "65-inch OLED TV",
+    "category": "TV",
+    "brand": "Electro",
+    "price": "94990.00",
+    "tax_rate": 18,
+    "reorder_level": 10,
+    "active": true
+  },
+  {
+    "id": "SKU-0004",
+    "name": "Soundbar 2.1",
+    "category": "Audio",
+    "brand": "Electro",
+    "price": "8990.00",
+    "tax_rate": 18,
+    "reorder_level": 10,
+    "active": true
+  },
+  {
+    "id": "SKU-0005",
+    "name": "Soundbar 5.1",
+    "category": "Audio",
+    "brand": "Electro",
+    "price": "17990.00",
+    "tax_rate": 18,
+    "reorder_level": 10,
+    "active": true
+  }
+]

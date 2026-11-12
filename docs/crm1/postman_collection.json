@@ -1,0 +1,533 @@
+{
+  "info": {
+    "name": "CRM-1 Sales Pipeline API Collection",
+    "description": "Comprehensive Postman test collection for CRM-1 Sales Pipeline microservice (Port 5101) covering Leads ([CRM1-A1], [CRM1-A3]), Opportunities ([CRM1-B1], [CRM1-B3]), Quotes ([CRM1-C1], [CRM1-C3]), Approvals ([CRM1-D3]), Dealers ([CRM1-D1]), and Section 7 cross-team integration verifications.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:5101",
+      "type": "string"
+    },
+    {
+      "key": "jwt_token",
+      "value": "mock_jwt_token_crm1_admin",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. System & Health",
+      "item": [
+        {
+          "name": "Service Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/health",
+              "host": ["{{base_url}}"],
+              "path": ["api", "health"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Leads API ([CRM1-A1] & [CRM1-A3])",
+      "item": [
+        {
+          "name": "List All Leads",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/leads",
+              "host": ["{{base_url}}"],
+              "path": ["api", "leads"]
+            }
+          }
+        },
+        {
+          "name": "List Leads Filtered by Status",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/leads?status=qualified",
+              "host": ["{{base_url}}"],
+              "path": ["api", "leads"],
+              "query": [
+                { "key": "status", "value": "qualified" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Hot Leads (Score >= 60)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/leads/hot",
+              "host": ["{{base_url}}"],
+              "path": ["api", "leads", "hot"]
+            }
+          }
+        },
+        {
+          "name": "Get Lead by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/leads/LEAD-0001",
+              "host": ["{{base_url}}"],
+              "path": ["api", "leads", "LEAD-0001"]
+            }
+          }
+        },
+        {
+          "name": "Create Lead with Auto-Scoring",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Rahul Deshmukh\",\n  \"phone\": \"9819001122\",\n  \"email\": \"rahul.deshmukh@example.com\",\n  \"source\": \"dealer\",\n  \"product_interest\": \"65-inch OLED TV\",\n  \"sales_rep_id\": \"EMP-0001\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/leads",
+              "host": ["{{base_url}}"],
+              "path": ["api", "leads"]
+            }
+          }
+        },
+        {
+          "name": "Update Lead and Recalculate Score",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Rahul Deshmukh\",\n  \"phone\": \"9819001122\",\n  \"email\": \"rahul.deshmukh@example.com\",\n  \"source\": \"dealer\",\n  \"product_interest\": \"65-inch OLED TV\",\n  \"status\": \"contacted\",\n  \"sales_rep_id\": \"EMP-0001\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/leads/LEAD-0001",
+              "host": ["{{base_url}}"],
+              "path": ["api", "leads", "LEAD-0001"]
+            }
+          }
+        },
+        {
+          "name": "Delete Lead",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/leads/LEAD-0006",
+              "host": ["{{base_url}}"],
+              "path": ["api", "leads", "LEAD-0006"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Opportunities API ([CRM1-B1] & [CRM1-B3])",
+      "item": [
+        {
+          "name": "List Opportunities",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/opportunities",
+              "host": ["{{base_url}}"],
+              "path": ["api", "opportunities"]
+            }
+          }
+        },
+        {
+          "name": "Get Opportunities Stage Summary",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/opportunities/summary",
+              "host": ["{{base_url}}"],
+              "path": ["api", "opportunities", "summary"]
+            }
+          }
+        },
+        {
+          "name": "Get Opportunity by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/opportunities/OPP-0001",
+              "host": ["{{base_url}}"],
+              "path": ["api", "opportunities", "OPP-0001"]
+            }
+          }
+        },
+        {
+          "name": "Create Opportunity",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"lead_id\": \"LEAD-0001\",\n  \"customer_id\": \"CUST-0001\",\n  \"title\": \"Smart TV Corporate Setup\",\n  \"expected_value\": 51980.00,\n  \"stage\": \"prospect\",\n  \"expected_close_date\": \"2026-11-30\",\n  \"sales_rep_id\": \"EMP-0001\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/opportunities",
+              "host": ["{{base_url}}"],
+              "path": ["api", "opportunities"]
+            }
+          }
+        },
+        {
+          "name": "Update Opportunity Stage",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"stage\": \"proposal\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/opportunities/OPP-0001/stage",
+              "host": ["{{base_url}}"],
+              "path": ["api", "opportunities", "OPP-0001", "stage"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Quotes API ([CRM1-C1] & [CRM1-C3])",
+      "item": [
+        {
+          "name": "List Quotes",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/quotes",
+              "host": ["{{base_url}}"],
+              "path": ["api", "quotes"]
+            }
+          }
+        },
+        {
+          "name": "Get Quote by ID with Line Items and GST",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/quotes/QUO-0001",
+              "host": ["{{base_url}}"],
+              "path": ["api", "quotes", "QUO-0001"]
+            }
+          }
+        },
+        {
+          "name": "Create Quote with Multiple Line Items",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"opportunity_id\": \"OPP-0001\",\n  \"customer_id\": \"CUST-0001\",\n  \"dealer_id\": null,\n  \"sales_rep_id\": \"EMP-0001\",\n  \"discount_percent\": 10.0,\n  \"status\": \"draft\",\n  \"items\": [\n    {\n      \"sku\": \"SKU-0001\",\n      \"product_name\": \"55-inch 4K Smart TV\",\n      \"quantity\": 1,\n      \"unit_price\": 42990.00\n    },\n    {\n      \"sku\": \"SKU-0004\",\n      \"product_name\": \"Soundbar 2.1\",\n      \"quantity\": 2,\n      \"unit_price\": 8990.00\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/quotes",
+              "host": ["{{base_url}}"],
+              "path": ["api", "quotes"]
+            }
+          }
+        },
+        {
+          "name": "Update Quote Status to Sent",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"sent\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/quotes/QUO-0001/status",
+              "host": ["{{base_url}}"],
+              "path": ["api", "quotes", "QUO-0001", "status"]
+            }
+          }
+        },
+        {
+          "name": "Accept Quote and Trigger Order Handoff",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"accepted\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/quotes/QUO-0002/status",
+              "host": ["{{base_url}}"],
+              "path": ["api", "quotes", "QUO-0002", "status"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Approvals API ([CRM1-D3])",
+      "item": [
+        {
+          "name": "List Pending Approvals (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/approvals",
+              "host": ["{{base_url}}"],
+              "path": ["api", "approvals"]
+            }
+          }
+        },
+        {
+          "name": "Approve Quote (Admin)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/quotes/QUO-0005/approve",
+              "host": ["{{base_url}}"],
+              "path": ["api", "quotes", "QUO-0005", "approve"]
+            }
+          }
+        },
+        {
+          "name": "Reject Quote (Admin)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Discount exceeds maximum allowed policy threshold\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/quotes/QUO-0005/reject",
+              "host": ["{{base_url}}"],
+              "path": ["api", "quotes", "QUO-0005", "reject"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Dealers API ([CRM1-D1])",
+      "item": [
+        {
+          "name": "List Dealers",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/dealers",
+              "host": ["{{base_url}}"],
+              "path": ["api", "dealers"]
+            }
+          }
+        },
+        {
+          "name": "Filter Dealers by City and Query",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/dealers?q=BrightHome&city=Pune",
+              "host": ["{{base_url}}"],
+              "path": ["api", "dealers"],
+              "query": [
+                { "key": "q", "value": "BrightHome" },
+                { "key": "city", "value": "Pune" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Dealer by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/dealers/DLR-0001",
+              "host": ["{{base_url}}"],
+              "path": ["api", "dealers", "DLR-0001"]
+            }
+          }
+        },
+        {
+          "name": "Create Dealer",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Apex Electronics\",\n  \"contact_person\": \"Vikram Seth\",\n  \"phone\": \"9811223344\",\n  \"email\": \"vikram@apexelectronics.in\",\n  \"city\": \"Delhi\",\n  \"tier\": \"silver\",\n  \"credit_limit\": 300000.00\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/dealers",
+              "host": ["{{base_url}}"],
+              "path": ["api", "dealers"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "7. Section 7 Cross-Team Verifications",
+      "item": [
+        {
+          "name": "Row 1: Read Sales Reps from ERP-6",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "url": {
+              "raw": "http://localhost:5206/api/employees?role_title=Sales%20Rep",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "5206",
+              "path": ["api", "employees"],
+              "query": [
+                { "key": "role_title", "value": "Sales Rep" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Row 2: Read Products from ERP-1",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "url": {
+              "raw": "http://localhost:5201/api/products",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "5201",
+              "path": ["api", "products"]
+            }
+          }
+        },
+        {
+          "name": "Row 3: Push Sales Order to ERP-4",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"quote_id\": \"QUO-0003\",\n  \"customer_id\": \"CUST-0003\",\n  \"sales_rep_id\": \"EMP-0003\",\n  \"items\": [\n    {\n      \"sku\": \"SKU-0003\",\n      \"product_name\": \"65-inch OLED TV\",\n      \"quantity\": 1,\n      \"unit_price\": 94990.00\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "http://localhost:5204/api/sales-orders",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "5204",
+              "path": ["api", "sales-orders"]
+            }
+          }
+        },
+        {
+          "name": "Row 4: Push Timeline Interaction to CRM-3",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customer_id\": \"CUST-0001\",\n  \"type\": \"order\",\n  \"summary\": \"Quote QUO-0001 accepted by customer.\",\n  \"source_team\": \"CRM-1\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:5103/api/interactions/from-event",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "5103",
+              "path": ["api", "interactions", "from-event"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

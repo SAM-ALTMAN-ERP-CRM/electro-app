@@ -1,0 +1,57 @@
+[
+  {
+    "id": "DLR-0001",
+    "name": "BrightHome Retail",
+    "contact_person": "Sunil Joshi",
+    "phone": "9820011223",
+    "email": "sunil@brighthome.in",
+    "city": "Pune",
+    "tier": "gold",
+    "credit_limit": 500000.00,
+    "status": "active"
+  },
+  {
+    "id": "DLR-0002",
+    "name": "Gadget Hub",
+    "contact_person": "Kavita Rao",
+    "phone": "9820022334",
+    "email": "kavita@gadgethub.in",
+    "city": "Bengaluru",
+    "tier": "silver",
+    "credit_limit": 300000.00,
+    "status": "active"
+  },
+  {
+    "id": "DLR-0003",
+    "name": "Modern Electronics",
+    "contact_person": "Amit Chawla",
+    "phone": "9820033445",
+    "email": "amit@modernelec.in",
+    "city": "Mumbai",
+    "tier": "bronze",
+    "credit_limit": 150000.00,
+    "status": "active"
+  },
+  {
+    "id": "DLR-0004",
+    "name": "Apex Digital",
+    "contact_person": "Manish Gupta",
+    "phone": "9820044556",
+    "email": "manish@apexdigital.in",
+    "city": "Delhi",
+    "tier": "gold",
+    "credit_limit": 500000.00,
+    "status": "active"
+  },
+  {
+    "id": "DLR-0005",
+    "name": "OmniTech Solutions",
+    "contact_person": "Pooja Reddy",
+    "phone": "9820055667",
+    "email": "pooja@omnitech.in",
+    "city": "Hyderabad",
+    "tier": "silver",
+    "credit_limit": 300000.00,
+    "status": "active"
+  }
+]

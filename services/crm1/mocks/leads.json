@@ -1,0 +1,62 @@
+[
+  {
+    "id": "LEAD-0001",
+    "name": "Aarav Mehta",
+    "phone": "9820123456",
+    "email": "aarav.mehta@example.com",
+    "source": "dealer",
+    "product_interest": "55-inch 4K Smart TV",
+    "status": "new",
+    "score": 60,
+    "sales_rep_id": "EMP-0001",
+    "created_at": "2026-11-01T10:00:00.000Z"
+  },
+  {
+    "id": "LEAD-0002",
+    "name": "Diya Sharma",
+    "phone": "9820234567",
+    "email": "diya.sharma@example.com",
+    "source": "web",
+    "product_interest": "Soundbar 2.1",
+    "status": "contacted",
+    "score": 50,
+    "sales_rep_id": "EMP-0002",
+    "created_at": "2026-11-02T11:00:00.000Z"
+  },
+  {
+    "id": "LEAD-0003",
+    "name": "Kabir Patel",
+    "phone": "9820345678",
+    "email": "kabir.patel@example.com",
+    "source": "walk-in",
+    "product_interest": "65-inch OLED TV",
+    "status": "qualified",
+    "score": 40,
+    "sales_rep_id": "EMP-0003",
+    "created_at": "2026-11-03T12:00:00.000Z"
+  },
+  {
+    "id": "LEAD-0004",
+    "name": "BrightHome Retail",
+    "phone": "9820456789",
+    "email": "procurement@brighthome.in",
+    "source": "dealer",
+    "product_interest": "43-inch Full HD TV",
+    "status": "qualified",
+    "score": 60,
+    "sales_rep_id": "EMP-0001",
+    "created_at": "2026-11-04T14:00:00.000Z"
+  },
+  {
+    "id": "LEAD-0005",
+    "name": "Vihaan Iyer",
+    "phone": "9820567890",
+    "email": "vihaan.iyer@example.com",
+    "source": "web",
+    "product_interest": "Soundbar 5.1",
+    "status": "lost",
+    "score": 50,
+    "sales_rep_id": "EMP-0004",
+    "created_at": "2026-11-05T15:30:00.000Z"
+  }
+]
