@@ -7,6 +7,9 @@ import CentresPage from './pages/CentresPage';
 import AssignPage from './pages/AssignPage';
 // [CRM2-B2] warranty screen
 import WarrantyPage from './pages/WarrantyPage';
+// [CRM2-C2] RMA screens
+import RmasPage from './pages/RmasPage';
+import RmaDetailPage from './pages/RmaDetailPage';
 
 export default {
   id: 'crm2',
@@ -20,6 +23,9 @@ export default {
     { path: 'centres', label: 'Service Centres', element: <CentresPage /> },
     { path: 'assign', label: 'Assign Tickets', element: <AssignPage /> },
     // [CRM2-B2] warranty screen
-    { path: 'warranty', label: 'Warranty', element: <WarrantyPage /> }
+    { path: 'warranty', label: 'Warranty', element: <WarrantyPage /> },
+    // [CRM2-C2] RMA screens
+    { path: 'rmas', label: 'Returns (RMA)', element: <RmasPage /> },
+    { path: 'rmas/:id', element: <RmaDetailPage /> }
   ]
 };
