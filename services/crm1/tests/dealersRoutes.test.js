@@ -46,7 +46,7 @@ function dispatch(router, options) {
   });
 }
 
-describe('CRM1 Dealers Routes Tests ([CRM1-D1])', () => {
+describe('CRM1 Dealers Routes & Screens Tests ([CRM1-D1] & [CRM1-D2])', () => {
 
   it('GET /dealers returns list of dealers including Section 5 seed dealers', async () => {
     const res = await dispatch(dealersRouter, {
@@ -86,7 +86,6 @@ describe('CRM1 Dealers Routes Tests ([CRM1-D1])', () => {
     assert.ok(res.body.data.length > 0);
     assert.ok(res.body.data.some(d => d.name.toLowerCase().includes('gadget')));
   });
-
   it('GET /dealers/:id returns dealer details or 404 for unknown dealer', async () => {
     const successRes = await dispatch(dealersRouter, {
       method: 'GET',
