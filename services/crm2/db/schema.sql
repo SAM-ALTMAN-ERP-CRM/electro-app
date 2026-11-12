@@ -66,3 +66,18 @@ CREATE TABLE IF NOT EXISTS ticket_assignments (
   centre_id   TEXT NOT NULL REFERENCES service_centres(id),
   assigned_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- [CRM2-C1] rmas
+-- Product return merchandise authorizations. IDs look like RMA-0001.
+CREATE SEQUENCE IF NOT EXISTS crm2_rma_seq START 1;
+
+CREATE TABLE IF NOT EXISTS rmas (
+  id            TEXT PRIMARY KEY DEFAULT ('RMA-' || LPAD(nextval('crm2_rma_seq')::text, 4, '0')),
+  ticket_id     TEXT NOT NULL,
+  serial_number TEXT NOT NULL,
+  reason        TEXT NOT NULL,
+  status        TEXT NOT NULL DEFAULT 'requested' CHECK (status IN ('requested', 'approved', 'rejected', 'received', 'closed')),
+  outcome       TEXT CHECK (outcome IS NULL OR outcome IN ('restock', 'repair', 'credit_note')),
+  requested_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+  decided_at    TIMESTAMPTZ
+);
