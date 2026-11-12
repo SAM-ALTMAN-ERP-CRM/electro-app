@@ -10,6 +10,27 @@ const FALLBACK_TARGETS = [
   { id: 'FCST-0005', month: '2026-12', target_amount: 200000.00, notes: 'Year-end enterprise closure and institutional renewals' }
 ];
 
+// Fallback historical 6-month won trend and next-month estimate [CRM5-C3]
+// Baseline values: [100k, 150k, 200k, 120k, 180k, 210k] -> (120k + 180k + 210k)/3 = 170k
+const FALLBACK_TREND_DATA = {
+  months: [
+    { month: '2026-06', label: 'Jun', wonValue: 100000.00, count: 1 },
+    { month: '2026-07', label: 'Jul', wonValue: 150000.00, count: 1 },
+    { month: '2026-08', label: 'Aug', wonValue: 200000.00, count: 1 },
+    { month: '2026-09', label: 'Sep', wonValue: 120000.00, count: 1 },
+    { month: '2026-10', label: 'Oct', wonValue: 180000.00, count: 1 },
+    { month: '2026-11', label: 'Nov', wonValue: 210000.00, count: 1 }
+  ],
+  estimate: {
+    month: '2026-12',
+    label: 'Dec',
+    year: 2026,
+    value: 170000.00,
+    basis_months: ['2026-09', '2026-10', '2026-11']
+  },
+  formula: 'Next Month Estimate = (Month 4 + Month 5 + Month 6) / 3'
+};
+
 // Fallback weighted pipeline calculation
 // Prospect (10%), Proposal (30%), Negotiation (60%)
 const FALLBACK_WEIGHTED_DATA = {
@@ -26,9 +47,10 @@ const FALLBACK_WEIGHTED_DATA = {
 };
 
 export default function ForecastPage() {
-  // Forecast targets list and weighted pipeline state
+  // Forecast targets list, weighted pipeline, and 6-month won trend state
   const [targets, setTargets] = useState(FALLBACK_TARGETS);
   const [weightedData, setWeightedData] = useState(FALLBACK_WEIGHTED_DATA);
+  const [trendData, setTrendData] = useState(FALLBACK_TREND_DATA);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
@@ -46,7 +68,7 @@ export default function ForecastPage() {
     return `₹${num.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
 
-  // Fetch live forecasts and weighted calculation from CRM-5 backend
+  // Fetch live forecasts, weighted calculation, and won trend from CRM-5 backend
   const loadForecastData = useCallback(async () => {
     setLoading(true);
     setErrorMsg('');
@@ -62,7 +84,21 @@ export default function ForecastPage() {
     }
 
     try {
-      // 2. Fetch targets list
+      // 2. Fetch 6-month won revenue trend and next-month forecast [CRM5-C3]
+      const trendRes = await api('crm5', '/api/forecast/trend');
+      const trendPayload = trendRes && trendRes.data ? trendRes.data : trendRes;
+      if (trendPayload && Array.isArray(trendPayload.months) && trendPayload.months.length === 6) {
+        setTrendData(trendPayload);
+      } else {
+        setTrendData(FALLBACK_TREND_DATA);
+      }
+    } catch (err) {
+      console.warn('[crm5] API forecast trend fetch notice:', err.message);
+      setTrendData(FALLBACK_TREND_DATA);
+    }
+
+    try {
+      // 3. Fetch targets list
       const targetsRes = await api('crm5', '/api/forecasts');
       const list = Array.isArray(targetsRes) ? targetsRes : (targetsRes && targetsRes.data ? targetsRes.data : []);
       if (list.length > 0) {
@@ -315,6 +351,269 @@ export default function ForecastPage() {
               </span>
             )}
           </p>
+        </div>
+      </div>
+
+      {/* Middle Section: Won Revenue Trend & Next-Month Forecast [CRM5-C3] */}
+      <div style={{ background: '#ffffff', borderRadius: '8px', border: '1px solid #e2e8f0', padding: '1.5rem', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.25rem', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.85rem' }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#0f172a' }}>
+                Won Revenue Trend & Next-Month Forecast
+              </h3>
+              <span className="badge badge-blue">CRM-1 Opportunities</span>
+            </div>
+            <p style={{ color: '#64748b', fontSize: '0.875rem', marginTop: '0.25rem' }}>
+              Historical 6-month won opportunities from CRM-1 and projected next-month estimate based on a 3-month moving average.
+            </p>
+          </div>
+
+          <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+            <div style={{ textAlign: 'right' }}>
+              <span style={{ fontSize: '0.75rem', color: '#64748b', display: 'block', textTransform: 'uppercase', fontWeight: 600 }}>
+                6-Month Total Won
+              </span>
+              <span style={{ fontSize: '1.15rem', fontWeight: 700, color: '#0f172a' }}>
+                {formatMoney((trendData?.months || []).reduce((sum, m) => sum + (Number(m.wonValue) || 0), 0))}
+              </span>
+            </div>
+            <div style={{ textAlign: 'right', borderLeft: '2px solid #e2e8f0', paddingLeft: '1.25rem' }}>
+              <span style={{ fontSize: '0.75rem', color: '#7c3aed', display: 'block', textTransform: 'uppercase', fontWeight: 700 }}>
+                Next-Month Forecast ({trendData?.estimate?.label || 'Dec'})
+              </span>
+              <span style={{ fontSize: '1.25rem', fontWeight: 800, color: '#6d28d9' }}>
+                {formatMoney(trendData?.estimate?.value || 0)}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Visual Bar Chart (HTML/CSS) */}
+        <div style={{ overflowX: 'auto', paddingBottom: '0.5rem' }}>
+          <div
+            style={{
+              minWidth: '680px',
+              height: '240px',
+              display: 'flex',
+              alignItems: 'flex-end',
+              gap: '1rem',
+              padding: '1rem 0.5rem 0.5rem 0.5rem',
+              background: '#f8fafc',
+              border: '1px solid #e2e8f0',
+              borderRadius: '8px',
+              position: 'relative'
+            }}
+          >
+            {/* 6 Historical Monthly Bars */}
+            {(trendData?.months || []).map((m, idx) => {
+              const val = Number(m.wonValue) || 0;
+              const maxVal = Math.max(
+                ...(trendData?.months || []).map(x => Number(x.wonValue) || 0),
+                Number(trendData?.estimate?.value) || 0,
+                100000
+              );
+              const barHeightPct = Math.round((val / maxVal) * 100);
+              const isCurrent = m.month === currentMonthStr;
+              const isBasisMonth = idx >= 3; // Months 4, 5, 6 used in estimate
+
+              return (
+                <div
+                  key={m.month}
+                  style={{
+                    flex: 1,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    height: '100%',
+                    justifyContent: 'flex-end',
+                    position: 'relative'
+                  }}
+                  title={`${m.label} (${m.month}): ${formatMoney(val)} from ${m.count || 0} won deal(s)`}
+                >
+                  {/* Value label above bar */}
+                  <span
+                    style={{
+                      fontSize: '0.75rem',
+                      fontWeight: 700,
+                      color: val > 0 ? '#1e293b' : '#94a3b8',
+                      marginBottom: '0.35rem',
+                      whiteSpace: 'nowrap'
+                    }}
+                  >
+                    {formatMoney(val)}
+                  </span>
+
+                  {/* Vertical bar */}
+                  <div
+                    style={{
+                      width: '65%',
+                      maxWidth: '46px',
+                      minWidth: '24px',
+                      height: `${Math.max(Math.round((barHeightPct / 100) * 135), 4)}px`,
+                      backgroundColor: val > 0 ? (isCurrent ? '#1d4ed8' : '#2563eb') : '#cbd5e1',
+                      borderRadius: '6px 6px 0 0',
+                      transition: 'height 0.4s ease',
+                      boxShadow: val > 0 ? '0 1px 3px rgba(37,99,235,0.2)' : 'none',
+                      position: 'relative'
+                    }}
+                  />
+
+                  {/* Month Label and Sub-badge below bar */}
+                  <div style={{ textAlign: 'center', marginTop: '0.5rem', width: '100%' }}>
+                    <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#0f172a' }}>
+                      {m.label}
+                    </div>
+                    <div style={{ fontSize: '0.7rem', color: '#64748b' }}>
+                      {m.month}
+                    </div>
+                    {isCurrent ? (
+                      <span className="badge badge-green" style={{ fontSize: '0.65rem', padding: '0.1rem 0.35rem', marginTop: '0.2rem', display: 'inline-block' }}>
+                        Current
+                      </span>
+                    ) : isBasisMonth ? (
+                      <span style={{ fontSize: '0.65rem', color: '#2563eb', fontWeight: 600, display: 'inline-block', marginTop: '0.2rem' }}>
+                        M{idx + 1} • Basis
+                      </span>
+                    ) : (
+                      <span style={{ fontSize: '0.65rem', color: '#64748b', display: 'inline-block', marginTop: '0.2rem' }}>
+                        M{idx + 1}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+
+            {/* Visual Projection Separator */}
+            <div
+              style={{
+                width: '1px',
+                height: '75%',
+                backgroundColor: '#cbd5e1',
+                borderLeft: '1px dashed #94a3b8',
+                alignSelf: 'center',
+                margin: '0 0.25rem'
+              }}
+            />
+
+            {/* Next-Month Forecast Estimate Bar (Visually Distinct) */}
+            {(() => {
+              const estVal = Number(trendData?.estimate?.value) || 0;
+              const maxVal = Math.max(
+                ...(trendData?.months || []).map(x => Number(x.wonValue) || 0),
+                estVal,
+                100000
+              );
+              const barHeightPct = Math.round((estVal / maxVal) * 100);
+
+              return (
+                <div
+                  style={{
+                    flex: 1.15,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    height: '100%',
+                    justifyContent: 'flex-end',
+                    background: 'rgba(243, 232, 255, 0.45)',
+                    borderRadius: '8px',
+                    padding: '0.35rem 0.25rem',
+                    border: '1px solid #e9d5ff',
+                    position: 'relative'
+                  }}
+                  title={`Projected ${trendData?.estimate?.label || 'Dec'}: ${formatMoney(estVal)}`}
+                >
+                  {/* Projected Value label above bar */}
+                  <span
+                    style={{
+                      fontSize: '0.8rem',
+                      fontWeight: 800,
+                      color: '#6b21a8',
+                      marginBottom: '0.35rem',
+                      whiteSpace: 'nowrap'
+                    }}
+                  >
+                    {formatMoney(estVal)}
+                  </span>
+
+                  {/* Distinct Forecast Bar with dashed border and purple gradient */}
+                  <div
+                    style={{
+                      width: '65%',
+                      maxWidth: '46px',
+                      minWidth: '24px',
+                      height: `${Math.max(Math.round((barHeightPct / 100) * 135), 6)}px`,
+                      background: 'linear-gradient(180deg, #a855f7 0%, #7c3aed 100%)',
+                      border: '2px dashed #581c87',
+                      borderRadius: '6px 6px 0 0',
+                      transition: 'height 0.4s ease',
+                      boxShadow: '0 2px 6px rgba(124, 58, 237, 0.3)'
+                    }}
+                  />
+
+                  {/* Next-Month Label and Forecast Badge */}
+                  <div style={{ textAlign: 'center', marginTop: '0.5rem', width: '100%' }}>
+                    <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#6b21a8' }}>
+                      {trendData?.estimate?.label || 'Dec'} {trendData?.estimate?.year || ''}
+                    </div>
+                    <div style={{ fontSize: '0.7rem', color: '#7c3aed', fontWeight: 600 }}>
+                      {trendData?.estimate?.month || '2026-12'}
+                    </div>
+                    <span
+                      style={{
+                        backgroundColor: '#f3e8ff',
+                        color: '#6b21a8',
+                        border: '1px solid #c084fc',
+                        borderRadius: '4px',
+                        fontSize: '0.65rem',
+                        fontWeight: 700,
+                        padding: '0.1rem 0.4rem',
+                        marginTop: '0.2rem',
+                        display: 'inline-block'
+                      }}
+                    >
+                      ⚡ Next-Month Forecast
+                    </span>
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+        </div>
+
+        {/* Legend & Calculation Formula Footer */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem', marginTop: '1rem', paddingTop: '0.85rem', borderTop: '1px solid #f1f5f9' }}>
+          {/* Legend */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', flexWrap: 'wrap', fontSize: '0.8rem', color: '#475569' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              <span style={{ display: 'inline-block', width: '12px', height: '12px', backgroundColor: '#2563eb', borderRadius: '2px' }} />
+              <span>Historical Won Revenue (Months 1–6)</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              <span style={{ display: 'inline-block', width: '12px', height: '12px', background: 'linear-gradient(180deg, #a855f7 0%, #7c3aed 100%)', border: '1px dashed #581c87', borderRadius: '2px' }} />
+              <strong style={{ color: '#6b21a8' }}>Next-Month Forecast Estimate</strong>
+            </div>
+          </div>
+
+          {/* Formula Callout */}
+          <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '0.5rem 0.85rem', fontSize: '0.8rem', color: '#334155', maxWidth: '600px' }}>
+            <div style={{ fontWeight: 700, color: '#0f172a', marginBottom: '0.15rem' }}>
+              📐 Forecast Formula:
+            </div>
+            <code style={{ background: '#e2e8f0', padding: '0.15rem 0.4rem', borderRadius: '4px', fontSize: '0.775rem', color: '#1e293b' }}>
+              Next Month Estimate = (Month 4 + Month 5 + Month 6) / 3
+            </code>
+            <div style={{ color: '#64748b', fontSize: '0.75rem', marginTop: '0.25rem' }}>
+              {trendData?.months && trendData.months.length >= 6 ? (
+                <span>
+                  Calculation: ({formatMoney(trendData.months[3]?.wonValue || 0)} + {formatMoney(trendData.months[4]?.wonValue || 0)} + {formatMoney(trendData.months[5]?.wonValue || 0)}) ÷ 3 = <strong style={{ color: '#6b21a8' }}>{formatMoney(trendData.estimate?.value || 0)}</strong>
+                </span>
+              ) : (
+                'Arithmetic average of the 3 most recent monthly buckets, including zero-revenue periods.'
+              )}
+            </div>
+          </div>
         </div>
       </div>
 
