@@ -2,7 +2,7 @@
 
 A walkthrough anyone outside the team can follow, using only the Section 5 shared IDs. Each step lists the page, what to click, what you should see, and the same thing as a `curl` command.
 
-Steps marked **(final after CRM2-xx merges)** describe work that is still in an open or planned PR; their wording will be checked against the merged code before G4.
+All five steps were run end to end on 12 Nov 2026 against `main` plus the open PRs **#338 (CRM2-C3)** and **#339 (CRM2-D3)**. Steps 4 (warranty rule, ERP-4 handoff, timeline) and 5 (reports) need those two PRs merged.
 
 ---
 
@@ -15,6 +15,7 @@ Steps marked **(final after CRM2-xx merges)** describe work that is still in an 
 | Serial in warranty | `TV55-2611-0001` | Sold to CUST-0001 three months ago |
 | Serial out of warranty | `TV55-2611-0004` | Sold to CUST-0004 (BrightHome Retail LLP) two years ago |
 | Service engineer | `EMP-0005` | Imran Qureshi |
+| Service centre | `SC-0001` | Mumbai Central Electronics Care |
 | Seed tickets | `TKT-0001`–`TKT-0006` | TKT-0001, 0002, 0005 are already overdue |
 
 ## Before you start
@@ -30,22 +31,24 @@ Steps marked **(final after CRM2-xx merges)** describe work that is still in an 
 2. **Start the app:** `npm run dev` (or only `npm --workspace=services/crm2 run dev` and `npm --workspace=frontend run dev`).
 3. Open **http://localhost:3000** and log in as `admin@demo.com` (with `AUTH_REQUIRED=false` you are logged in as System Administrator automatically). Open **Support** in the menu.
 
-After a reset the first new ticket is `TKT-0007` and the first new comment is `CMT-0005`.
+After a reset the next new IDs are `TKT-0007`, `CMT-0005`, `ASG-0004` and `RMA-0004`.
 
 ---
 
-## Step 1 · Warranty check by serial (final after CRM2-B1, B2 merge)
+## Step 1 · Warranty check by serial
 
 **Page:** Support → **Warranty** (`/crm2/warranty`)
 
 1. Type `TV55-2611-0001` and press **Check Warranty**.
-   **You see:** SKU-0001, 55-inch 4K Smart TV, customer CUST-0001, purchase date three months ago, expiry one year after purchase, and a green **In warranty** badge.
+   **You see:** SKU-0001, 55-inch 4K Smart TV, customer CUST-0001, purchased three months ago, expires one year after purchase, and a green **In warranty** badge.
 2. Check `TV55-2611-0004`.
-   **You see:** customer CUST-0004, bought two years ago, and a red **Expired** badge.
+   **You see:** customer CUST-0004, bought two years ago, already expired, and a red **Expired** badge.
 
 ```bash
-curl -s localhost:5102/api/warranty/TV55-2611-0001   # "status": "active"
-curl -s localhost:5102/api/warranty/TV55-2611-0004   # "status": "expired"
+curl -s localhost:5102/api/warranty/TV55-2611-0001
+# TV55-2611-0001 CUST-0001 2026-08-12 -> 2027-08-12 "status":"active"
+curl -s localhost:5102/api/warranty/TV55-2611-0004
+# TV55-2611-0004 CUST-0004 2024-11-12 -> 2025-11-12 "status":"expired"
 ```
 
 ## Step 2 · Open a ticket, assign an engineer, see the SLA
@@ -73,61 +76,70 @@ curl -s -X POST localhost:5102/api/tickets -H 'Content-Type: application/json' -
   "customer_id":"CUST-0001","customer_name":"Aarav Mehta","serial_number":"TV55-2611-0001",
   "subject":"No picture, sound works","description":"Screen stays black after power on; audio is fine.",
   "priority":"high","assigned_to":"EMP-0005"}'
-# {"data":{"id":"TKT-0007", ... "priority":"high","status":"open","assigned_to":"EMP-0005",
-#   "created_at":"…T20:53:18.590Z","due_at":"…T00:53:18.590Z", ...}}      ← due_at = created_at + 4 h
+# {"data":{"id":"TKT-0007", ... "priority":"high","status":"open","assigned_to":"EMP-0005", ...}}   due_at = created_at + 4 h
 
-curl -s localhost:5102/api/tickets/overdue                 # TKT-0002, TKT-0001, TKT-0005
+curl -s localhost:5102/api/tickets/overdue                 # TKT-0002 TKT-0001 TKT-0005
 curl -s -X PATCH localhost:5102/api/tickets/TKT-0007/status -H 'Content-Type: application/json' -d '{"status":"in_progress"}'
 curl -s -X POST localhost:5102/api/tickets/TKT-0007/comments -H 'Content-Type: application/json' \
   -d '{"text":"Called customer. Engineer visit booked for tomorrow 10am."}'
 # {"data":{"id":"CMT-0005","ticket_id":"TKT-0007","author":"System Administrator", ...}}
 ```
 
-**Integration:** creating the ticket posts *"Ticket TKT-0007: No picture, sound works"* to the CRM-3 customer timeline. Open Customers → Aarav Mehta → timeline to show it. If CRM-3 is not running, the CRM-2 log shows
+**Integration:** creating the ticket posts *"Ticket TKT-0007: No picture, sound works"* to the CRM-3 customer timeline (CRM3-B3 is merged). With CRM-3 running, open Customers → Aarav Mehta → timeline to show it. If CRM-3 is not running, the CRM-2 log shows
 `[integration-error] CRM-3 timeline event failed (crm3 is not reachable). Payload: {"customer_id":"CUST-0001","type":"ticket","summary":"Ticket TKT-0007: No picture, sound works","source_team":"CRM-2"}`
 and the ticket is still created.
 
-## Step 3 · Send the ticket to a service centre (final after CRM2-D1, D2 merge)
+## Step 3 · Send the ticket to a service centre
 
-**Page:** Support → **Assign** (`/crm2/assign`)
+**Page:** Support → **Assign Tickets** (`/crm2/assign`)
 
-1. Choose ticket **TKT-0007** and a service centre (e.g. `SC-0001`), click **Assign**.
-   **You see:** TKT-0007 listed against that centre. Assigning it again to another centre replaces the first assignment.
+1. Find **TKT-0007** in the list of tickets awaiting a service centre.
+2. In **Assign to centre** choose **Mumbai Central Electronics Care** (`SC-0001`) and click **Assign**.
+   **You see:** TKT-0007 leaves the unassigned list. (Assigning a ticket again through the API replaces its earlier centre.)
 
 ```bash
 curl -s -X POST localhost:5102/api/assignments -H 'Content-Type: application/json' -d '{"ticket_id":"TKT-0007","centre_id":"SC-0001"}'
+# {"data":{"id":"ASG-0004","ticket_id":"TKT-0007","centre_id":"SC-0001", ...}}
 curl -s "localhost:5102/api/assignments?ticket_id=TKT-0007"
+# [{"id":"ASG-0004", ... "centre_name":"Mumbai Central Electronics Care","centre_city":"Mumbai"}]
 ```
 
-## Step 4 · Return (RMA): approve one, refuse an expired one (final after CRM2-C1, C2, C3 merge)
+## Step 4 · Return (RMA): approve one, refuse an expired one (needs #338)
 
-**Page:** Support → **Returns** (`/crm2/rmas`)
+**Page:** Support → **Returns (RMA)** (`/crm2/rmas`)
 
-1. Request a return for ticket **TKT-0007**, serial `TV55-2611-0001`, reason `Panel fault, no picture`.
-   **You see:** a new RMA with status **Requested**.
-2. Open it and **Approve** with outcome **repair**.
-   **You see:** status **Approved**; the status timeline (requested → approved → received → closed) highlights *approved*. The return is handed to ERP-4: show the new return in ERP-4 (Orders and Dispatch), or the CRM-2 log line for `POST /api/returns/from-rma`. "RMA … approved (repair)" also appears on Aarav Mehta's CRM-3 timeline.
-3. Try to request a return for serial `TV55-2611-0004` (e.g. on seed ticket **TKT-0004**, BrightHome Retail LLP).
-   **You see:** the request is refused with **"Out of warranty"**.
+1. Click **+ Request RMA** and fill in Ticket ID `TKT-0007`, Serial Number `TV55-2611-0001`, Reason `Panel fault, no picture`. Submit.
+   **You see:** **RMA-0004** with status **requested**.
+2. Open **RMA-0004**, choose outcome **Repair** and click **✓ Approve**.
+   **You see:** "RMA approved successfully." followed by either "Return handed to ERP-4." (ERP-4 running) or "ERP-4 is not reachable right now; the handoff was logged." The **Status** timeline shows ✓ Requested → **Approved** (highlighted) → Received → Closed.
+3. Click **Mark unit received**, then **Close RMA**, to walk the timeline to the end.
+4. Back on Returns, request an RMA for Ticket ID `TKT-0004`, Serial Number `TV55-2611-0004` (BrightHome Retail LLP), Reason `Dead pixels`.
+   **You see:** the form refuses it with **Out of warranty**.
 
 ```bash
 curl -s -X POST localhost:5102/api/rmas -H 'Content-Type: application/json' \
   -d '{"ticket_id":"TKT-0007","serial_number":"TV55-2611-0001","reason":"Panel fault, no picture"}'
-curl -s -X PATCH localhost:5102/api/rmas/<RMA id>/decision -H 'Content-Type: application/json' \
+# RMA-0004 requested
+curl -s -X PATCH localhost:5102/api/rmas/RMA-0004/decision -H 'Content-Type: application/json' \
   -d '{"status":"approved","outcome":"repair"}'
+# RMA-0004 approved repair, "erp4_handoff":"failed" while ERP-4 is not running ("sent" once it is)
 curl -s -X POST localhost:5102/api/rmas -H 'Content-Type: application/json' \
   -d '{"ticket_id":"TKT-0004","serial_number":"TV55-2611-0004","reason":"Dead pixels"}'
 # 400 {"error":"Out of warranty"}
 ```
 
-## Step 5 · Support reports (final after CRM2-D3 merges)
+**Integration:** approval sends `{"rma_id":"RMA-0004","serial_number":"TV55-2611-0001","reason":"Panel fault, no picture","outcome":"repair"}` to ERP-4 `POST /api/returns/from-rma` (ERP-4 then calls ERP-1 and ERP-5) and posts *"RMA RMA-0004 approved (repair)"* to Aarav Mehta's CRM-3 timeline. Until ERP4-D1 is merged the CRM-2 log shows
+`[integration-error] ERP-4 return handoff failed (erp4 is not reachable). Payload: {...}`.
+
+## Step 5 · Support reports (needs #339)
 
 **Page:** Support → **Reports** (`/crm2/reports`)
 
-**You see:** ticket counts by status and priority, average resolution time (from seed tickets TKT-0003 and TKT-0006), the overdue count (TKT-0001, TKT-0002, TKT-0005), and tickets per service centre including TKT-0007.
+**You see** (after steps 2–4 on a fresh database): **Total tickets 7**, **Overdue tickets 3** (red; TKT-0001, TKT-0002, TKT-0005), **Avg resolution 24 h** (from seed tickets TKT-0003 and TKT-0006), **Active centres 4**; status bars Open 3 · In progress 2 · Resolved 1 · Closed 1; priority bars High 3 · Medium 2 · Low 2; and **Mumbai Central Electronics Care** with 2 tickets (TKT-0001 and TKT-0007).
 
 ```bash
 curl -s localhost:5102/api/reports/tickets-summary
+# by_status, by_priority, total_tickets, overdue_count, avg_resolution_hours, active_centres, by_centre
 ```
 
 ---
@@ -136,8 +148,9 @@ curl -s localhost:5102/api/reports/tickets-summary
 
 | What you see | Why | What to do |
 |---|---|---|
-| Ticket list says "Could not load tickets" | CRM-2 service or database is not running | `curl localhost:5102/api/health`; reload the database (Before you start, 1) |
-| Engineer / customer dropdown still works but CRM-2 log or browser shows 500 for `/svc/erp6` or `/svc/crm3` | ERP-6 or CRM-3 not running | Fine for a CRM-2-only demo: the dropdowns fall back to the Section 5 lists |
+| A page says it could not load data | CRM-2 service or database is not running | `curl localhost:5102/api/health`; reload the database (Before you start, 1) |
+| Engineer / customer dropdowns still work but the browser shows 500 for `/svc/erp6` or `/svc/crm3` | ERP-6 or CRM-3 not running | Fine for a CRM-2-only demo: the dropdowns fall back to the Section 5 lists |
 | `[integration-error] …` in the CRM-2 log | Another team's endpoint is down or not merged | The CRM-2 action still succeeds; start that team's service for the full story |
-| New ticket is not `TKT-0007` | Database was not reset since the last run | Reset (Before you start, 1) |
+| New ticket is not `TKT-0007` (or RMA not `RMA-0004`) | Database was not reset since the last run | Reset (Before you start, 1) |
 | No tickets show as overdue | The overdue seed tickets were resolved or closed in an earlier run | Reset just before the demo |
+| Approving says "already approved" (409) | The RMA was decided earlier | Request a new RMA, or reset |
