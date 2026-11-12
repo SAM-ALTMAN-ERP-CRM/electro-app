@@ -124,6 +124,25 @@ const FALLBACK_REPORTS = [
       { rep_id: 'EMP-0003', rep_name: 'Rohan Mehta', target_quota: 200000.00, achieved_value: 190000.00, attainment_pct: 95.0, status: 'on-track' },
       { rep_id: 'EMP-0004', rep_name: 'Neha Gupta', target_quota: 200000.00, achieved_value: 130000.00, attainment_pct: 65.0, status: 'needs-review' }
     ]
+  },
+  {
+    id: 'warehouse-fulfillment',
+    title: 'Warehouse Dispatch & Fulfillment',
+    description: 'Inventory throughput, fulfillment rate, and pending shipments across regional warehouses.',
+    category: 'Warehouse & Logistics',
+    allowed_roles: ['admin', 'warehouse'],
+    columns: [
+      { key: 'warehouse_id', label: 'Warehouse ID' },
+      { key: 'location', label: 'Facility Location' },
+      { key: 'orders_fulfilled', label: 'Orders Dispatched' },
+      { key: 'pending_dispatches', label: 'Pending Orders' },
+      { key: 'avg_dispatch_days', label: 'Avg Fulfillment Time (Days)' }
+    ],
+    rows: [
+      { warehouse_id: 'WH-01', location: 'Mumbai Central Electronics Hub', orders_fulfilled: 28, pending_dispatches: 3, avg_dispatch_days: 1.2 },
+      { warehouse_id: 'WH-02', location: 'Bhiwandi Western Depo', orders_fulfilled: 19, pending_dispatches: 2, avg_dispatch_days: 1.5 },
+      { warehouse_id: 'WH-03', location: 'Delhi NCR Distribution Center', orders_fulfilled: 14, pending_dispatches: 1, avg_dispatch_days: 1.8 }
+    ]
   }
 ];
 
@@ -151,6 +170,8 @@ export default function ReportsPage() {
   const [activeReportData, setActiveReportData] = useState(null);
   const [runningReport, setRunningReport] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [downloadingCsv, setDownloadingCsv] = useState(false);
+  const [csvNotice, setCsvNotice] = useState('');
 
   // Check if actual logged-in user is admin
   const isAdmin = currentUser && currentUser.role === 'admin';
@@ -244,10 +265,79 @@ export default function ReportsPage() {
     }
   };
 
+  // CSV cell value escaper following RFC 4180
+  const escapeCsvCell = (val) => {
+    if (val === null || val === undefined) return '';
+    const str = String(val);
+    // If string contains quotation marks, commas, or line breaks, enclose in double quotes and escape internal quotes
+    if (/[",\n\r]/.test(str)) {
+      return `"${str.replace(/"/g, '""')}"`;
+    }
+    return str;
+  };
+
+  // Browser-based CSV generation and instant download
+  const handleDownloadCsv = () => {
+    if (!activeReportData) return;
+    const columns = activeReportData.columns || [];
+    const rows = activeReportData.rows || [];
+
+    setDownloadingCsv(true);
+    setCsvNotice('');
+
+    try {
+      // UTF-8 BOM (\uFEFF) ensures reliable Microsoft Excel compatibility
+      const BOM = '\uFEFF';
+
+      // Header row using column labels (or keys) in display order
+      const headerRow = columns.map(c => escapeCsvCell(c.label || c.key)).join(',');
+
+      // Data rows mapped in the exact column order
+      const dataRows = rows.map(row =>
+        columns.map(c => escapeCsvCell(row[c.key])).join(',')
+      );
+
+      // Join lines with standard CRLF (\r\n) line endings
+      const csvString = BOM + [headerRow, ...dataRows].join('\r\n');
+
+      // Create Blob with text/csv mime type and UTF-8 charset
+      const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+
+      // Construct sensible filename based on report ID or title
+      const baseName = activeReportData.id || activeReportData.title || 'report';
+      const safeFilename = `${baseName.toLowerCase().replace(/[^a-z0-9_-]+/g, '-')}.csv`;
+
+      // Trigger browser download via anchor element
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', safeFilename);
+      document.body.appendChild(link);
+      link.click();
+
+      // Clean up link element and revoke temporary object URL to prevent memory leaks
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      setCsvNotice(`Downloaded ${safeFilename} (${rows.length} rows)`);
+      setTimeout(() => setCsvNotice(''), 4000);
+    } catch (err) {
+      console.error('[crm5] CSV generation error:', err);
+      setErrorMsg(`Failed to generate CSV: ${err.message}`);
+    } finally {
+      setDownloadingCsv(false);
+    }
+  };
+
+  // Browser-native print trigger
+  const handlePrint = () => {
+    window.print();
+  };
+
   return (
     <div style={{ maxWidth: '1400px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '1.75rem' }}>
       {/* Top Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
+      <div className="no-print" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
             <h2 style={{ fontSize: '1.75rem', fontWeight: 700, color: '#0f172a', letterSpacing: '-0.025em' }}>
@@ -272,7 +362,7 @@ export default function ReportsPage() {
 
       {/* Admin Role Preview Bar - VISIBLE ONLY FOR ADMIN */}
       {isAdmin ? (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem', padding: '0.9rem 1.25rem', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '8px' }}>
+        <div className="no-print" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem', padding: '0.9rem 1.25rem', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '8px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
             <span style={{ fontSize: '1.1rem' }}>👑</span>
             <div>
@@ -311,25 +401,31 @@ export default function ReportsPage() {
               <option value="support">🛠️ Support (tickets-by-priority, sla-breaches)</option>
               <option value="finance">💰 Finance (won-revenue-by-month)</option>
               <option value="hr">👥 HR (rep-performance)</option>
+              <option value="warehouse">📦 Warehouse (warehouse-fulfillment)</option>
             </select>
           </div>
         </div>
       ) : (
         /* Non-admin notice: no dropdown rendered */
-        <div style={{ padding: '0.75rem 1rem', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '0.85rem', color: '#475569' }}>
+        <div className="no-print" style={{ padding: '0.75rem 1rem', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '0.85rem', color: '#475569' }}>
           🔒 Showing reports permitted for your assigned role <strong>{currentUser.role}</strong>. Role access is automatically enforced based on your session credentials.
         </div>
       )}
 
-      {/* Error message */}
+      {/* Notification feedback messages */}
       {errorMsg && (
-        <div style={{ padding: '0.75rem 1rem', background: '#fee2e2', border: '1px solid #fecaca', borderRadius: '6px', color: '#b91c1c', fontSize: '0.875rem' }}>
+        <div className="no-print" style={{ padding: '0.75rem 1rem', background: '#fee2e2', border: '1px solid #fecaca', borderRadius: '6px', color: '#b91c1c', fontSize: '0.875rem' }}>
           ⚠️ {errorMsg}
+        </div>
+      )}
+      {csvNotice && (
+        <div className="no-print" style={{ padding: '0.75rem 1rem', background: '#dcfce7', border: '1px solid #bbf7d0', borderRadius: '6px', color: '#15803d', fontSize: '0.875rem', fontWeight: 500 }}>
+          ✅ {csvNotice}
         </div>
       )}
 
       {/* Section 1: Authorized Reports List */}
-      <div>
+      <div className="no-print">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
           <h3 style={{ fontSize: '1.2rem', fontWeight: 700, color: '#0f172a' }}>
             Authorized Report Catalog ({reportsList.length})
@@ -418,8 +514,8 @@ export default function ReportsPage() {
       </div>
 
       {/* Section 2: Report Results Table */}
-      <div style={{ background: '#ffffff', borderRadius: '8px', border: '1px solid #e2e8f0', padding: '1.5rem', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '1rem', marginBottom: '1.25rem' }}>
+      <div className="report-print-container" style={{ background: '#ffffff', borderRadius: '8px', border: '1px solid #e2e8f0', padding: '1.5rem', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+        <div className="report-print-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '1rem', marginBottom: '1.25rem' }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
               <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#0f172a' }}>
@@ -434,25 +530,76 @@ export default function ReportsPage() {
                 ? activeReportData.description
                 : 'Click "Run Report" above on any authorized report to execute and view its live data table.'}
             </p>
+            {activeReportData && (
+              <div className="print-only" style={{ display: 'none', fontSize: '0.8rem', color: '#64748b', marginTop: '0.35rem' }}>
+                <span>Generated from CRM-5 Executive & Operational Reports · {new Date().toLocaleDateString('en-IN')}</span>
+              </div>
+            )}
           </div>
 
           {activeReportData && (
-            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-              <span style={{ fontSize: '0.85rem', color: '#64748b' }}>
+            <div className="no-print" style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+              <span style={{ fontSize: '0.85rem', color: '#64748b', marginRight: '0.25rem' }}>
                 Rows: <strong>{(activeReportData.rows || []).length}</strong>
               </span>
+
+              {/* Download CSV Button */}
+              <button
+                type="button"
+                onClick={handleDownloadCsv}
+                disabled={downloadingCsv || (activeReportData.rows || []).length === 0}
+                title={(activeReportData.rows || []).length === 0 ? 'No data rows to export' : 'Download report as CSV'}
+                style={{
+                  padding: '0.35rem 0.85rem',
+                  fontSize: '0.8rem',
+                  backgroundColor: (activeReportData.rows || []).length === 0 ? '#f1f5f9' : '#16a34a',
+                  color: (activeReportData.rows || []).length === 0 ? '#94a3b8' : '#ffffff',
+                  border: '1px solid ' + ((activeReportData.rows || []).length === 0 ? '#cbd5e1' : '#15803d'),
+                  borderRadius: '6px',
+                  cursor: (activeReportData.rows || []).length === 0 ? 'not-allowed' : 'pointer',
+                  fontWeight: 600,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.35rem'
+                }}
+              >
+                📥 {downloadingCsv ? 'Exporting...' : 'Download CSV'}
+              </button>
+
+              {/* Print Button */}
+              <button
+                type="button"
+                onClick={handlePrint}
+                title="Print this report"
+                style={{
+                  padding: '0.35rem 0.85rem',
+                  fontSize: '0.8rem',
+                  backgroundColor: '#2563eb',
+                  color: '#ffffff',
+                  border: '1px solid #1d4ed8',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  fontWeight: 600,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.35rem'
+                }}
+              >
+                🖨️ Print
+              </button>
+
               <button
                 type="button"
                 onClick={() => handleRunReport(activeReportData.id)}
                 disabled={runningReport}
-                style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem', background: '#f1f5f9', color: '#334155', border: '1px solid #cbd5e1' }}
+                style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem', background: '#f1f5f9', color: '#334155', border: '1px solid #cbd5e1', borderRadius: '6px' }}
               >
                 🔄 Re-run
               </button>
               <button
                 type="button"
                 onClick={() => { setActiveReportData(null); setSelectedReportId(null); }}
-                style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem', background: '#ffffff', color: '#64748b', border: '1px solid #cbd5e1' }}
+                style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem', background: '#ffffff', color: '#64748b', border: '1px solid #cbd5e1', borderRadius: '6px' }}
               >
                 ✕ Close
               </button>
@@ -532,6 +679,102 @@ export default function ReportsPage() {
           </div>
         )}
       </div>
+
+      {/* CRM-5 Scoped Print Stylesheet */}
+      <style>{`
+        @media print {
+          /* Hide app shell, top-bar, catalog, and action buttons */
+          .sidebar,
+          .top-bar,
+          .no-print,
+          button,
+          .btn {
+            display: none !important;
+          }
+
+          /* Ensure print page fills page without sidebar whitespace */
+          body, html {
+            background: #ffffff !important;
+            color: #000000 !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            width: 100% !important;
+          }
+
+          .app-container,
+          .main-content,
+          .page-container {
+            margin: 0 !important;
+            padding: 0 !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            box-shadow: none !important;
+            display: block !important;
+          }
+
+          /* Printable report container */
+          .report-print-container {
+            border: none !important;
+            box-shadow: none !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            background: #ffffff !important;
+          }
+
+          .report-print-header {
+            border-bottom: 2px solid #0f172a !important;
+            padding-bottom: 0.75rem !important;
+            margin-bottom: 1rem !important;
+          }
+
+          .print-only {
+            display: block !important;
+          }
+
+          /* Table headers repeat across page breaks without clipping */
+          table {
+            width: 100% !important;
+            border-collapse: collapse !important;
+            box-shadow: none !important;
+            margin: 0.5rem 0 !important;
+            page-break-inside: auto !important;
+          }
+
+          thead {
+            display: table-header-group !important;
+          }
+
+          tr {
+            page-break-inside: avoid !important;
+            page-break-after: auto !important;
+          }
+
+          th, td {
+            border: 1px solid #cbd5e1 !important;
+            padding: 6px 10px !important;
+            color: #0f172a !important;
+            font-size: 0.85rem !important;
+          }
+
+          th {
+            background-color: #f1f5f9 !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            font-weight: 700 !important;
+          }
+
+          /* Preserve status badges with high contrast in print */
+          .badge {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            border: 1px solid #94a3b8 !important;
+            padding: 2px 6px !important;
+            font-size: 0.7rem !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }
