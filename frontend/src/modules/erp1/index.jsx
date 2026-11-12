@@ -2,6 +2,8 @@ import React from 'react';
 import Alerts from './pages/Alerts';
 import ProductsPage from './pages/ProductsPage';
 import SerialsPage from './pages/SerialsPage';
+import StockPage from './pages/StockPage';
+import MovementsPage from './pages/MovementsPage';
 
 function Placeholder() {
   return (
@@ -11,11 +13,21 @@ function Placeholder() {
         <span className="badge badge-blue">ERP1</span>
       </div>
       <p style={{ color: '#64748b', fontSize: '1rem', lineHeight: '1.6' }}>
-        Welcome to ERP-1 Inventory & Warehouses. Navigate to Products, Serial Numbers, or Stock Alerts to manage catalog, serials, and inventory levels.
+        Welcome to ERP-1 Inventory & Warehouses. Navigate to Stock Matrix, Movements, Products, Serial Numbers, or Stock Alerts to manage multi-warehouse inventory.
       </p>
       <div style={{ marginTop: '1.5rem', padding: '1.25rem', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
         <h4 style={{ marginBottom: '0.5rem', color: '#0f172a' }}>Quick Links:</h4>
         <ul style={{ margin: 0, paddingLeft: '1.25rem', color: '#334155', fontSize: '0.875rem', lineHeight: '1.8' }}>
+          <li>
+            <a href="/erp1/stock" style={{ color: '#2563eb', textDecoration: 'none', fontWeight: 500 }}>
+              Multi-Warehouse Stock & Adjustments →
+            </a>
+          </li>
+          <li>
+            <a href="/erp1/movements" style={{ color: '#2563eb', textDecoration: 'none', fontWeight: 500 }}>
+              Stock Movement History & Audit Log →
+            </a>
+          </li>
           <li>
             <a href="/erp1/products" style={{ color: '#2563eb', textDecoration: 'none', fontWeight: 500 }}>
               Product Catalog & SKU Master →
@@ -46,6 +58,16 @@ export default {
       path: '',
       label: 'Overview',
       element: <Placeholder />
+    },
+    {
+      path: 'stock',
+      label: 'Stock Matrix',
+      element: <StockPage />
+    },
+    {
+      path: 'movements',
+      label: 'Movements Log',
+      element: <MovementsPage />
     },
     {
       path: 'products',
