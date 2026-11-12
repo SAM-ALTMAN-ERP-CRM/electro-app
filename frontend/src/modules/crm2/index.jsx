@@ -10,6 +10,8 @@ import WarrantyPage from './pages/WarrantyPage';
 // [CRM2-C2] RMA screens
 import RmasPage from './pages/RmasPage';
 import RmaDetailPage from './pages/RmaDetailPage';
+// [CRM2-D3] support reports
+import ReportsPage from './pages/ReportsPage';
 
 export default {
   id: 'crm2',
@@ -26,6 +28,8 @@ export default {
     { path: 'warranty', label: 'Warranty', element: <WarrantyPage /> },
     // [CRM2-C2] RMA screens
     { path: 'rmas', label: 'Returns (RMA)', element: <RmasPage /> },
-    { path: 'rmas/:id', element: <RmaDetailPage /> }
+    { path: 'rmas/:id', element: <RmaDetailPage /> },
+    // [CRM2-D3] support reports
+    { path: 'reports', label: 'Reports', element: <ReportsPage /> }
   ]
 };
