@@ -5,9 +5,13 @@ CREATE SEQUENCE IF NOT EXISTS snapshot_seq START 1;
 
 CREATE TABLE IF NOT EXISTS dashboard_snapshots (
   id VARCHAR(20) PRIMARY KEY DEFAULT ('SNP-' || LPAD(nextval('snapshot_seq')::TEXT, 4, '0')),
+  range VARCHAR(20) NOT NULL DEFAULT 'all_time',
   taken_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   metrics JSONB NOT NULL
 );
+
+-- Ensure range column exists for existing database instances [CRM5-B3]
+ALTER TABLE dashboard_snapshots ADD COLUMN IF NOT EXISTS range VARCHAR(20) NOT NULL DEFAULT 'all_time';
 
 CREATE SEQUENCE IF NOT EXISTS forecast_seq START 1;
 
