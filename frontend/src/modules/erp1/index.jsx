@@ -1,4 +1,5 @@
 import React from 'react';
+import Alerts from './pages/Alerts';
 
 function Placeholder() {
   return (
@@ -8,13 +9,17 @@ function Placeholder() {
         <span className="badge badge-blue">ERP1</span>
       </div>
       <p style={{ color: '#64748b', fontSize: '1rem', lineHeight: '1.6' }}>
-        Module registered. Pages built by Team ERP1 will automatically appear here once their pull requests merge.
+        Welcome to ERP-1 Inventory & Warehouses. Navigate to Stock Alerts to monitor inventory levels, view shortfalls, and trigger scans.
       </p>
       <div style={{ marginTop: '1.5rem', padding: '1.25rem', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-        <h4 style={{ marginBottom: '0.5rem', color: '#0f172a' }}>Backend Service Integration:</h4>
-        <p style={{ fontSize: '0.875rem', color: '#64748b' }}>
-          Status Check: <code>/svc/erp1/api/health</code>
-        </p>
+        <h4 style={{ marginBottom: '0.5rem', color: '#0f172a' }}>Quick Links:</h4>
+        <ul style={{ margin: 0, paddingLeft: '1.25rem', color: '#334155', fontSize: '0.875rem', lineHeight: '1.8' }}>
+          <li>
+            <a href="/erp1/alerts" style={{ color: '#2563eb', textDecoration: 'none', fontWeight: 500 }}>
+              Low-Stock Alerts & Monitor →
+            </a>
+          </li>
+        </ul>
       </div>
     </div>
   );
@@ -27,8 +32,13 @@ export default {
   routes: [
     {
       path: '',
-      label: 'Coming soon',
+      label: 'Overview',
       element: <Placeholder />
+    },
+    {
+      path: 'alerts',
+      label: 'Stock Alerts',
+      element: <Alerts />
     }
   ]
 };

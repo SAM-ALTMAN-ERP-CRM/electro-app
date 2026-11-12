@@ -1,0 +1,63 @@
+[
+  {
+    "id": "WO-0001",
+    "bom_id": "BOM-0001",
+    "product_sku": "SKU-0001",
+    "quantity": 50,
+    "status": "planned",
+    "source": "manual",
+    "planned_start": "2026-11-15",
+    "planned_end": "2026-11-20",
+    "created_at": "2026-11-01T10:00:00.000Z",
+    "completed_at": null
+  },
+  {
+    "id": "WO-0002",
+    "bom_id": "BOM-0001",
+    "product_sku": "SKU-0001",
+    "quantity": 25,
+    "status": "in_progress",
+    "source": "manual",
+    "planned_start": "2026-11-05",
+    "planned_end": "2026-11-12",
+    "created_at": "2026-11-02T09:30:00.000Z",
+    "completed_at": null
+  },
+  {
+    "id": "WO-0003",
+    "bom_id": "BOM-0002",
+    "product_sku": "SKU-0003",
+    "quantity": 30,
+    "status": "completed",
+    "source": "manual",
+    "planned_start": "2026-10-20",
+    "planned_end": "2026-10-28",
+    "created_at": "2026-10-18T08:00:00.000Z",
+    "completed_at": "2026-10-28T16:45:00.000Z"
+  },
+  {
+    "id": "WO-0004",
+    "bom_id": "BOM-0001",
+    "product_sku": "SKU-0001",
+    "quantity": 10,
+    "status": "cancelled",
+    "source": "manual",
+    "planned_start": "2026-10-25",
+    "planned_end": "2026-10-30",
+    "created_at": "2026-10-22T11:15:00.000Z",
+    "completed_at": null
+  },
+  {
+    "id": "WO-0005",
+    "bom_id": "BOM-0002",
+    "product_sku": "SKU-0003",
+    "quantity": 15,
+    "status": "planned",
+    "source": "shortage",
+    "planned_start": "2026-11-18",
+    "planned_end": "2026-11-25",
+    "created_at": "2026-11-08T14:20:00.000Z",
+    "completed_at": null
+  }
+]
+
