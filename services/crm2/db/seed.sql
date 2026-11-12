@@ -37,6 +37,18 @@ ON CONFLICT (id) DO NOTHING;
 -- Move the comment sequence past the seeded IDs so the next new comment is CMT-0005.
 SELECT setval('crm2_comment_seq', GREATEST((SELECT last_value FROM crm2_comment_seq), 4));
 
+-- [CRM2-B1] warranties
+-- 5 serial numbers (TV55-2611-0001 to 0005) matched to customers CUST-0001 to CUST-0005.
+-- 0001 to 0003: bought 3 months ago (active, in warranty).
+-- 0004 and 0005: bought 2 years ago (expired).
+INSERT INTO warranties (serial_number, sku, product_name, customer_id, purchase_date, warranty_months) VALUES
+  ('TV55-2611-0001', 'SKU-0001', '55-inch 4K Smart TV', 'CUST-0001', CURRENT_DATE - INTERVAL '3 months', 12),
+  ('TV55-2611-0002', 'SKU-0001', '55-inch 4K Smart TV', 'CUST-0002', CURRENT_DATE - INTERVAL '3 months', 12),
+  ('TV55-2611-0003', 'SKU-0001', '55-inch 4K Smart TV', 'CUST-0003', CURRENT_DATE - INTERVAL '3 months', 12),
+  ('TV55-2611-0004', 'SKU-0001', '55-inch 4K Smart TV', 'CUST-0004', CURRENT_DATE - INTERVAL '2 years',  12),
+  ('TV55-2611-0005', 'SKU-0001', '55-inch 4K Smart TV', 'CUST-0005', CURRENT_DATE - INTERVAL '2 years',  12)
+ON CONFLICT (serial_number) DO NOTHING;
+
 -- [CRM2-D1] service_centres and ticket_assignments
 -- 4 seed service centres in major cities with capacities and phone numbers.
 INSERT INTO service_centres (id, name, city, phone, capacity, active) VALUES

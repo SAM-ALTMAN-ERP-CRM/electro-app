@@ -32,6 +32,18 @@ CREATE TABLE IF NOT EXISTS ticket_comments (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+-- [CRM2-B1] warranties
+-- Serial-level warranty records. Serial number is primary key.
+CREATE TABLE IF NOT EXISTS warranties (
+  serial_number   TEXT PRIMARY KEY,
+  sku             TEXT NOT NULL,
+  product_name    TEXT NOT NULL,
+  customer_id     TEXT NOT NULL,
+  purchase_date   DATE NOT NULL,
+  warranty_months INTEGER NOT NULL DEFAULT 12,
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
 -- [CRM2-D1] service_centres and ticket_assignments
 -- Repair and service centres across cities, and ticket-to-centre assignments.
 -- IDs look like SC-0001 and ASG-0001.
