@@ -2,6 +2,7 @@ import React from 'react';
 import EmployeesPage from './pages/EmployeesPage';
 import DepartmentsPage from './pages/DepartmentsPage';
 import AttendancePage from './pages/AttendancePage';
+import AttendanceSummaryPage from './pages/AttendanceSummaryPage';
 import LeavesPage from './pages/LeavesPage';
 import CommissionsPage from './pages/CommissionsPage';
 import LeaderboardPage from './pages/LeaderboardPage';
@@ -43,6 +44,15 @@ export default {
       path: 'attendance',
       label: 'Attendance',
       element: <AttendancePage />
+    },
+    {
+      path: 'attendance/summary',
+      element: <AttendanceSummaryPage />
+    },
+    {
+      path: 'attendance-summary',
+      label: 'Summary',
+      element: <AttendanceSummaryPage />
     },
     {
       path: 'leaves',

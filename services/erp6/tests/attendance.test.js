@@ -177,6 +177,49 @@ describe('ERP6 Attendance & Leaves API Test Suite ([ERP6-B1])', () => {
     assert.ok(typeof emp1.half_days === 'number');
     assert.ok(typeof emp1.absent_days === 'number');
     assert.ok(typeof emp1.leave_days === 'number');
+    assert.ok(emp1.name);
+  });
+
+  it('Done When Acceptance Criteria [ERP6-B3]: the summary matches the marked data', async () => {
+    // 1. Mark controlled attendance data for EMP-0006 in test month 2026-09
+    const testRecords = [
+      { employee_id: 'EMP-0006', date: '2026-09-01', status: 'present' },
+      { employee_id: 'EMP-0006', date: '2026-09-02', status: 'present' },
+      { employee_id: 'EMP-0006', date: '2026-09-03', status: 'half_day' },
+      { employee_id: 'EMP-0006', date: '2026-09-04', status: 'absent' },
+      { employee_id: 'EMP-0006', date: '2026-09-07', status: 'leave' }
+    ];
+    const markRes = await request(app, 'POST', '/api/attendance/mark', testRecords);
+    assert.equal(markRes.status, 200);
+
+    // 2. Fetch summary for 2026-09
+    const summaryRes = await request(app, 'GET', '/api/attendance/summary?month=2026-09');
+    assert.equal(summaryRes.status, 200);
+    assert.ok(Array.isArray(summaryRes.body.data));
+
+    const emp6Summary = summaryRes.body.data.find(r => r.employee_id === 'EMP-0006');
+    assert.ok(emp6Summary, 'EMP-0006 must be in summary for active employees');
+    assert.equal(emp6Summary.present_days, 2, 'Present days must match marked data');
+    assert.equal(emp6Summary.half_days, 1, 'Half days must match marked data');
+    assert.equal(emp6Summary.absent_days, 1, 'Absent days must match marked data');
+    assert.equal(emp6Summary.leave_days, 1, 'Leave days must match marked data');
+  });
+
+  it('Done When Acceptance Criteria [ERP6-B3]: over-balance leave is refused with 400', async () => {
+    // Attempt to book 15 weekdays (exceeds 12-day annual limit)
+    const res = await request(app, 'POST', '/api/leave-requests', {
+      employee_id: 'EMP-0001',
+      from_date: '2026-10-01',
+      to_date: '2026-10-21',
+      type: 'casual',
+      reason: 'Over limit request'
+    });
+    assert.equal(res.status, 400);
+    assert.ok(res.body.error);
+    assert.ok(
+      res.body.error.includes('Leave request exceeds available annual balance'),
+      `Expected error to mention leave balance, got: ${res.body.error}`
+    );
   });
 
   // 2. Leave Requests CRUD Tests

@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { api } from '../../../api';
+import AttendanceSummaryPage from './AttendanceSummaryPage';
 
 export default function AttendancePage() {
+  const [activeTab, setActiveTab] = useState('daily');
   const getTodayStr = () => new Date().toISOString().split('T')[0];
   const [selectedDate, setSelectedDate] = useState(getTodayStr());
   const [employees, setEmployees] = useState([]);
@@ -103,37 +105,77 @@ export default function AttendancePage() {
 
   return (
     <div style={{ maxWidth: '1280px', margin: '0 auto', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
-      {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px' }}>
-        <div>
-          <h1 style={{ fontSize: '24px', fontWeight: '700', color: '#0f172a', margin: '0 0 6px 0' }}>
-            Daily Attendance Marker
-          </h1>
-          <p style={{ margin: 0, fontSize: '14px', color: '#64748b' }}>
-            Mark daily present, absent, half-day, or leave logs. Synchronized with monthly payroll.
-          </p>
-        </div>
+      {/* View Switcher Tabs */}
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '24px', borderBottom: '1px solid #e2e8f0', paddingBottom: '12px' }}>
         <button
-          onClick={handleSave}
-          disabled={saving || loading || employees.length === 0}
+          type="button"
+          onClick={() => setActiveTab('daily')}
           style={{
-            backgroundColor: '#2563eb',
-            color: '#ffffff',
-            border: 'none',
+            padding: '8px 16px',
             borderRadius: '6px',
-            padding: '10px 20px',
-            fontSize: '14px',
+            border: 'none',
+            backgroundColor: activeTab === 'daily' ? '#2563eb' : '#f1f5f9',
+            color: activeTab === 'daily' ? '#ffffff' : '#475569',
             fontWeight: '600',
-            cursor: saving || loading ? 'not-allowed' : 'pointer',
-            opacity: saving || loading ? 0.7 : 1,
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px'
+            fontSize: '14px',
+            cursor: 'pointer'
           }}
         >
-          {saving ? 'Saving...' : '💾 Save Attendance'}
+          📅 Daily Attendance Marker
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab('summary')}
+          style={{
+            padding: '8px 16px',
+            borderRadius: '6px',
+            border: 'none',
+            backgroundColor: activeTab === 'summary' ? '#2563eb' : '#f1f5f9',
+            color: activeTab === 'summary' ? '#ffffff' : '#475569',
+            fontWeight: '600',
+            fontSize: '14px',
+            cursor: 'pointer'
+          }}
+        >
+          📊 Monthly Summary Table
         </button>
       </div>
+
+      {activeTab === 'summary' ? (
+        <AttendanceSummaryPage />
+      ) : (
+        <>
+          {/* Header */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px' }}>
+            <div>
+              <h1 style={{ fontSize: '24px', fontWeight: '700', color: '#0f172a', margin: '0 0 6px 0' }}>
+                Daily Attendance Marker
+              </h1>
+              <p style={{ margin: 0, fontSize: '14px', color: '#64748b' }}>
+                Mark daily present, absent, half-day, or leave logs. Synchronized with monthly payroll.
+              </p>
+            </div>
+            <button
+              onClick={handleSave}
+              disabled={saving || loading || employees.length === 0}
+              style={{
+                backgroundColor: '#2563eb',
+                color: '#ffffff',
+                border: 'none',
+                borderRadius: '6px',
+                padding: '10px 20px',
+                fontSize: '14px',
+                fontWeight: '600',
+                cursor: saving || loading ? 'not-allowed' : 'pointer',
+                opacity: saving || loading ? 0.7 : 1,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}
+            >
+              {saving ? 'Saving...' : '💾 Save Attendance'}
+            </button>
+          </div>
 
       {/* Date Controls & Stat Badges */}
       <div
@@ -415,6 +457,8 @@ export default function AttendancePage() {
           </table>
         )}
       </div>
+        </>
+      )}
     </div>
   );
 }
