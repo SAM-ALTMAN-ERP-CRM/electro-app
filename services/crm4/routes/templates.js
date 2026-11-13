@@ -320,4 +320,78 @@ router.delete('/templates/:id', async (req, res) => {
   });
 });
 
+/**
+ * POST /templates/:id/render [CRM4-C3]
+ * Renders template body and subject with provided placeholder variables {name, product, offer}
+ * Warns about unknown placeholders like {{abc}}.
+ * Enforces SMS 160 character limit.
+ */
+router.post('/templates/:id/render', async (req, res) => {
+  const { id } = req.params;
+  const { name = 'Valued Customer', product = 'our product', offer = 'exclusive discount' } = req.body || {};
+
+  let template = null;
+  if (pool) {
+    try {
+      const result = await pool.query('SELECT * FROM templates WHERE id = $1', [id]);
+      if (result.rows.length > 0) template = result.rows[0];
+    } catch (err) {
+      console.warn('[crm4] DB error fetching template for render:', err.message);
+    }
+  }
+
+  if (!template) {
+    template = inMemoryTemplates.find(t => t.id === id);
+    if (!template) {
+      return res.status(404).json({ error: `Template with id '${id}' not found` });
+    }
+  }
+
+  const values = { name, product, offer };
+  const KNOWN_PLACEHOLDERS = ['name', 'product', 'offer'];
+
+  // Detect unknown placeholders in body and subject
+  const bodyPlaceholders = (template.body.match(/\{\{([^}]+)\}\}/g) || []).map(p => p.replace(/[{}]/g, '').trim());
+  const subjectPlaceholders = template.subject
+    ? (template.subject.match(/\{\{([^}]+)\}\}/g) || []).map(p => p.replace(/[{}]/g, '').trim())
+    : [];
+
+  const allPlaceholders = [...new Set([...bodyPlaceholders, ...subjectPlaceholders])];
+  const unknownPlaceholders = allPlaceholders.filter(p => !KNOWN_PLACEHOLDERS.includes(p));
+
+  // Perform placeholder replacement
+  let renderedBody = template.body;
+  let renderedSubject = template.subject;
+
+  for (const [key, val] of Object.entries(values)) {
+    const regex = new RegExp(`\\{\\{${key}\\}\\}`, 'gi');
+    renderedBody = renderedBody.replace(regex, val);
+    if (renderedSubject) {
+      renderedSubject = renderedSubject.replace(regex, val);
+    }
+  }
+
+  // Enforce SMS length restriction (160 characters)
+  if (template.channel === 'sms' && renderedBody.length > 160) {
+    return res.status(400).json({
+      error: `SMS rendered body exceeds 160 character limit (${renderedBody.length} characters)`
+    });
+  }
+
+  const warnings = unknownPlaceholders.length > 0
+    ? [`Unknown placeholder(s) detected: ${unknownPlaceholders.map(p => `{{${p}}}`).join(', ')}`]
+    : [];
+
+  return res.json({
+    data: {
+      template_id: id,
+      channel: template.channel,
+      rendered_subject: renderedSubject,
+      rendered_body: renderedBody,
+      character_count: renderedBody.length,
+      warnings
+    }
+  });
+});
+
 module.exports = router;
