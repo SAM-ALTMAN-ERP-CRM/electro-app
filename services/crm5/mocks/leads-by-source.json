@@ -1,0 +1,23 @@
+[
+  {
+    "source": "Website Direct",
+    "lead_count": 8,
+    "converted_count": 5,
+    "assigned_rep": "EMP-0001",
+    "total_pipeline_inr": 245000.00
+  },
+  {
+    "source": "Dealer Partner Referral",
+    "lead_count": 6,
+    "converted_count": 4,
+    "assigned_rep": "EMP-0002",
+    "total_pipeline_inr": 185000.00
+  },
+  {
+    "source": "Electronics Trade Expo",
+    "lead_count": 4,
+    "converted_count": 2,
+    "assigned_rep": "EMP-0003",
+    "total_pipeline_inr": 115000.00
+  }
+]

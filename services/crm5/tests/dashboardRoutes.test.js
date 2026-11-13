@@ -63,6 +63,7 @@ describe('CRM-5 Dashboard Routes', () => {
     assert.ok(typeof data.open_opportunities === 'number', 'open_opportunities should be a number');
     assert.ok(typeof data.won_value === 'number', 'won_value should be a number');
     assert.ok(typeof data.quotes_accepted === 'number', 'quotes_accepted should be a number');
+    assert.ok(typeof data.quotes_sent === 'number', 'quotes_sent should be a number');
     assert.ok(Array.isArray(data.opportunities_by_stage), 'opportunities_by_stage should be an array');
     assert.ok(data.opportunities_by_stage.length >= 5, 'should have all 5 stages represented');
   });
@@ -220,5 +221,16 @@ describe('CRM-5 Dashboard Routes', () => {
       const t2 = new Date(list[i + 1].taken_at).getTime();
       assert.ok(t1 >= t2, 'Snapshots must be ordered descending by taken_at');
     }
+  });
+
+  it('GET /dashboard/snapshot singular alias returns same list as plural', async () => {
+    const res = await dispatch(dashboardRouter, {
+      method: 'GET',
+      url: '/dashboard/snapshot'
+    });
+
+    assert.equal(res.status, 200);
+    assert.ok(Array.isArray(res.body.data));
+    assert.ok(res.body.data.length > 0);
   });
 });

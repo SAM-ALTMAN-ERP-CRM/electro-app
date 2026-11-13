@@ -1,25 +1,24 @@
 import React from 'react';
+import CampaignsPage from './pages/CampaignsPage';
+import AudiencesPage from './pages/AudiencesPage';
+import AudienceDetailPage from './pages/AudienceDetailPage';
+import EnquiryPage from './pages/EnquiryPage';
+import TemplatesPage from './pages/TemplatesPage';
+import SurveysPage from './pages/SurveysPage';
+import SurveyRespondPage from './pages/SurveyRespondPage';
+import SurveyResultsPage from './pages/SurveyResultsPage';
 
-function Placeholder() {
-  return (
-    <div style={{ padding: '2rem', maxWidth: '800px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
-        <h2>Marketing</h2>
-        <span className="badge badge-blue">CRM4</span>
-      </div>
-      <p style={{ color: '#64748b', fontSize: '1rem', lineHeight: '1.6' }}>
-        Module registered. Pages built by Team CRM4 will automatically appear here once their pull requests merge.
-      </p>
-      <div style={{ marginTop: '1.5rem', padding: '1.25rem', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-        <h4 style={{ marginBottom: '0.5rem', color: '#0f172a' }}>Backend Service Integration:</h4>
-        <p style={{ fontSize: '0.875rem', color: '#64748b' }}>
-          Status Check: <code>/svc/crm4/api/health</code>
-        </p>
-      </div>
-    </div>
-  );
-}
-
+/**
+ * CRM-4 Marketing & Engagement module registration.
+ *
+ * Rules:
+ * - Module accessible to roles: admin, sales
+ * - All standard routes accessible to: admin, sales
+ * - No internal BrowserRouter or navbar: handled by shared shell
+ * - Routes with labels appear in the shared sidebar navigation
+ * - Dynamic detail and action screens (/audiences/:id, /surveys/:id/respond, /surveys/:id/results)
+ *   remain accessible via direct deep-links and in-page navigation without cluttering the sidebar.
+ */
 export default {
   id: 'crm4',
   title: 'Marketing',
@@ -27,8 +26,53 @@ export default {
   routes: [
     {
       path: '',
-      label: 'Coming soon',
-      element: <Placeholder />
+      element: <CampaignsPage />,
+      roles: ['admin', 'sales']
+    },
+    {
+      path: 'campaigns',
+      label: 'Campaigns',
+      element: <CampaignsPage />,
+      roles: ['admin', 'sales']
+    },
+    {
+      path: 'audiences',
+      label: 'Audiences',
+      element: <AudiencesPage />,
+      roles: ['admin', 'sales']
+    },
+    {
+      path: 'audiences/:id',
+      element: <AudienceDetailPage />,
+      roles: ['admin', 'sales']
+    },
+    {
+      path: 'enquiry',
+      label: 'Web Enquiry',
+      element: <EnquiryPage />,
+      roles: ['admin', 'sales']
+    },
+    {
+      path: 'templates',
+      label: 'Templates',
+      element: <TemplatesPage />,
+      roles: ['admin', 'sales']
+    },
+    {
+      path: 'surveys',
+      label: 'Surveys',
+      element: <SurveysPage />,
+      roles: ['admin', 'sales']
+    },
+    {
+      path: 'surveys/:id/respond',
+      element: <SurveyRespondPage />,
+      roles: ['admin', 'sales']
+    },
+    {
+      path: 'surveys/:id/results',
+      element: <SurveyResultsPage />,
+      roles: ['admin', 'sales']
     }
   ]
 };

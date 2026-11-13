@@ -1,0 +1,163 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 650" width="100%" height="100%">
+  <defs>
+    <style>
+      .bg { fill: #f8fafc; }
+      .sidebar { fill: #0f172a; }
+      .card { fill: #ffffff; stroke: #e2e8f0; stroke-width: 1; rx: 6px; }
+      .title { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-weight: 700; font-size: 18px; fill: #0f172a; }
+      .subtitle { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 12px; fill: #64748b; }
+      .side-title { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-weight: 700; font-size: 14px; fill: #f8fafc; }
+      .side-item { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 12px; fill: #94a3b8; }
+      .side-active { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-weight: 600; font-size: 12px; fill: #ffffff; }
+      .th { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-weight: 700; font-size: 11px; fill: #475569; text-transform: uppercase; }
+      .td { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 12px; fill: #1e293b; }
+      .td-id { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-weight: 700; font-size: 12px; fill: #0f172a; }
+      .td-mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; fill: #334155; }
+      .btn-primary { fill: #2563eb; rx: 5px; }
+      .btn-primary-text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-weight: 600; font-size: 12px; fill: #ffffff; }
+      .badge-blue { fill: #dbeafe; rx: 4px; }
+      .badge-blue-text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-weight: 600; font-size: 10px; fill: #1e40af; }
+      .badge-green { fill: #dcfce7; rx: 4px; }
+      .badge-green-text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-weight: 600; font-size: 10px; fill: #15803d; }
+      .badge-amber { fill: #fef3c7; rx: 4px; }
+      .badge-amber-text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-weight: 600; font-size: 10px; fill: #b45309; }
+      .input-box { fill: #ffffff; stroke: #cbd5e1; stroke-width: 1; rx: 5px; }
+    </style>
+  </defs>
+
+  <rect width="1000" height="650" class="bg" />
+
+  <!-- Global Sidebar Shell -->
+  <rect x="0" y="0" width="220" height="650" class="sidebar" />
+  <text x="20" y="35" class="side-title">⚡ ELECTRO APP</text>
+  <text x="20" y="55" class="subtitle" style="fill: #64748b;">CRM + ERP Integrated Suite</text>
+  <text x="20" y="100" class="subtitle" style="fill: #94a3b8; font-weight: 700;">ERP-4 ORDERS &amp; DISPATCH</text>
+  <text x="38" y="135" class="side-item">Sales Orders</text>
+  <rect x="15" y="145" width="190" height="32" fill="#1e293b" rx="4" />
+  <circle cx="28" cy="161" r="3" fill="#2563eb" />
+  <text x="38" y="165" class="side-active">Courier Dispatch</text>
+  <text x="38" y="195" class="side-item">Return Receipts</text>
+
+  <!-- Global Top Bar Shell -->
+  <rect x="220" y="0" width="780" height="45" fill="#ffffff" stroke="#e2e8f0" stroke-width="1" />
+  <text x="240" y="28" class="subtitle">Logistics: <tspan font-weight="600" fill="#0f172a">Courier Dispatch Board (Port 5204)</tspan></text>
+  <rect x="880" y="12" width="100" height="22" class="badge-blue" />
+  <text x="900" y="27" class="badge-blue-text">Role: warehouse</text>
+
+  <!-- Main Content Area -->
+  <g transform="translate(240, 60)">
+    <text x="0" y="20" class="title">Courier Dispatch Management</text>
+    <rect x="250" y="5" width="110" height="20" class="badge-blue" />
+    <text x="260" y="19" class="badge-blue-text">ERP-4 Dispatch</text>
+    <text x="0" y="38" class="subtitle">Book courier partner consignments, allocate serial numbers from ERP-1, and track delivery progress.</text>
+
+    <!-- Two-Column Layout -->
+    <g transform="translate(0, 55)">
+      <!-- Left Column: Ready Orders -->
+      <rect x="0" y="0" width="350" height="215" class="card" />
+      <text x="15" y="25" class="title" font-size="13px">📦 Orders Ready to Dispatch (Reserved)</text>
+      <text x="15" y="42" class="subtitle">Orders with 100% reserved inventory in WH-01</text>
+
+      <!-- Ready Order 1 -->
+      <rect x="10" y="55" width="330" height="50" fill="#eff6ff" stroke="#bfdbfe" stroke-width="1" rx="4" />
+      <text x="22" y="75" class="td-id">SO-0006</text>
+      <text x="85" y="75" class="td">Global Electronics (2 items)</text>
+      <text x="22" y="92" class="subtitle">₹88,488.20 · All items reserved</text>
+      <rect x="260" y="65" width="70" height="26" class="btn-primary" />
+      <text x="270" y="82" class="btn-primary-text">✓ Select</text>
+
+      <!-- Ready Order 2 -->
+      <rect x="10" y="112" width="330" height="50" fill="#ffffff" stroke="#e2e8f0" stroke-width="1" rx="4" />
+      <text x="22" y="132" class="td-id">SO-0007</text>
+      <text x="85" y="132" class="td">Reliance Retail Hub (1 item)</text>
+      <text x="22" y="149" class="subtitle">₹42,990.00 · All items reserved</text>
+      <rect x="260" y="122" width="70" height="26" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1" rx="4" />
+      <text x="272" y="139" class="subtitle" font-weight="600">Select</text>
+
+      <!-- Summary tip -->
+      <text x="15" y="195" class="subtitle" fill="#15803d">✓ Unreserved orders are blocked to prevent stock shortages.</text>
+
+      <!-- Right Column: Dispatch Form -->
+      <rect x="370" y="0" width="370" height="215" class="card" />
+      <text x="385" y="25" class="title" font-size="13px">🚚 Book Courier Shipment</text>
+
+      <text x="385" y="55" class="subtitle" font-weight="600">Courier Partner:</text>
+      <rect x="480" y="40" width="245" height="26" class="input-box" />
+      <text x="490" y="57" class="td">BlueDart Express ▼</text>
+
+      <text x="385" y="90" class="subtitle" font-weight="600">Tracking / AWB:</text>
+      <rect x="480" y="75" width="245" height="26" class="input-box" />
+      <text x="490" y="92" class="td-mono">BD-84920192</text>
+
+      <text x="385" y="125" class="subtitle" font-weight="600">Ship Date:</text>
+      <rect x="480" y="110" width="245" height="26" class="input-box" />
+      <text x="490" y="127" class="td">2026-11-13</text>
+
+      <text x="385" y="155" class="subtitle" font-weight="600">Address:</text>
+      <rect x="480" y="145" width="245" height="26" class="input-box" />
+      <text x="490" y="162" class="subtitle" fill="#0f172a">Plot 45, MIDC, Andheri East...</text>
+
+      <rect x="480" y="178" width="245" height="28" class="btn-primary" />
+      <text x="515" y="196" class="btn-primary-text">Book &amp; Allocate Serials</text>
+    </g>
+
+    <!-- Dispatches Table -->
+    <g transform="translate(0, 285)">
+      <rect x="0" y="0" width="740" height="240" class="card" />
+      <rect x="1" y="1" width="738" height="30" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1" rx="6" />
+      <text x="15" y="20" class="th">DISPATCH ID</text>
+      <text x="105" y="20" class="th">ORDER &amp; CUSTOMER</text>
+      <text x="240" y="20" class="th">COURIER &amp; TRACKING</text>
+      <text x="375" y="20" class="th">STATUS</text>
+      <text x="460" y="20" class="th">SERIAL NUMBERS</text>
+      <text x="640" y="20" class="th">ACTIONS</text>
+
+      <!-- Row 1 -->
+      <line x1="0" y1="70" x2="740" y2="70" stroke="#f1f5f9" />
+      <text x="15" y="55" class="td-id">DSP-0001</text>
+      <text x="105" y="50" class="td" font-weight="600">SO-0001</text>
+      <text x="105" y="64" class="subtitle">Aarav Mehta</text>
+      <text x="240" y="50" class="td">BlueDart</text>
+      <text x="240" y="64" class="td-mono">TRK-DSP-0001</text>
+      <rect x="375" y="44" width="70" height="18" class="badge-green" />
+      <text x="387" y="57" class="badge-green-text">delivered</text>
+      <rect x="460" y="45" width="115" height="18" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1" rx="3" />
+      <text x="468" y="58" class="td-mono">TV55-2611-0001</text>
+      <rect x="635" y="44" width="60" height="22" fill="#eff6ff" stroke="#bfdbfe" stroke-width="1" rx="3" />
+      <text x="645" y="59" class="subtitle" fill="#2563eb" font-weight="600">📄 Note</text>
+
+      <!-- Row 2 -->
+      <line x1="0" y1="110" x2="740" y2="110" stroke="#f1f5f9" />
+      <text x="15" y="95" class="td-id">DSP-0002</text>
+      <text x="105" y="90" class="td" font-weight="600">SO-0002</text>
+      <text x="105" y="104" class="subtitle">Sunrise Ltd</text>
+      <text x="240" y="90" class="td">Delhivery</text>
+      <text x="240" y="104" class="td-mono">TRK-DSP-0002</text>
+      <rect x="375" y="84" width="70" height="18" class="badge-green" />
+      <text x="387" y="97" class="badge-green-text">delivered</text>
+      <rect x="460" y="85" width="115" height="18" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1" rx="3" />
+      <text x="468" y="98" class="td-mono">TV55-2611-0002</text>
+      <rect x="635" y="84" width="60" height="22" fill="#eff6ff" stroke="#bfdbfe" stroke-width="1" rx="3" />
+      <text x="645" y="99" class="subtitle" fill="#2563eb" font-weight="600">📄 Note</text>
+
+      <!-- Row 3 -->
+      <line x1="0" y1="150" x2="740" y2="150" stroke="#f1f5f9" />
+      <text x="15" y="135" class="td-id">DSP-0005</text>
+      <text x="105" y="130" class="td" font-weight="600">SO-0005</text>
+      <text x="105" y="144" class="subtitle">Vijay Sharma</text>
+      <text x="240" y="130" class="td">BlueDart</text>
+      <text x="240" y="144" class="td-mono">TRK-DSP-0005</text>
+      <rect x="375" y="124" width="70" height="18" class="badge-amber" />
+      <text x="390" y="137" class="badge-amber-text">picked</text>
+      <rect x="460" y="125" width="115" height="18" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1" rx="3" />
+      <text x="468" y="138" class="td-mono">TV55-2611-0005</text>
+      <!-- Action buttons -->
+      <rect x="585" y="124" width="45" height="22" fill="#eff6ff" stroke="#bfdbfe" stroke-width="1" rx="3" />
+      <text x="592" y="139" class="subtitle" fill="#2563eb" font-weight="600">Note</text>
+      <rect x="635" y="124" width="45" height="22" fill="#f59e0b" rx="3" />
+      <text x="642" y="139" class="btn-primary-text" font-size="10px">Ship</text>
+      <rect x="685" y="124" width="45" height="22" fill="#16a34a" rx="3" />
+      <text x="690" y="139" class="btn-primary-text" font-size="10px">Deliver</text>
+    </g>
+  </g>
+</svg>

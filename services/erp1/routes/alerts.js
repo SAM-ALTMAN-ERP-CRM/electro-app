@@ -4,6 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const { requireAuth } = require('../../_shared/auth');
 const { makePool } = require('../../_shared/db');
+const { callService } = require('../../_shared/callService');
 
 // Database pool for ERP-1 Inventory & Warehouses
 const pool = makePool('erp1_db');
@@ -16,6 +17,7 @@ let inMemoryProducts = [];
 let inMemoryStock = [];
 let inMemoryAlerts = [];
 let mockAlertCounter = 1;
+let mockPurchaseRequestCounter = 1;
 
 try {
   const prodPath = path.resolve(__dirname, '../mocks/products.json');
@@ -67,7 +69,8 @@ function getInMemoryLowStock() {
         price: p.price,
         reorder_level: reorderLevel,
         current_stock: skuStock,
-        shortfall: reorderLevel - skuStock
+        shortfall: reorderLevel - skuStock,
+        suggested_order_qty: Math.max(1, (reorderLevel * 2) - skuStock)
       });
     }
   }
@@ -75,15 +78,68 @@ function getInMemoryLowStock() {
 }
 
 /**
+ * GET /api/inventory/summary
+ * Returns total SKUs, low-stock count, and out-of-stock count.
+ */
+router.get('/inventory/summary', async (req, res, next) => {
+  try {
+    const pgResult = await safeQuery(`
+      WITH stock_totals AS (
+        SELECT p.id, p.reorder_level, COALESCE(SUM(s.quantity), 0)::INT AS current_stock
+        FROM products p
+        LEFT JOIN stock s ON p.id = s.sku
+        WHERE p.active = TRUE
+        GROUP BY p.id, p.reorder_level
+      )
+      SELECT
+        (SELECT COUNT(*)::INT FROM products WHERE active = TRUE) AS total_skus,
+        (SELECT COUNT(*)::INT FROM stock_totals WHERE current_stock <= reorder_level AND current_stock > 0) AS low_stock_count,
+        (SELECT COUNT(*)::INT FROM stock_totals WHERE current_stock = 0) AS out_of_stock_count
+    `);
+
+    if (pgResult && pgResult.rows.length > 0) {
+      return res.json({ data: pgResult.rows[0] });
+    }
+
+    // In-memory fallback calculation
+    let lowCount = 0;
+    let outCount = 0;
+    for (const p of inMemoryProducts) {
+      if (p.active === false) continue;
+      const skuStock = inMemoryStock
+        .filter(s => s.sku === p.id)
+        .reduce((sum, s) => sum + Number(s.quantity || 0), 0);
+      const reorderLevel = Number(p.reorder_level || 10);
+      if (skuStock === 0) {
+        outCount++;
+      } else if (skuStock <= reorderLevel) {
+        lowCount++;
+      }
+    }
+
+    return res.json({
+      data: {
+        total_skus: inMemoryProducts.filter(p => p.active !== false).length,
+        low_stock_count: lowCount,
+        out_of_stock_count: outCount
+      }
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
  * GET /api/alerts/low-stock
- * Returns products whose total stock across all warehouses is at or below reorder_level, with shortfall.
+ * Returns products whose total stock across all warehouses is at or below reorder_level, with shortfall and suggestion.
  */
 router.get('/alerts/low-stock', async (req, res, next) => {
   try {
     const pgResult = await safeQuery(`
       SELECT p.id AS sku, p.name, p.category, p.brand, p.price, p.reorder_level,
              COALESCE(SUM(s.quantity), 0)::INT AS current_stock,
-             (p.reorder_level - COALESCE(SUM(s.quantity), 0))::INT AS shortfall
+             (p.reorder_level - COALESCE(SUM(s.quantity), 0))::INT AS shortfall,
+             GREATEST(1, ((p.reorder_level * 2) - COALESCE(SUM(s.quantity), 0)))::INT AS suggested_order_qty
       FROM products p
       LEFT JOIN stock s ON p.id = s.sku
       WHERE p.active = TRUE
@@ -255,6 +311,73 @@ router.patch('/alerts/:id/ack', async (req, res, next) => {
     }
     alert.acknowledged = true;
     return res.json({ data: alert });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * POST /api/alerts/purchase-request
+ * Triggers a purchase request in ERP-2 for low stock replenishment using callService('erp2', ...).
+ * Body: { sku, product_name, quantity, reason? }
+ */
+router.post('/alerts/purchase-request', async (req, res, next) => {
+  try {
+    const { sku, product_name, quantity, reason } = req.body || {};
+
+    if (!sku) {
+      return res.status(400).json({ error: 'sku is required' });
+    }
+
+    const parsedQty = parseInt(quantity, 10);
+    if (isNaN(parsedQty) || parsedQty <= 0) {
+      return res.status(400).json({ error: 'quantity must be a positive integer' });
+    }
+
+    const payload = {
+      sku,
+      product_name: product_name || sku,
+      quantity: parsedQty,
+      requested_by: 'ERP-1 low stock',
+      reason: reason || 'Automated low stock reorder'
+    };
+
+    let responseData = null;
+
+    try {
+      responseData = await callService('erp2', '/api/purchase-requests', {
+        method: 'POST',
+        body: payload,
+        mock: 'purchase-request'
+      });
+    } catch (err) {
+      console.warn('[erp1] Inter-service ERP-2 purchase request call fallback:', err.message);
+      // Fallback local mock structure adhering to Section 5
+      const mockReqPath = path.resolve(__dirname, '../mocks/purchase-request.json');
+      if (fs.existsSync(mockReqPath)) {
+        try {
+          responseData = JSON.parse(fs.readFileSync(mockReqPath, 'utf-8'));
+          responseData.sku = sku;
+          responseData.quantity = parsedQty;
+        } catch {
+          // ignore error
+        }
+      }
+
+      if (!responseData) {
+        responseData = {
+          id: `PR-${String(mockPurchaseRequestCounter++).padStart(4, '0')}`,
+          ...payload,
+          status: 'pending',
+          created_at: new Date().toISOString()
+        };
+      }
+    }
+
+    return res.status(201).json({
+      data: responseData,
+      message: `Purchase request created successfully for ${sku}`
+    });
   } catch (err) {
     next(err);
   }
