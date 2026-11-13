@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { requireAuth } = require('../../_shared/auth');
 const { makePool } = require('../../_shared/db');
+const { callService } = require('../../_shared/callService');
 const store = require('../store');
 
 // Connect to ERP-4 PostgreSQL database
@@ -12,6 +13,7 @@ router.use(requireAuth);
 
 // In-memory returns store from shared store
 const inMemoryReturns = store.inMemoryReturns;
+const inMemoryOrders = store.inMemoryOrders;
 const inMemoryDispatches = store.inMemoryDispatches;
 const inMemoryDispatchSerials = store.inMemoryDispatchSerials;
 
@@ -74,6 +76,141 @@ async function findOrderForDispatchedSerial(serialNumber) {
 }
 
 /**
+ * Helper to get item SKU and unit price for a return record
+ */
+async function getItemDetailsForReturn(soId, serialNumber) {
+  const dbRes = await safeQuery(
+    `SELECT ds.sku, si.unit_price
+     FROM dispatch_serials ds
+     JOIN dispatches d ON ds.dispatch_id = d.id
+     LEFT JOIN so_items si ON d.so_id = si.so_id AND ds.sku = si.sku
+     WHERE d.so_id = $1 AND ds.serial_number = $2
+     LIMIT 1`,
+    [soId, serialNumber]
+  );
+  if (dbRes && dbRes.rows.length > 0) {
+    const row = dbRes.rows[0];
+    return {
+      sku: row.sku || 'SKU-0001',
+      unit_price: parseFloat(row.unit_price) || 42990.00
+    };
+  }
+
+  // In-memory fallback
+  const serialMatch = inMemoryDispatchSerials.find(s => s.serial_number === serialNumber);
+  const sku = serialMatch?.sku || 'SKU-0001';
+  const order = inMemoryOrders.find(o => o.id === soId);
+  const item = order?.items?.find(i => i.sku === sku) || order?.items?.[0];
+  const unit_price = item?.unit_price ? parseFloat(item.unit_price) : 42990.00;
+
+  return { sku, unit_price };
+}
+
+/**
+ * Helper: Trigger restock side effects in ERP-1 (serial & stock) and ERP-5 (credit note)
+ */
+async function triggerRestockSideEffects(returnRecord, issueCreditNote = false) {
+  const { so_id, serial_number, id, outcome } = returnRecord;
+  const { sku, unit_price } = await getItemDetailsForReturn(so_id, serial_number);
+
+  // 1. ERP-1: Update serial status to returned, then to in_stock
+  try {
+    await callService('erp1', `/api/serials/${encodeURIComponent(serial_number)}/status`, {
+      method: 'PATCH',
+      body: { status: 'returned' },
+      mock: 'serial-status'
+    });
+  } catch (err) {
+    try {
+      await callService('erp4', `/api/serials/${encodeURIComponent(serial_number)}/status`, {
+        method: 'PATCH',
+        body: { status: 'returned' },
+        mock: 'serial-status'
+      });
+    } catch (innerErr) {
+      console.error(`[integration-error] Updating serial ${serial_number} to returned:`, innerErr.message);
+    }
+  }
+
+  try {
+    await callService('erp1', `/api/serials/${encodeURIComponent(serial_number)}/status`, {
+      method: 'PATCH',
+      body: { status: 'in_stock' },
+      mock: 'serial-status'
+    });
+  } catch (err) {
+    try {
+      await callService('erp4', `/api/serials/${encodeURIComponent(serial_number)}/status`, {
+        method: 'PATCH',
+        body: { status: 'in_stock' },
+        mock: 'serial-status'
+      });
+    } catch (innerErr) {
+      console.error(`[integration-error] Updating serial ${serial_number} to in_stock:`, innerErr.message);
+    }
+  }
+
+  // 2. ERP-1: Stock adjustment (+1 delta to warehouse WH-01)
+  try {
+    await callService('erp1', '/api/stock/adjust', {
+      method: 'POST',
+      body: {
+        sku,
+        warehouse_id: 'WH-01',
+        delta: 1,
+        reason: id
+      },
+      mock: 'stock-adjust'
+    });
+  } catch (err) {
+    try {
+      await callService('erp4', '/api/stock/adjust', {
+        method: 'POST',
+        body: {
+          sku,
+          warehouse_id: 'WH-01',
+          delta: 1,
+          reason: id
+        },
+        mock: 'stock-adjust'
+      });
+    } catch (innerErr) {
+      console.error(`[integration-error] Stock adjust for ${id}:`, innerErr.message);
+    }
+  }
+
+  // 3. ERP-5: Credit Note if outcome is credit_note or issueCreditNote is true
+  const wantsCreditNote = outcome === 'credit_note' || issueCreditNote === true;
+  if (wantsCreditNote) {
+    try {
+      await callService('erp5', '/api/creditnotes', {
+        method: 'POST',
+        body: {
+          so_id,
+          serial_number,
+          amount: unit_price
+        },
+        mock: 'creditnotes'
+      });
+    } catch (err) {
+      try {
+        await callService('erp4', '/api/creditnotes', {
+          method: 'POST',
+          body: {
+            so_id,
+            serial_number,
+            amount: unit_price
+          },
+          mock: 'creditnotes'
+        });
+      } catch (innerErr) {
+        console.error(`[integration-error] Credit note creation for ${id}:`, innerErr.message);
+      }
+    }
+  }
+}
+
+/**
  * GET /api/returns/summary
  * Returns counts of return receipts by status and by reason.
  */
@@ -89,27 +226,49 @@ router.get('/returns/summary', async (req, res, next) => {
       FROM returns
     `);
 
+    const reasonsRes = await safeQuery(`
+      SELECT reason, COUNT(*) as count
+      FROM returns
+      GROUP BY reason
+    `);
+
     if (dbRes && dbRes.rows.length > 0) {
       const row = dbRes.rows[0];
+      const byReason = {};
+      if (reasonsRes && reasonsRes.rows.length > 0) {
+        reasonsRes.rows.forEach(r => {
+          byReason[r.reason] = parseInt(r.count, 10);
+        });
+      }
+
       return res.json({
         data: {
           total: parseInt(row.total, 10) || 0,
           requested: parseInt(row.requested, 10) || 0,
           received: parseInt(row.received, 10) || 0,
           restocked: parseInt(row.restocked, 10) || 0,
-          scrapped: parseInt(row.scrapped, 10) || 0
+          scrapped: parseInt(row.scrapped, 10) || 0,
+          by_reason: byReason
         }
       });
     }
 
     // In-memory fallback
     const counts = { total: inMemoryReturns.length, requested: 0, received: 0, restocked: 0, scrapped: 0 };
+    const byReason = {};
     inMemoryReturns.forEach(r => {
       const s = (r.status || '').toLowerCase();
       if (counts[s] !== undefined) counts[s]++;
+      const reasonKey = r.reason || 'Unspecified';
+      byReason[reasonKey] = (byReason[reasonKey] || 0) + 1;
     });
 
-    return res.json({ data: counts });
+    return res.json({
+      data: {
+        ...counts,
+        by_reason: byReason
+      }
+    });
   } catch (error) {
     next(error);
   }
@@ -342,11 +501,12 @@ router.post('/returns/from-rma', async (req, res, next) => {
 /**
  * PATCH /api/returns/:id/status
  * Updates status of a return ('received', 'restocked', 'scrapped').
+ * Triggers ERP-1 restock stock adjust and ERP-5 credit note when transitioning to 'restocked'.
  */
 router.patch('/returns/:id/status', async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { status } = req.body || {};
+    const { status, issue_credit_note } = req.body || {};
 
     const validStatuses = ['requested', 'received', 'restocked', 'scrapped'];
     if (!status || !validStatuses.includes(status)) {
@@ -356,6 +516,7 @@ router.patch('/returns/:id/status', async (req, res, next) => {
     }
 
     // Database update
+    let returnRecord = null;
     const dbRes = await safeQuery(
       `UPDATE returns SET status = $1 WHERE id = $2 RETURNING *`,
       [status, id]
@@ -364,18 +525,23 @@ router.patch('/returns/:id/status', async (req, res, next) => {
       if (dbRes.rows.length === 0) {
         return res.status(404).json({ error: `Return ${id} not found` });
       }
-      return res.json({ data: dbRes.rows[0] });
+      returnRecord = dbRes.rows[0];
+    } else {
+      // In-memory fallback
+      const found = inMemoryReturns.find(r => r.id === id);
+      if (!found) {
+        return res.status(404).json({ error: `Return ${id} not found` });
+      }
+      found.status = status;
+      returnRecord = found;
     }
 
-    // In-memory fallback
-    const found = inMemoryReturns.find(r => r.id === id);
-    if (!found) {
-      return res.status(404).json({ error: `Return ${id} not found` });
+    // When return becomes restocked, fire ERP-1 and ERP-5 integrations
+    if (status === 'restocked') {
+      await triggerRestockSideEffects(returnRecord, issue_credit_note);
     }
 
-    found.status = status;
-
-    return res.json({ data: found });
+    return res.json({ data: returnRecord });
   } catch (error) {
     next(error);
   }
