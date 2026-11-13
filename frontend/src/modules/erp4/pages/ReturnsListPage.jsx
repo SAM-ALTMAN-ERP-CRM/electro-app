@@ -129,20 +129,10 @@ export default function ReturnsListPage() {
         outcome: formData.outcome
       };
 
-      try {
-        await api('erp4', '/api/returns', { method: 'POST', body: payload });
-      } catch (postErr) {
-        // Optimistic local fallback
-        const newRet = {
-          id: `RET-000${returns.length + 1}`,
-          ...payload,
-          status: 'requested',
-          created_at: new Date().toISOString()
-        };
-        setReturns(prev => [newRet, ...prev]);
-      }
+      const res = await api('erp4', '/api/returns', { method: 'POST', body: payload });
+      const created = res?.data || res;
 
-      setFormMsg({ type: 'success', text: `Return registered successfully for serial ${formData.serial_number}` });
+      setFormMsg({ type: 'success', text: `Return ${created?.id || ''} registered successfully for serial ${formData.serial_number}` });
       setFormData({ so_id: '', serial_number: '', reason: '', rma_id: '', outcome: 'credit_note' });
       setShowForm(false);
       loadData();
