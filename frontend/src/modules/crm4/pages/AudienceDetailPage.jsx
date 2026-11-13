@@ -139,9 +139,10 @@ export default function AudienceDetailPage() {
           method: 'POST',
           body: { segment_id: selectedSegment }
         });
-        if (result && result.imported !== undefined) {
-          importedCount = result.imported;
-          skippedCount = result.skipped || 0;
+        const resData = result?.data || result;
+        if (resData && resData.imported !== undefined) {
+          importedCount = resData.imported;
+          skippedCount = resData.skipped || 0;
         }
       } catch {
         // Fallback simulation: fetch customers from CRM-3 mock or simulate
