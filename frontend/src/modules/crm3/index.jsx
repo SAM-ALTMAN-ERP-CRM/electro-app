@@ -18,7 +18,15 @@ export default {
       element: <CustomersPage />
     },
     {
+      path: 'customers',
+      element: <CustomersPage />
+    },
+    {
       path: 'customers/:id',
+      element: <CustomerDetailPage />
+    },
+    {
+      path: ':id',
       element: <CustomerDetailPage />
     },
     {

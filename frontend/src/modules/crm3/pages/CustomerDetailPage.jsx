@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '../../../api';
+import CustomerForm from './CustomerForm';
 
 export default function CustomerDetailPage() {
   const { id } = useParams();
@@ -11,6 +12,10 @@ export default function CustomerDetailPage() {
   const [tags, setTags] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [notification, setNotification] = useState('');
+
+  // Edit Customer Modal State
+  const [showEditModal, setShowEditModal] = useState(false);
 
   // New tag input
   const [newTag, setNewTag] = useState('');
@@ -46,6 +51,14 @@ export default function CustomerDetailPage() {
     } finally {
       setLoading(false);
     }
+  }
+
+  // Handle customer edit success
+  function handleCustomerEditSuccess(updated) {
+    setCustomer(updated);
+    setShowEditModal(false);
+    setNotification(`Customer '${updated.name}' (${updated.id}) updated successfully.`);
+    setTimeout(() => setNotification(''), 5000);
   }
 
   // Add a tag
@@ -112,6 +125,8 @@ export default function CustomerDetailPage() {
       setContactEmail('');
       setContactDesignation('');
       setShowContactForm(false);
+      setNotification(`Contact '${created.name}' added successfully.`);
+      setTimeout(() => setNotification(''), 5000);
     } catch (err) {
       alert('Error adding contact: ' + err.message);
     } finally {
@@ -140,18 +155,40 @@ export default function CustomerDetailPage() {
         <button onClick={() => navigate('/crm3')} style={styles.backBtn}>
           &larr; Back to Customers
         </button>
-        {customer && (
-          <button
-            onClick={() => navigate(`/crm3/customers/${id}/timeline`)}
-            style={styles.timelineBtn}
-          >
-            🕒 View Activity Timeline &rarr;
-          </button>
-        )}
+        <div style={{ display: 'flex', gap: '8px' }}>
+          {customer && (
+            <button
+              onClick={() => setShowEditModal(!showEditModal)}
+              style={styles.editBtn}
+            >
+              {showEditModal ? 'Close Edit Form' : '✏️ Edit Customer'}
+            </button>
+          )}
+          {customer && (
+            <button
+              onClick={() => navigate(`/crm3/customers/${id}/timeline`)}
+              style={styles.timelineBtn}
+            >
+              🕒 View Activity Timeline &rarr;
+            </button>
+          )}
+        </div>
       </div>
 
+      {notification && <div style={styles.notificationBox}>✓ {notification}</div>}
       {loading && <div style={styles.loadingBox}>Loading customer record...</div>}
       {error && <div style={styles.errorBox}>{error}</div>}
+
+      {/* Edit Customer Form */}
+      {showEditModal && customer && (
+        <div style={{ marginBottom: '24px' }}>
+          <CustomerForm
+            initialData={customer}
+            onSuccess={handleCustomerEditSuccess}
+            onCancel={() => setShowEditModal(false)}
+          />
+        </div>
+      )}
 
       {!loading && customer && (
         <>
@@ -336,6 +373,7 @@ const styles = {
   container: { padding: '24px', maxWidth: '1200px', margin: '0 auto', fontFamily: 'system-ui, sans-serif' },
   topBar: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' },
   backBtn: { backgroundColor: 'transparent', border: 'none', color: '#2563eb', cursor: 'pointer', fontSize: '14px', fontWeight: '500', padding: 0 },
+  editBtn: { backgroundColor: '#fff', color: '#1f2937', border: '1px solid #d1d5db', borderRadius: '6px', padding: '6px 14px', fontSize: '13px', fontWeight: '500', cursor: 'pointer' },
   timelineBtn: { backgroundColor: '#f3f4f6', color: '#1f2937', border: '1px solid #d1d5db', borderRadius: '6px', padding: '6px 14px', fontSize: '13px', fontWeight: '500', cursor: 'pointer' },
   card: { backgroundColor: '#fff', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '24px', marginBottom: '24px' },
   headerFlex: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '1px solid #f3f4f6', paddingBottom: '20px', marginBottom: '20px' },
@@ -370,5 +408,6 @@ const styles = {
   td: { padding: '12px', fontSize: '13px', color: '#374151' },
   tdBold: { padding: '12px', fontSize: '13px', fontWeight: '600', color: '#111827' },
   errorBox: { backgroundColor: '#fee2e2', color: '#991b1b', padding: '12px', borderRadius: '6px', marginBottom: '16px', fontSize: '14px' },
-  loadingBox: { padding: '40px', textAlign: 'center', color: '#6b7280', fontSize: '15px' }
+  loadingBox: { padding: '40px', textAlign: 'center', color: '#6b7280', fontSize: '15px' },
+  notificationBox: { backgroundColor: '#dcfce7', color: '#166534', border: '1px solid #86efac', padding: '12px', borderRadius: '6px', marginBottom: '16px', fontSize: '14px' }
 };
