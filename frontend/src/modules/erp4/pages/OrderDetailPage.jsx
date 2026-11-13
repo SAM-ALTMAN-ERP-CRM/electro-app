@@ -10,6 +10,7 @@ export default function OrderDetailPage() {
   const [summary, setSummary] = useState({ total: 0, reserved: 0, shortage: 0, released: 0 });
   const [loading, setLoading] = useState(true);
   const [reserving, setReserving] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState(null);
   const [successMsg, setSuccessMsg] = useState(null);
 
@@ -50,6 +51,52 @@ export default function OrderDetailPage() {
       loadData();
     }
   }, [id]);
+
+  // Handle confirming order (ERP4-A3: PATCH /api/sales-orders/:id/confirm)
+  const handleConfirmOrder = async () => {
+    try {
+      setActionLoading(true);
+      setError(null);
+      setSuccessMsg(null);
+
+      const res = await api('erp4', `/api/sales-orders/${id}/confirm`, {
+        method: 'PATCH'
+      });
+
+      const updated = res?.data || res;
+      setOrder(updated);
+      setSuccessMsg(`Sales order ${id} has been confirmed successfully!`);
+    } catch (err) {
+      setError(err.message || 'Failed to confirm order');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // Handle cancelling order (ERP4-A3: PATCH /api/sales-orders/:id/cancel)
+  const handleCancelOrder = async () => {
+    if (!window.confirm(`Are you sure you want to cancel sales order ${id}?`)) {
+      return;
+    }
+
+    try {
+      setActionLoading(true);
+      setError(null);
+      setSuccessMsg(null);
+
+      const res = await api('erp4', `/api/sales-orders/${id}/cancel`, {
+        method: 'PATCH'
+      });
+
+      const updated = res?.data || res;
+      setOrder(updated);
+      setSuccessMsg(`Sales order ${id} has been cancelled.`);
+    } catch (err) {
+      setError(err.message || 'Failed to cancel order');
+    } finally {
+      setActionLoading(false);
+    }
+  };
 
   // Handle clicking "Reserve stock" button (calls ERP4-B1/B2)
   const handleReserveStock = async () => {
@@ -148,6 +195,11 @@ export default function OrderDetailPage() {
 
   const hasShortage = reservations.some(r => r.status === 'shortage');
 
+  // Timeline stage mapping
+  const stages = ['created', 'confirmed', 'dispatched', 'delivered'];
+  const currentStageIndex = stages.indexOf((order.status || '').toLowerCase());
+  const isCancelled = (order.status || '').toLowerCase() === 'cancelled';
+
   return (
     <div className="page-container" style={{ maxWidth: '1000px', margin: '0 auto', padding: '2rem' }}>
       {/* Navigation & Header */}
@@ -165,6 +217,40 @@ export default function OrderDetailPage() {
               Placed on {order.created_at ? new Date(order.created_at).toLocaleString('en-IN') : '—'}
             </p>
           </div>
+
+          {/* Action Buttons (ERP4-A3) */}
+          <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+            {order.status === 'created' && (
+              <button
+                type="button"
+                className="btn"
+                onClick={handleConfirmOrder}
+                disabled={actionLoading}
+                style={{ backgroundColor: '#15803d', padding: '0.55rem 1.15rem', fontWeight: 600 }}
+              >
+                {actionLoading ? 'Updating...' : '✓ Confirm Order'}
+              </button>
+            )}
+
+            {(order.status === 'created' || order.status === 'confirmed') && (
+              <button
+                type="button"
+                onClick={handleCancelOrder}
+                disabled={actionLoading}
+                style={{
+                  backgroundColor: '#fee2e2',
+                  color: '#b91c1c',
+                  border: '1px solid #f87171',
+                  borderRadius: '6px',
+                  padding: '0.55rem 1.15rem',
+                  fontWeight: 600,
+                  cursor: actionLoading ? 'not-allowed' : 'pointer'
+                }}
+              >
+                {actionLoading ? 'Updating...' : '✕ Cancel Order'}
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -180,6 +266,94 @@ export default function OrderDetailPage() {
         </div>
       )}
 
+      {/* ========================================================= */}
+      {/* STATUS TIMELINE STEPPER (ERP4-A3)                         */}
+      {/* ========================================================= */}
+      <div
+        id="order-status-timeline"
+        style={{
+          background: '#ffffff',
+          borderRadius: '8px',
+          border: '1px solid #e2e8f0',
+          padding: '1.25rem 1.5rem',
+          marginBottom: '1.5rem',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+        }}
+      >
+        <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: '1rem' }}>
+          ORDER LIFECYCLE TIMELINE
+        </div>
+
+        {isCancelled ? (
+          <div style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#991b1b', padding: '0.85rem 1.25rem', borderRadius: '6px', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <span style={{ fontSize: '1.25rem' }}>🚫</span>
+            <div>
+              <strong>Order Cancelled:</strong> This sales order was cancelled before dispatch. Reserved inventory is released.
+            </div>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'relative' }}>
+            {stages.map((stageName, idx) => {
+              const isPassed = currentStageIndex > idx;
+              const isCurrent = currentStageIndex === idx;
+
+              return (
+                <div key={stageName} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1, position: 'relative' }}>
+                  {/* Connecting Line */}
+                  {idx < stages.length - 1 && (
+                    <div
+                      style={{
+                        position: 'absolute',
+                        top: '14px',
+                        left: '50%',
+                        width: '100%',
+                        height: '3px',
+                        backgroundColor: currentStageIndex > idx ? '#2563eb' : '#e2e8f0',
+                        zIndex: 1
+                      }}
+                    />
+                  )}
+
+                  {/* Stage Node */}
+                  <div
+                    style={{
+                      width: '30px',
+                      height: '30px',
+                      borderRadius: '50%',
+                      backgroundColor: isPassed ? '#2563eb' : isCurrent ? '#3b82f6' : '#f1f5f9',
+                      border: isCurrent ? '3px solid #bfdbfe' : isPassed ? '2px solid #2563eb' : '2px solid #cbd5e1',
+                      color: isPassed || isCurrent ? '#ffffff' : '#64748b',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '0.8rem',
+                      fontWeight: 700,
+                      zIndex: 2,
+                      transition: 'all 0.2s ease'
+                    }}
+                  >
+                    {isPassed ? '✓' : idx + 1}
+                  </div>
+
+                  {/* Stage Label */}
+                  <span
+                    style={{
+                      marginTop: '0.5rem',
+                      fontSize: '0.8rem',
+                      fontWeight: isCurrent ? 700 : 500,
+                      color: isCurrent ? '#0f172a' : isPassed ? '#2563eb' : '#94a3b8',
+                      textTransform: 'capitalize'
+                    }}
+                  >
+                    {stageName}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
       {/* Overview Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
         <div style={{ background: '#ffffff', padding: '1rem 1.25rem', borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
@@ -187,7 +361,7 @@ export default function OrderDetailPage() {
           <div style={{ fontSize: '1.05rem', fontWeight: 700, color: '#0f172a', marginTop: '0.25rem' }}>{order.customer_name}</div>
           <div style={{ fontSize: '0.85rem', color: '#64748b' }}>{order.customer_id}</div>
           {order.customer_gstin && (
-            <div style={{ fontSize: '0.75rem', color: '#2563eb', marginTop: '0.25rem' }}>GSTIN: {order.customer_gstin}</div>
+            <div style={{ fontSize: '0.75rem', color: '#2563eb', marginTop: '0.25rem', fontWeight: 600 }}>GSTIN: {order.customer_gstin}</div>
           )}
         </div>
 
@@ -300,11 +474,12 @@ export default function OrderDetailPage() {
             type="button"
             className="btn"
             onClick={handleReserveStock}
-            disabled={reserving}
+            disabled={reserving || isCancelled}
             style={{
               padding: '0.6rem 1.25rem',
               fontWeight: 600,
-              backgroundColor: reserving ? '#94a3b8' : '#2563eb'
+              backgroundColor: isCancelled ? '#cbd5e1' : reserving ? '#94a3b8' : '#2563eb',
+              cursor: isCancelled ? 'not-allowed' : 'pointer'
             }}
           >
             {reserving ? 'Reserving...' : 'Reserve stock'}
