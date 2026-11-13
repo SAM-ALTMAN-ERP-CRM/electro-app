@@ -6,6 +6,7 @@ export default function ReturnDetailPage() {
   const { id } = useParams();
   const [returnItem, setReturnItem] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [issueCreditNote, setIssueCreditNote] = useState(true);
   const [updating, setUpdating] = useState(false);
   const [error, setError] = useState(null);
   const [successMsg, setSuccessMsg] = useState(null);
@@ -17,6 +18,9 @@ export default function ReturnDetailPage() {
       const res = await api('erp4', `/api/returns/${id}`);
       const data = res?.data || res;
       setReturnItem(data);
+      if (data?.outcome === 'credit_note') {
+        setIssueCreditNote(true);
+      }
     } catch (err) {
       // Local fallback for offline mode
       setReturnItem({
@@ -31,6 +35,7 @@ export default function ReturnDetailPage() {
         status: 'requested',
         created_at: new Date().toISOString()
       });
+      setIssueCreditNote(true);
     } finally {
       setLoading(false);
     }
@@ -59,7 +64,10 @@ export default function ReturnDetailPage() {
 
       const res = await api('erp4', `/api/returns/${id}/status`, {
         method: 'PATCH',
-        body: { status: newStatus }
+        body: {
+          status: newStatus,
+          issue_credit_note: newStatus === 'restocked' ? issueCreditNote : false
+        }
       });
       const updated = res?.data || res;
 
@@ -71,6 +79,7 @@ export default function ReturnDetailPage() {
       setUpdating(false);
     }
   };
+
 
   if (loading) {
     return (
@@ -141,7 +150,15 @@ export default function ReturnDetailPage() {
           )}
 
           {isReceived && (
-            <>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+              <label style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.825rem', color: '#475569', cursor: 'pointer', background: '#f8fafc', padding: '0.35rem 0.6rem', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                <input
+                  type="checkbox"
+                  checked={issueCreditNote}
+                  onChange={e => setIssueCreditNote(e.target.checked)}
+                />
+                Issue Credit Note (ERP-5)
+              </label>
               <button
                 type="button"
                 onClick={() => handleStatusUpdate('restocked')}
@@ -176,7 +193,7 @@ export default function ReturnDetailPage() {
               >
                 ✕ Scrap Damaged Item
               </button>
-            </>
+            </div>
           )}
 
           {isTerminal && (

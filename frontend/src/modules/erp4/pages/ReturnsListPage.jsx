@@ -86,17 +86,29 @@ export default function ReturnsListPage() {
       const list = Array.isArray(res) ? res : (res?.data || DEFAULT_SEED_RETURNS);
       setReturns(list);
 
-      // Compute KPI summary counts
-      const counts = { total: list.length, requested: 0, received: 0, restocked: 0, scrapped: 0 };
-      list.forEach((r) => {
-        const s = (r.status || '').toLowerCase();
-        if (counts[s] !== undefined) counts[s]++;
-      });
-      setSummary(counts);
+      // Compute or fetch KPI summary counts
+      try {
+        const sumRes = await api('erp4', '/api/returns/summary');
+        const sumData = sumRes?.data || sumRes;
+        if (sumData && typeof sumData.total === 'number') {
+          setSummary(sumData);
+        } else {
+          throw new Error('Fallback to local calculation');
+        }
+      } catch (sumErr) {
+        const counts = { total: list.length, requested: 0, received: 0, restocked: 0, scrapped: 0, by_reason: {} };
+        list.forEach((r) => {
+          const s = (r.status || '').toLowerCase();
+          if (counts[s] !== undefined) counts[s]++;
+          const rsn = r.reason || 'Other';
+          counts.by_reason[rsn] = (counts.by_reason[rsn] || 0) + 1;
+        });
+        setSummary(counts);
+      }
     } catch (err) {
       // Fallback to offline defaults
       setReturns(DEFAULT_SEED_RETURNS);
-      setSummary({ total: 4, requested: 1, received: 1, restocked: 1, scrapped: 1 });
+      setSummary({ total: 4, requested: 1, received: 1, restocked: 1, scrapped: 1, by_reason: {} });
     } finally {
       setLoading(false);
     }
@@ -228,6 +240,22 @@ export default function ReturnsListPage() {
           <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#dc2626', marginTop: '0.25rem' }}>{summary.scrapped}</div>
         </div>
       </div>
+
+      {/* Breakdown by Reason Summary */}
+      {summary.by_reason && Object.keys(summary.by_reason).length > 0 && (
+        <div style={{ background: '#f8fafc', padding: '0.85rem 1rem', borderRadius: '8px', border: '1px solid #e2e8f0', marginBottom: '1.5rem' }}>
+          <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase', marginBottom: '0.5rem' }}>
+            Breakdown by Return Reason
+          </div>
+          <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+            {Object.entries(summary.by_reason).map(([reason, count]) => (
+              <span key={reason} style={{ background: '#ffffff', border: '1px solid #cbd5e1', padding: '0.3rem 0.6rem', borderRadius: '6px', fontSize: '0.8rem', color: '#1e293b' }}>
+                <strong>{reason}:</strong> {count}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* New Return Form Drawer */}
       {showForm && (
