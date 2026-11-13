@@ -385,11 +385,71 @@ router.post('/dispatches', async (req, res, next) => {
 /**
  * GET /api/dispatches
  * Returns rows containing { serial_number, sku, customer_id, ship_date } (consumed by CRM-2 warranties sync).
- * Also returns dispatch_id, courier, tracking_no, status for cross-team usability.
+ * When ?format=grouped or ?format=dispatches is passed, returns dispatch orders with nested serials for UI screens.
  */
 router.get('/dispatches', async (req, res, next) => {
   try {
-    const { status, so_id } = req.query;
+    const { status, so_id, format } = req.query;
+    const isGrouped = format === 'grouped' || format === 'dispatches';
+
+    if (isGrouped) {
+      const dbGrouped = await safeQuery(
+        `SELECT 
+          d.id,
+          d.so_id,
+          so.customer_id,
+          so.customer_name,
+          d.courier,
+          d.tracking_no,
+          d.status,
+          TO_CHAR(d.ship_date, 'YYYY-MM-DD') AS ship_date,
+          TO_CHAR(d.delivered_date, 'YYYY-MM-DD') AS delivered_date,
+          d.address,
+          d.created_at,
+          COALESCE(
+            json_agg(
+              json_build_object(
+                'id', ds.id,
+                'sku', ds.sku,
+                'serial_number', ds.serial_number
+              )
+            ) FILTER (WHERE ds.id IS NOT NULL), '[]'
+          ) as serials
+         FROM dispatches d
+         LEFT JOIN sales_orders so ON d.so_id = so.id
+         LEFT JOIN dispatch_serials ds ON d.id = ds.dispatch_id
+         WHERE ($1::text IS NULL OR d.status = $1)
+           AND ($2::text IS NULL OR d.so_id = $2)
+         GROUP BY d.id, so.customer_id, so.customer_name
+         ORDER BY d.created_at DESC`,
+        [status || null, so_id || null]
+      );
+
+      if (dbGrouped) {
+        return res.json({ data: dbGrouped.rows });
+      }
+
+      // In-memory grouped fallback
+      let list = inMemoryDispatches.map(d => {
+        const order = inMemoryOrders.find(o => o.id === d.so_id);
+        const serials = inMemoryDispatchSerials.filter(ds => ds.dispatch_id === d.id);
+        return {
+          ...d,
+          customer_id: d.customer_id || (order ? order.customer_id : 'CUST-0001'),
+          customer_name: order ? order.customer_name : `Customer ${d.so_id}`,
+          serials
+        };
+      });
+
+      if (status) {
+        list = list.filter(d => d.status.toLowerCase() === status.toLowerCase());
+      }
+      if (so_id) {
+        list = list.filter(d => d.so_id === so_id);
+      }
+
+      return res.json({ data: list });
+    }
 
     const dbRes = await safeQuery(
       `SELECT 
