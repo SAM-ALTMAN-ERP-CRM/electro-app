@@ -188,4 +188,103 @@ describe('CRM-4 Templates Routes & Placeholders API Tests ([CRM4-C1])', () => {
     });
     assert.equal(verifyRes.status, 404);
   });
+
+  describe('Render Endpoint & Placeholder Validation ([CRM4-C3])', () => {
+
+    it('POST /templates/:id/render replaces name, product, and offer placeholders', async () => {
+      const res = await dispatch(templatesRouter, {
+        method: 'POST',
+        url: '/templates/TPL-0001/render',
+        body: {
+          name: 'Priya Sharma',
+          product: 'UltraSound Soundbar 500',
+          offer: 'Flat 20% Discount'
+        }
+      });
+
+      assert.equal(res.status, 200);
+      assert.ok(res.body.data);
+      assert.equal(res.body.data.template_id, 'TPL-0001');
+      assert.ok(res.body.data.rendered_body.includes('Hi Priya Sharma!'));
+      assert.ok(res.body.data.rendered_body.includes('UltraSound Soundbar 500'));
+      assert.ok(res.body.data.rendered_body.includes('Flat 20% Discount'));
+      assert.equal(res.body.data.rendered_text, res.body.data.rendered_body);
+      assert.equal(res.body.data.character_count, res.body.data.rendered_body.length);
+      assert.equal(res.body.data.warnings.length, 0);
+    });
+
+    it('POST /templates/:id/render handles default placeholder values if not provided', async () => {
+      const res = await dispatch(templatesRouter, {
+        method: 'POST',
+        url: '/templates/TPL-0001/render',
+        body: {}
+      });
+
+      assert.equal(res.status, 200);
+      assert.ok(res.body.data.rendered_body.includes('Valued Customer'));
+      assert.ok(res.body.data.rendered_body.includes('our product'));
+      assert.ok(res.body.data.rendered_body.includes('exclusive discount'));
+    });
+
+    it('POST /templates/:id/render reports unknown placeholders like {{abc}} with warnings', async () => {
+      const res = await dispatch(templatesRouter, {
+        method: 'POST',
+        url: '/templates/TPL-0001/render',
+        body: {
+          body: 'Hello {{name}}, check {{product}} with {{offer}} and {{abc}} promo code {{coupon_code}}!'
+        }
+      });
+
+      assert.equal(res.status, 200);
+      assert.ok(res.body.data.warnings.length > 0);
+      const warningText = res.body.data.warnings.join(' ');
+      assert.ok(warningText.includes('{{abc}}'));
+      assert.ok(warningText.includes('{{coupon_code}}'));
+      assert.ok(res.body.data.unknown_placeholders.includes('abc'));
+      assert.ok(res.body.data.unknown_placeholders.includes('coupon_code'));
+    });
+
+    it('POST /templates/:id/render rejects SMS body exceeding 160 characters with 400', async () => {
+      const longText = 'A'.repeat(161);
+      const res = await dispatch(templatesRouter, {
+        method: 'POST',
+        url: '/templates/TPL-0003/render',
+        body: {
+          channel: 'sms',
+          body: `Dear {{name}}, this is an intentionally very long SMS message that contains lots of words: ${longText}`
+        }
+      });
+
+      assert.equal(res.status, 400);
+      assert.ok(res.body.error);
+      assert.ok(res.body.error.includes('160 character limit'));
+    });
+
+    it('POST /templates/:id/render allows SMS within 160 characters with 200', async () => {
+      const res = await dispatch(templatesRouter, {
+        method: 'POST',
+        url: '/templates/TPL-0003/render',
+        body: {
+          name: 'Aarav',
+          product: 'TV',
+          offer: '10% off'
+        }
+      });
+
+      assert.equal(res.status, 200);
+      assert.equal(res.body.data.channel, 'sms');
+      assert.ok(res.body.data.character_count <= 160);
+    });
+
+    it('POST /templates/:id/render returns 404 for non-existent template', async () => {
+      const res = await dispatch(templatesRouter, {
+        method: 'POST',
+        url: '/templates/TPL-9999/render',
+        body: {}
+      });
+
+      assert.equal(res.status, 404);
+      assert.ok(res.body.error);
+    });
+  });
 });
