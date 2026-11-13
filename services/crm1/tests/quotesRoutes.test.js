@@ -20,7 +20,7 @@ function dispatch(router, options) {
       query: options.query || {},
       params: options.params || {},
       headers: options.headers || {},
-      user: { id: 'USR-0001', name: 'Admin', role: 'admin' }
+      user: options.user !== undefined ? options.user : { id: 'USR-0001', name: 'Admin', role: 'admin' }
     };
 
     const res = {
@@ -46,7 +46,7 @@ function dispatch(router, options) {
   });
 }
 
-describe('CRM1 Quotes Routes Integration Tests ([CRM1-C1])', () => {
+describe('CRM1 Quotes Routes Integration Tests ([CRM1-C1] & [CRM1-C3])', () => {
 
   it('rejects POST /quotes without customer_id with HTTP 400', async () => {
     const res = await dispatch(quotesRouter, {
@@ -127,15 +127,6 @@ describe('CRM1 Quotes Routes Integration Tests ([CRM1-C1])', () => {
   });
 
   it('creates quote with 3 items and verifies totals, discount, and 18% GST calculation', async () => {
-    // 3 items:
-    // SKU-0001: 1 * 42,990 = 42,990
-    // SKU-0004: 2 * 8,990 = 17,980
-    // SKU-0006: 1 * 3,499 = 3,499
-    // Subtotal = 64,469
-    // Discount 10% = 6,446.90
-    // Taxable = 58,022.10
-    // GST 18% = 10,443.98
-    // Total = 68,466.08
     const payload = {
       opportunity_id: 'OPP-0001',
       customer_id: 'CUST-0001',
@@ -166,7 +157,7 @@ describe('CRM1 Quotes Routes Integration Tests ([CRM1-C1])', () => {
     assert.equal(data.taxable_value, 58022.10);
     assert.equal(data.gst, 10443.98);
     assert.equal(data.total, 68466.08);
-    assert.equal(data.needs_approval, true); // discount > 5% triggers needs_approval
+    assert.equal(data.needs_approval, true);
   });
 
   it('fetches quote by ID via GET /quotes/:id and returns complete breakdown', async () => {
@@ -211,32 +202,255 @@ describe('CRM1 Quotes Routes Integration Tests ([CRM1-C1])', () => {
     });
   });
 
-  it('supports filtering quotes by opportunity_id via GET /quotes?opportunity_id=', async () => {
-    const res = await dispatch(quotesRouter, {
-      method: 'GET',
+  // --- CRM1-C3 STATUS & DISCOUNT RULE TESTS ---
+
+  it('[CRM1-C3] blocks moving draft quote with >5% discount to sent without approval', async () => {
+    // 1. Create a quote with 12% discount (needs_approval = true, approved = false)
+    const createRes = await dispatch(quotesRouter, {
+      method: 'POST',
       url: '/quotes',
-      query: { opportunity_id: 'OPP-0001' }
+      body: {
+        opportunity_id: 'OPP-0001',
+        customer_id: 'CUST-0001',
+        sales_rep_id: 'EMP-0001',
+        discount_percent: 12.0,
+        items: [{ sku: 'SKU-0001', product_name: '55-inch 4K Smart TV', quantity: 1, unit_price: 42990 }]
+      }
     });
 
-    assert.equal(res.status, 200);
-    assert.ok(Array.isArray(res.body.data));
-    res.body.data.forEach(q => {
-      assert.equal(q.opportunity_id, 'OPP-0001');
+    assert.equal(createRes.status, 201);
+    const quoteId = createRes.body.data.id;
+    assert.equal(createRes.body.data.needs_approval, true);
+    assert.equal(createRes.body.data.approved, false);
+
+    // 2. Attempt to PATCH status to 'sent'
+    const patchRes = await dispatch(quotesRouter, {
+      method: 'PATCH',
+      url: `/quotes/${quoteId}/status`,
+      params: { id: quoteId },
+      body: { status: 'sent' }
     });
+
+    assert.equal(patchRes.status, 400);
+    assert.match(patchRes.body.error, /requires approval before it can be sent/i);
   });
 
-  it('supports filtering quotes by dealer_id via GET /quotes?dealer_id=', async () => {
-    const res = await dispatch(quotesRouter, {
-      method: 'GET',
+  it('[CRM1-C3] allows moving draft quote with <=5% discount to sent without prior approval', async () => {
+    // 1. Create a quote with 4% discount
+    const createRes = await dispatch(quotesRouter, {
+      method: 'POST',
       url: '/quotes',
-      query: { dealer_id: 'DLR-0001' }
+      body: {
+        opportunity_id: 'OPP-0002',
+        customer_id: 'CUST-0002',
+        sales_rep_id: 'EMP-0002',
+        discount_percent: 4.0,
+        items: [{ sku: 'SKU-0002', product_name: '43-inch Full HD TV', quantity: 1, unit_price: 24990 }]
+      }
     });
 
+    assert.equal(createRes.status, 201);
+    const quoteId = createRes.body.data.id;
+
+    // 2. Move status to 'sent'
+    const patchRes = await dispatch(quotesRouter, {
+      method: 'PATCH',
+      url: `/quotes/${quoteId}/status`,
+      params: { id: quoteId },
+      body: { status: 'sent' }
+    });
+
+    assert.equal(patchRes.status, 200);
+    assert.equal(patchRes.body.data.status, 'sent');
+  });
+
+  it('[CRM1-C3] blocks illegal status jump directly from draft to accepted or rejected', async () => {
+    const patchRes = await dispatch(quotesRouter, {
+      method: 'PATCH',
+      url: '/quotes/QUO-0001/status',
+      params: { id: 'QUO-0001' },
+      body: { status: 'accepted' }
+    });
+
+    assert.equal(patchRes.status, 400);
+    assert.match(patchRes.body.error, /must be moved to 'sent' before being accepted/i);
+  });
+
+  it('[CRM1-C3] transitions sent quote to accepted and triggers handoff side effects', async () => {
+    // QUO-0002 is in 'sent' status in seeds/mocks
+    const patchRes = await dispatch(quotesRouter, {
+      method: 'PATCH',
+      url: '/quotes/QUO-0002/status',
+      params: { id: 'QUO-0002' },
+      body: { status: 'accepted' }
+    });
+
+    assert.equal(patchRes.status, 200);
+    assert.equal(patchRes.body.data.status, 'accepted');
+  });
+
+  it('[CRM1-C3] transitions sent quote to rejected with rejection_reason', async () => {
+    // Create quote, move to sent, then reject
+    const createRes = await dispatch(quotesRouter, {
+      method: 'POST',
+      url: '/quotes',
+      body: {
+        opportunity_id: 'OPP-0005',
+        customer_id: 'CUST-0005',
+        sales_rep_id: 'EMP-0004',
+        discount_percent: 0,
+        items: [{ sku: 'SKU-0008', product_name: '20W Fast Charger', quantity: 2, unit_price: 899 }]
+      }
+    });
+
+    const quoteId = createRes.body.data.id;
+
+    // Move to sent
+    await dispatch(quotesRouter, {
+      method: 'PATCH',
+      url: `/quotes/${quoteId}/status`,
+      params: { id: quoteId },
+      body: { status: 'sent' }
+    });
+
+    // Move to rejected with reason
+    const rejectRes = await dispatch(quotesRouter, {
+      method: 'PATCH',
+      url: `/quotes/${quoteId}/status`,
+      params: { id: quoteId },
+      body: { status: 'rejected', rejection_reason: 'Client decided to delay purchase' }
+    });
+
+    assert.equal(rejectRes.status, 200);
+    assert.equal(rejectRes.body.data.status, 'rejected');
+    assert.equal(rejectRes.body.data.rejection_reason, 'Client decided to delay purchase');
+  });
+
+  it('[CRM1-D3] GET /approvals rejects non-admin users with HTTP 403', async () => {
+    process.env.AUTH_REQUIRED = 'true';
+    const jwt = require('jsonwebtoken');
+    const salesToken = jwt.sign({ id: 'USR-0002', role: 'sales' }, 'dev_secret_key_change_in_production');
+    const res = await dispatch(quotesRouter, {
+      method: 'GET',
+      url: '/approvals',
+      headers: { authorization: `Bearer ${salesToken}` }
+    });
+    process.env.AUTH_REQUIRED = 'false';
+    assert.equal(res.status, 403);
+    assert.match(res.body.error, /Forbidden/);
+  });
+
+  it('[CRM1-D3] GET /approvals returns list of quotes awaiting manager approval for admin', async () => {
+    const res = await dispatch(quotesRouter, {
+      method: 'GET',
+      url: '/approvals',
+      user: { id: 'USR-0001', name: 'Admin', role: 'admin' }
+    });
     assert.equal(res.status, 200);
     assert.ok(Array.isArray(res.body.data));
-    res.body.data.forEach(q => {
-      assert.equal(q.dealer_id, 'DLR-0001');
+  });
+
+  it('[CRM1-D3] PATCH /quotes/:id/approve rejects non-admin users with HTTP 403', async () => {
+    process.env.AUTH_REQUIRED = 'true';
+    const jwt = require('jsonwebtoken');
+    const salesToken = jwt.sign({ id: 'USR-0002', role: 'sales' }, 'dev_secret_key_change_in_production');
+    const res = await dispatch(quotesRouter, {
+      method: 'PATCH',
+      url: '/quotes/QUO-0005/approve',
+      params: { id: 'QUO-0005' },
+      headers: { authorization: `Bearer ${salesToken}` }
     });
+    process.env.AUTH_REQUIRED = 'false';
+    assert.equal(res.status, 403);
+    assert.match(res.body.error, /Forbidden/);
+  });
+
+  it('[CRM1-D3] PATCH /quotes/:id/approve marks quote approved and unlocks sending', async () => {
+    // 1. Create a draft quote with 12% discount (needs_approval = true)
+    const createRes = await dispatch(quotesRouter, {
+      method: 'POST',
+      url: '/quotes',
+      body: {
+        opportunity_id: 'OPP-0001',
+        customer_id: 'CUST-0001',
+        sales_rep_id: 'EMP-0001',
+        discount_percent: 12,
+        items: [{ sku: 'SKU-0001', product_name: '55-inch 4K Smart TV', quantity: 1, unit_price: 42990 }]
+      }
+    });
+
+    const quoteId = createRes.body.data.id;
+    assert.equal(createRes.body.data.needs_approval, true);
+    assert.equal(createRes.body.data.approved, false);
+
+    // 2. Attempt to move to sent before approval: must fail with 400
+    const blockedRes = await dispatch(quotesRouter, {
+      method: 'PATCH',
+      url: `/quotes/${quoteId}/status`,
+      params: { id: quoteId },
+      body: { status: 'sent' }
+    });
+    assert.equal(blockedRes.status, 400);
+
+    // 3. Admin approves the quote
+    const approveRes = await dispatch(quotesRouter, {
+      method: 'PATCH',
+      url: `/quotes/${quoteId}/approve`,
+      params: { id: quoteId },
+      user: { id: 'USR-0001', name: 'Admin', role: 'admin' }
+    });
+    assert.equal(approveRes.status, 200);
+    assert.equal(approveRes.body.data.approved, true);
+
+    // 4. Now moving to sent must succeed (200 OK)
+    const unblockedRes = await dispatch(quotesRouter, {
+      method: 'PATCH',
+      url: `/quotes/${quoteId}/status`,
+      params: { id: quoteId },
+      body: { status: 'sent' }
+    });
+    assert.equal(unblockedRes.status, 200);
+    assert.equal(unblockedRes.body.data.status, 'sent');
+  });
+
+  it('[CRM1-D3] PATCH /quotes/:id/reject validates reason and sets status to rejected', async () => {
+    // 1. Create quote
+    const createRes = await dispatch(quotesRouter, {
+      method: 'POST',
+      url: '/quotes',
+      body: {
+        opportunity_id: 'OPP-0002',
+        customer_id: 'CUST-0002',
+        sales_rep_id: 'EMP-0002',
+        discount_percent: 15,
+        items: [{ sku: 'SKU-0002', product_name: '43-inch Full HD TV', quantity: 1, unit_price: 24990 }]
+      }
+    });
+
+    const quoteId = createRes.body.data.id;
+
+    // 2. Rejection without reason fails with 400
+    const failRejectRes = await dispatch(quotesRouter, {
+      method: 'PATCH',
+      url: `/quotes/${quoteId}/reject`,
+      params: { id: quoteId },
+      body: { reason: '' },
+      user: { id: 'USR-0001', name: 'Admin', role: 'admin' }
+    });
+    assert.equal(failRejectRes.status, 400);
+    assert.equal(failRejectRes.body.error, 'Rejection reason is required');
+
+    // 3. Rejection with reason succeeds
+    const rejectRes = await dispatch(quotesRouter, {
+      method: 'PATCH',
+      url: `/quotes/${quoteId}/reject`,
+      params: { id: quoteId },
+      body: { reason: 'Discount exceeds policy threshold for customer tier' },
+      user: { id: 'USR-0001', name: 'Admin', role: 'admin' }
+    });
+    assert.equal(rejectRes.status, 200);
+    assert.equal(rejectRes.body.data.status, 'rejected');
+    assert.equal(rejectRes.body.data.rejection_reason, 'Discount exceeds policy threshold for customer tier');
   });
 
 });

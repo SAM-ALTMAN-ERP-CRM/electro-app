@@ -1,0 +1,82 @@
+[
+  {
+    "id": "BOM-0001",
+    "product_sku": "SKU-0001",
+    "product_name": "55-Inch LED Smart TV",
+    "version": 1,
+    "active": true,
+    "components_count": 5,
+    "created_at": "2026-11-01T10:00:00.000Z",
+    "items": [
+      { "component_sku": "SKU-0101", "component_name": "Display Panel", "qty_per_unit": 1 },
+      { "component_sku": "SKU-0102", "component_name": "Main Board", "qty_per_unit": 1 },
+      { "component_sku": "SKU-0103", "component_name": "Power Supply Unit", "qty_per_unit": 1 },
+      { "component_sku": "SKU-0104", "component_name": "Remote Control", "qty_per_unit": 1 },
+      { "component_sku": "SKU-0105", "component_name": "Packaging Box", "qty_per_unit": 1 }
+    ]
+  },
+  {
+    "id": "BOM-0002",
+    "product_sku": "SKU-0003",
+    "product_name": "65-Inch OLED Smart TV",
+    "version": 1,
+    "active": true,
+    "components_count": 5,
+    "created_at": "2026-11-01T10:30:00.000Z",
+    "items": [
+      { "component_sku": "SKU-0101", "component_name": "OLED Display Panel", "qty_per_unit": 1 },
+      { "component_sku": "SKU-0102", "component_name": "Main Board", "qty_per_unit": 1 },
+      { "component_sku": "SKU-0103", "component_name": "Power Supply Unit", "qty_per_unit": 1 },
+      { "component_sku": "SKU-0104", "component_name": "Remote Control", "qty_per_unit": 1 },
+      { "component_sku": "SKU-0105", "component_name": "Packaging Box", "qty_per_unit": 1 }
+    ]
+  },
+  {
+    "id": "BOM-0003",
+    "product_sku": "SKU-0002",
+    "product_name": "43-Inch LED TV",
+    "version": 1,
+    "active": true,
+    "components_count": 5,
+    "created_at": "2026-11-01T11:00:00.000Z",
+    "items": [
+      { "component_sku": "SKU-0101", "component_name": "Display Panel Module", "qty_per_unit": 1 },
+      { "component_sku": "SKU-0102", "component_name": "Smart TV Mainboard", "qty_per_unit": 1 },
+      { "component_sku": "SKU-0103", "component_name": "Power Supply Module", "qty_per_unit": 1 },
+      { "component_sku": "SKU-0104", "component_name": "Remote Control", "qty_per_unit": 1 },
+      { "component_sku": "SKU-0105", "component_name": "Packaging Box", "qty_per_unit": 1 }
+    ]
+  },
+  {
+    "id": "BOM-0004",
+    "product_sku": "SKU-0004",
+    "product_name": "32-Inch HD LED TV",
+    "version": 1,
+    "active": true,
+    "components_count": 5,
+    "created_at": "2026-11-01T11:30:00.000Z",
+    "items": [
+      { "component_sku": "SKU-0101", "component_name": "HD Display Panel", "qty_per_unit": 1 },
+      { "component_sku": "SKU-0102", "component_name": "Smart TV Mainboard", "qty_per_unit": 1 },
+      { "component_sku": "SKU-0103", "component_name": "Power Supply Module", "qty_per_unit": 1 },
+      { "component_sku": "SKU-0104", "component_name": "Remote Control", "qty_per_unit": 1 },
+      { "component_sku": "SKU-0105", "component_name": "Packaging Box", "qty_per_unit": 1 }
+    ]
+  },
+  {
+    "id": "BOM-0005",
+    "product_sku": "SKU-0005",
+    "product_name": "75-Inch QLED TV",
+    "version": 1,
+    "active": true,
+    "components_count": 5,
+    "created_at": "2026-11-01T12:00:00.000Z",
+    "items": [
+      { "component_sku": "SKU-0101", "component_name": "QLED Display Panel", "qty_per_unit": 1 },
+      { "component_sku": "SKU-0102", "component_name": "High-Performance Mainboard", "qty_per_unit": 1 },
+      { "component_sku": "SKU-0103", "component_name": "Heavy Duty Power Supply", "qty_per_unit": 1 },
+      { "component_sku": "SKU-0104", "component_name": "Voice Remote Control", "qty_per_unit": 1 },
+      { "component_sku": "SKU-0105", "component_name": "Reinforced Packaging Box", "qty_per_unit": 1 }
+    ]
+  }
+]

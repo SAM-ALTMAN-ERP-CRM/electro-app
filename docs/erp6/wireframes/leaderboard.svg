@@ -1,0 +1,110 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 600" width="960" height="600" font-family="system-ui, -apple-system, sans-serif">
+  <!-- Background Canvas -->
+  <rect width="960" height="600" fill="#f8fafc"/>
+
+  <!-- Left Sidebar (Width 190) -->
+  <rect x="0" y="0" width="190" height="600" fill="#0f172a"/>
+  <text x="20" y="34" fill="#ffffff" font-size="15" font-weight="700">⚡ Electro App</text>
+  <text x="20" y="52" fill="#94a3b8" font-size="11">ERP-6 HR &amp; Workforce</text>
+
+  <!-- Navigation Items -->
+  <text x="24" y="90" fill="#cbd5e1" font-size="12">Employees</text>
+  <text x="24" y="122" fill="#cbd5e1" font-size="12">Departments</text>
+  <text x="24" y="152" fill="#cbd5e1" font-size="12">Attendance</text>
+  <text x="24" y="182" fill="#cbd5e1" font-size="12">Leaves</text>
+  <text x="24" y="212" fill="#cbd5e1" font-size="12">Payroll</text>
+  <text x="24" y="242" fill="#cbd5e1" font-size="12">Commissions</text>
+  <rect x="12" y="254" width="166" height="30" rx="6" fill="#334155"/>
+  <text x="24" y="274" fill="#38bdf8" font-size="12" font-weight="600">Leaderboard</text>
+
+  <text x="20" y="575" fill="#64748b" font-size="10">Print hides .sidebar &amp; .top-bar</text>
+
+  <!-- Top Bar -->
+  <rect x="190" y="0" width="770" height="48" fill="#ffffff" stroke="#e2e8f0"/>
+  <text x="214" y="29" fill="#0f172a" font-size="13" font-weight="600">/erp6/leaderboard — Sales Performance Leaderboard</text>
+  <rect x="850" y="12" width="90" height="24" rx="12" fill="#dcfce7"/>
+  <text x="866" y="28" fill="#15803d" font-size="11" font-weight="600">Dev · Admin</text>
+
+  <!-- Page Header -->
+  <text x="214" y="78" fill="#0f172a" font-size="20" font-weight="700">Sales Performance Leaderboard</text>
+  <rect x="520" y="62" width="70" height="20" rx="10" fill="#dbeafe"/>
+  <text x="534" y="76" fill="#1d4ed8" font-size="10" font-weight="600">ERP-6 HR</text>
+  <text x="214" y="96" fill="#64748b" font-size="12">Ranked rep leaderboard by closed deal revenue, commission earnings, and quota.</text>
+
+  <!-- Month Filter & CSV Download -->
+  <rect x="670" y="62" width="130" height="34" rx="6" fill="#ffffff" stroke="#cbd5e1"/>
+  <text x="682" y="83" fill="#0f172a" font-size="12">Month: 2026-11</text>
+  <rect x="810" y="62" width="130" height="34" rx="6" fill="#10b981"/>
+  <text x="826" y="83" fill="#ffffff" font-size="12" font-weight="600">📥 Download CSV</text>
+
+  <!-- Top Performer Trophy Spotlight Banner -->
+  <rect x="214" y="110" width="726" height="74" rx="8" fill="#fffbeb" stroke="#fef3c7"/>
+  <text x="236" y="148" font-size="28">🏆</text>
+  <text x="280" y="136" fill="#92400e" font-size="12" font-weight="600">MONTHLY SALES CHAMPION</text>
+  <text x="280" y="158" fill="#0f172a" font-size="18" font-weight="800">Aarav Sharma <tspan fill="#64748b" font-size="13" font-weight="500">(EMP-0001)</tspan></text>
+
+  <text x="620" y="142" fill="#b45309" font-size="11">Total Revenue:</text>
+  <text x="710" y="142" fill="#0f172a" font-size="13" font-weight="700">₹7,45,000.00</text>
+  <text x="620" y="162" fill="#b45309" font-size="11">Deals Closed: <tspan fill="#0f172a" font-weight="700">8</tspan></text>
+  <text x="760" y="162" fill="#b45309" font-size="11">Commission: <tspan fill="#15803d" font-weight="700">₹18,625.00</tspan></text>
+
+  <!-- Leaderboard Table Container Card -->
+  <rect x="214" y="200" width="726" height="360" rx="8" fill="#ffffff" stroke="#e2e8f0"/>
+
+  <!-- Table Header -->
+  <rect x="214" y="200" width="726" height="34" rx="8" fill="#f8fafc"/>
+  <text x="234" y="221" fill="#64748b" font-size="10" font-weight="600">RANK</text>
+  <text x="310" y="221" fill="#64748b" font-size="10" font-weight="600">SALES REPRESENTATIVE</text>
+  <text x="510" y="221" fill="#64748b" font-size="10" font-weight="600" text-anchor="middle">DEALS CLOSED</text>
+  <text x="660" y="221" fill="#64748b" font-size="10" font-weight="600" text-anchor="end">TOTAL SALES (INR)</text>
+  <text x="800" y="221" fill="#64748b" font-size="10" font-weight="600" text-anchor="end">COMMISSION (INR)</text>
+  <text x="890" y="221" fill="#64748b" font-size="10" font-weight="600" text-anchor="middle">QUOTA</text>
+  <line x1="214" y1="234" x2="940" y2="234" stroke="#e2e8f0"/>
+
+  <!-- Row 1: Rank #1 (Gold Highlight) -->
+  <rect x="214" y="235" width="726" height="42" fill="#fefce8"/>
+  <rect x="234" y="247" width="30" height="20" rx="10" fill="#fef08a"/>
+  <text x="249" y="261" fill="#854d0e" font-size="11" font-weight="800" text-anchor="middle">#1</text>
+  <text x="310" y="255" fill="#0f172a" font-size="12" font-weight="700">Aarav Sharma</text>
+  <text x="310" y="269" fill="#854d0e" font-size="10">EMP-0001 · Senior Sales Rep</text>
+  <text x="510" y="261" fill="#0f172a" font-size="12" font-weight="700" text-anchor="middle">8</text>
+  <text x="660" y="261" fill="#0f172a" font-size="12" font-weight="700" text-anchor="end">₹7,45,000.00</text>
+  <text x="800" y="261" fill="#15803d" font-size="12" font-weight="700" text-anchor="end">₹18,625.00</text>
+  <rect x="865" y="247" width="50" height="18" rx="9" fill="#dcfce7"/>
+  <text x="890" y="260" fill="#15803d" font-size="10" font-weight="700" text-anchor="middle">149%</text>
+  <line x1="214" y1="277" x2="940" y2="277" stroke="#fef08a"/>
+
+  <!-- Row 2: Rank #2 -->
+  <rect x="234" y="291" width="30" height="20" rx="10" fill="#e2e8f0"/>
+  <text x="249" y="305" fill="#334155" font-size="11" font-weight="800" text-anchor="middle">#2</text>
+  <text x="310" y="299" fill="#0f172a" font-size="12" font-weight="600">Priya Nair</text>
+  <text x="310" y="313" fill="#64748b" font-size="10">EMP-0002 · Sales Rep</text>
+  <text x="510" y="305" fill="#0f172a" font-size="12" text-anchor="middle">6</text>
+  <text x="660" y="305" fill="#0f172a" font-size="12" text-anchor="end">₹5,20,000.00</text>
+  <text x="800" y="305" fill="#15803d" font-size="12" text-anchor="end">₹12,800.00</text>
+  <rect x="865" y="291" width="50" height="18" rx="9" fill="#dcfce7"/>
+  <text x="890" y="304" fill="#15803d" font-size="10" font-weight="700" text-anchor="middle">104%</text>
+  <line x1="214" y1="321" x2="940" y2="321" stroke="#f1f5f9"/>
+
+  <!-- Row 3: Rank #3 -->
+  <rect x="234" y="335" width="30" height="20" rx="10" fill="#ffedd5"/>
+  <text x="249" y="349" fill="#9a3412" font-size="11" font-weight="800" text-anchor="middle">#3</text>
+  <text x="310" y="343" fill="#0f172a" font-size="12" font-weight="600">Ananya Roy</text>
+  <text x="310" y="357" fill="#64748b" font-size="10">EMP-0004 · Sales Rep</text>
+  <text x="510" y="349" fill="#0f172a" font-size="12" text-anchor="middle">4</text>
+  <text x="660" y="349" fill="#0f172a" font-size="12" text-anchor="end">₹3,40,000.00</text>
+  <text x="800" y="349" fill="#15803d" font-size="12" text-anchor="end">₹7,800.00</text>
+  <rect x="865" y="335" width="50" height="18" rx="9" fill="#fef3c7"/>
+  <text x="890" y="348" fill="#b45309" font-size="10" font-weight="700" text-anchor="middle">85%</text>
+  <line x1="214" y1="365" x2="940" y2="365" stroke="#f1f5f9"/>
+
+  <!-- Row 4: Rank #4 -->
+  <text x="249" y="393" fill="#64748b" font-size="11" font-weight="800" text-anchor="middle">#4</text>
+  <text x="310" y="387" fill="#0f172a" font-size="12" font-weight="600">Vikram Patel</text>
+  <text x="310" y="401" fill="#64748b" font-size="10">EMP-0003 · Sales Rep</text>
+  <text x="510" y="393" fill="#0f172a" font-size="12" text-anchor="middle">3</text>
+  <text x="660" y="393" fill="#0f172a" font-size="12" text-anchor="end">₹2,40,000.00</text>
+  <text x="800" y="393" fill="#15803d" font-size="12" text-anchor="end">₹5,975.00</text>
+  <rect x="865" y="379" width="50" height="18" rx="9" fill="#fee2e2"/>
+  <text x="890" y="392" fill="#b91c1c" font-size="10" font-weight="700" text-anchor="middle">60%</text>
+</svg>

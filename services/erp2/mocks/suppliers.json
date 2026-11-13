@@ -1,0 +1,80 @@
+[
+  {
+    "id": "SUP-0001",
+    "name": "Precision Display Panels Ltd",
+    "contact_person": "Vikram Malhotra",
+    "phone": "+91 98201 12345",
+    "email": "orders@precisiondisplay.co.in",
+    "city": "Pune",
+    "gstin": "27AAACP1234A1Z5",
+    "payment_terms": "net30",
+    "rating": 4.8,
+    "active": true,
+    "created_at": "2026-11-01T00:00:00.000Z"
+  },
+  {
+    "id": "SUP-0002",
+    "name": "Silicon Chipsets Pvt Ltd",
+    "contact_person": "Neha Deshmukh",
+    "phone": "+91 98450 67890",
+    "email": "supplies@siliconchips.com",
+    "city": "Bengaluru",
+    "gstin": "29AABCS5678B1Z2",
+    "payment_terms": "net15",
+    "rating": 4.5,
+    "active": true,
+    "created_at": "2026-11-01T00:00:00.000Z"
+  },
+  {
+    "id": "SUP-0003",
+    "name": "Apex Power Systems",
+    "contact_person": "Rajesh Nair",
+    "phone": "+91 94471 23456",
+    "email": "sales@apexpower.in",
+    "city": "Kochi",
+    "gstin": "32AAACA9012C1Z8",
+    "payment_terms": "advance",
+    "rating": 4.2,
+    "active": true,
+    "created_at": "2026-11-01T00:00:00.000Z"
+  },
+  {
+    "id": "SUP-0004",
+    "name": "Sonic Sound Components",
+    "contact_person": "Sunil Rao",
+    "phone": "+91 98860 34567",
+    "email": "info@sonicsound.co.in",
+    "city": "Bengaluru",
+    "gstin": "29AAACS3456D1Z1",
+    "payment_terms": "net30",
+    "rating": 4.6,
+    "active": true,
+    "created_at": "2026-11-01T00:00:00.000Z"
+  },
+  {
+    "id": "SUP-0005",
+    "name": "Metro Polymer & Packaging",
+    "contact_person": "Amitabh Sen",
+    "phone": "+91 98300 45678",
+    "email": "dispatch@metropolymer.com",
+    "city": "Kolkata",
+    "gstin": "19AAACM7890E1Z6",
+    "payment_terms": "net15",
+    "rating": 4.0,
+    "active": true,
+    "created_at": "2026-11-01T00:00:00.000Z"
+  },
+  {
+    "id": "SUP-0006",
+    "name": "Optima Cables & Harnesses",
+    "contact_person": "Kavita Joshi",
+    "phone": "+91 98220 56789",
+    "email": "orders@optimacables.in",
+    "city": "Mumbai",
+    "gstin": "27AAACO4567F1Z3",
+    "payment_terms": "net30",
+    "rating": 4.4,
+    "active": true,
+    "created_at": "2026-11-01T00:00:00.000Z"
+  }
+]

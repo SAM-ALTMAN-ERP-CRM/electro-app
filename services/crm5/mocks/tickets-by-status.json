@@ -1,0 +1,23 @@
+[
+  {
+    "status": "open",
+    "ticket_count": 5,
+    "high_priority_count": 2,
+    "assigned_engineer": "EMP-0005",
+    "avg_resolution_hrs": 14.50
+  },
+  {
+    "status": "in-progress",
+    "ticket_count": 4,
+    "high_priority_count": 1,
+    "assigned_engineer": "EMP-0006",
+    "avg_resolution_hrs": 22.00
+  },
+  {
+    "status": "resolved",
+    "ticket_count": 12,
+    "high_priority_count": 0,
+    "assigned_engineer": "EMP-0007",
+    "avg_resolution_hrs": 18.20
+  }
+]

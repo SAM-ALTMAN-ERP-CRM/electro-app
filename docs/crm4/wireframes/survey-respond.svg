@@ -1,0 +1,85 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="620" viewBox="0 0 960 620" role="img" aria-labelledby="title desc">
+  <title id="title">CRM-4 Survey Response Screen Wireframe</title>
+  <desc id="desc">Wireframe layout for /crm4/surveys/:id/respond (Customer Feedback Submission &amp; Rating Scorecard)</desc>
+  <rect width="960" height="620" fill="#f8fafc"/>
+  <rect x="20" y="16" width="920" height="588" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5"/>
+
+  <!-- Top bar / Navigation & Header -->
+  <text x="50" y="44" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="600" fill="#2563eb">&lt; Back to Surveys</text>
+  <text x="50" y="74" font-family="system-ui, -apple-system, sans-serif" font-size="20" font-weight="700" fill="#0f172a">Annual Product Experience Survey</text>
+  <rect x="420" y="56" width="70" height="22" rx="11" fill="#dbeafe"/>
+  <text x="435" y="71" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#1d4ed8">SRV-0001</text>
+  <rect x="500" y="56" width="50" height="22" rx="11" fill="#dbeafe"/>
+  <text x="515" y="71" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#1d4ed8">NPS</text>
+  <text x="50" y="98" font-family="system-ui, -apple-system, sans-serif" font-size="13" fill="#64748b">Please rate your experience with Electro App products and post-sales customer care</text>
+  <line x1="50" y1="112" x2="910" y2="112" stroke="#e2e8f0" stroke-width="1"/>
+
+  <!-- Main Response Card -->
+  <rect x="50" y="130" width="860" height="450" rx="8" fill="#f8fafc" stroke="#e2e8f0"/>
+
+  <!-- Step 1: Customer Selector -->
+  <text x="80" y="165" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="700" fill="#0f172a">Step 1: Select Responding Customer *</text>
+  <rect x="80" y="175" width="460" height="32" rx="4" fill="#ffffff" stroke="#cbd5e1"/>
+  <text x="95" y="196" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#0f172a">CUST-0001 - Aarav Mehta (Retail · Mumbai) ▼</text>
+  <text x="560" y="196" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#64748b">Verified from CRM-3 Customer Directory</text>
+
+  <!-- Step 2: Rating Score Prompt -->
+  <text x="80" y="240" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="700" fill="#0f172a">Step 2: How likely are you to recommend Electro App products to a friend or colleague? *</text>
+  <text x="80" y="258" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#64748b">Select a rating from 0 (Not at all likely) to 10 (Extremely likely)</text>
+
+  <!-- Rating Buttons Row (0 to 10) -->
+  <!-- 0: Detractor -->
+  <rect x="80" y="275" width="65" height="45" rx="6" fill="#ffffff" stroke="#cbd5e1"/>
+  <text x="107" y="303" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="700" fill="#dc2626">0</text>
+  <!-- 1: Detractor -->
+  <rect x="153" y="275" width="65" height="45" rx="6" fill="#ffffff" stroke="#cbd5e1"/>
+  <text x="180" y="303" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="700" fill="#dc2626">1</text>
+  <!-- 2: Detractor -->
+  <rect x="226" y="275" width="65" height="45" rx="6" fill="#ffffff" stroke="#cbd5e1"/>
+  <text x="253" y="303" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="700" fill="#dc2626">2</text>
+  <!-- 3: Detractor -->
+  <rect x="299" y="275" width="65" height="45" rx="6" fill="#ffffff" stroke="#cbd5e1"/>
+  <text x="326" y="303" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="700" fill="#dc2626">3</text>
+  <!-- 4: Detractor -->
+  <rect x="372" y="275" width="65" height="45" rx="6" fill="#ffffff" stroke="#cbd5e1"/>
+  <text x="399" y="303" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="700" fill="#dc2626">4</text>
+  <!-- 5: Detractor -->
+  <rect x="445" y="275" width="65" height="45" rx="6" fill="#ffffff" stroke="#cbd5e1"/>
+  <text x="472" y="303" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="700" fill="#dc2626">5</text>
+  <!-- 6: Detractor -->
+  <rect x="518" y="275" width="65" height="45" rx="6" fill="#ffffff" stroke="#cbd5e1"/>
+  <text x="545" y="303" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="700" fill="#dc2626">6</text>
+  <!-- 7: Passive -->
+  <rect x="591" y="275" width="65" height="45" rx="6" fill="#ffffff" stroke="#cbd5e1"/>
+  <text x="618" y="303" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="700" fill="#d97706">7</text>
+  <!-- 8: Passive -->
+  <rect x="664" y="275" width="65" height="45" rx="6" fill="#ffffff" stroke="#cbd5e1"/>
+  <text x="691" y="303" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="700" fill="#d97706">8</text>
+  <!-- 9: Promoter -->
+  <rect x="737" y="275" width="65" height="45" rx="6" fill="#ffffff" stroke="#cbd5e1"/>
+  <text x="764" y="303" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="700" fill="#16a34a">9</text>
+  <!-- 10: Selected Promoter -->
+  <rect x="810" y="275" width="70" height="45" rx="6" fill="#16a34a" stroke="#15803d" stroke-width="2"/>
+  <text x="832" y="303" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="700" fill="#ffffff">10 ★</text>
+
+  <!-- Scale Legends -->
+  <text x="80" y="335" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#dc2626">← 0-6 Detractor (Unhappy)</text>
+  <text x="591" y="335" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#d97706">7-8 Passive</text>
+  <text x="760" y="335" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#16a34a">9-10 Promoter (Loyal) →</text>
+
+  <!-- Step 3: Comment Box -->
+  <text x="80" y="375" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="700" fill="#0f172a">Step 3: What is the primary reason for your score?</text>
+  <rect x="80" y="387" width="800" height="70" rx="4" fill="#ffffff" stroke="#cbd5e1"/>
+  <text x="95" y="412" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#0f172a">Exceptional build quality on the 4K LED TV and the installation technician arrived on time!</text>
+
+  <!-- Submission Buttons & Thank-You Simulation -->
+  <rect x="80" y="475" width="180" height="36" rx="4" fill="#2563eb"/>
+  <text x="115" y="498" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="600" fill="#ffffff">Submit Response</text>
+
+  <!-- Simulated Thank-You Confirmation Chip -->
+  <rect x="280" y="472" width="600" height="42" rx="6" fill="#dcfce7" stroke="#86efac"/>
+  <text x="300" y="497" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="600" fill="#15803d">✓ Thank You! Response recorded for CUST-0001 (Score: 10/10 Promoter).</text>
+
+  <!-- Footnote -->
+  <text x="80" y="545" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#64748b">ℹ️ Submissions update the live NPS score and are visible immediately on the Survey Results dashboard.</text>
+</svg>
