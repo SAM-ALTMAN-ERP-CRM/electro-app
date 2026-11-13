@@ -1,0 +1,594 @@
+{
+  "info": {
+    "name": "ERP-6 HR & Workforce API Collection",
+    "description": "Postman v2.1.0 testing collection for Team ERP-6 (Port 5206, erp6_db) covering Health, Departments, Employee Directory, Attendance & Leaves, Payroll, Sales Commissions, Sales Performance Leaderboard, and Section 7 Cross-Team Verification (Rows 1, 5, 27, 28).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:5206", "type": "string" },
+    { "key": "erp5_url", "value": "http://localhost:5205", "type": "string" },
+    { "key": "crm1_url", "value": "http://localhost:5101", "type": "string" },
+    { "key": "crm2_url", "value": "http://localhost:5102", "type": "string" },
+    { "key": "jwt_token", "value": "", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "1. Auth & Health",
+      "item": [
+        {
+          "name": "ERP-6 Health Check",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/health",
+              "host": ["{{base_url}}"],
+              "path": ["api", "health"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Service is erp6 on port 5206', function () {",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.status).to.eql('ok');",
+                  "  pm.expect(json.team).to.eql('erp6');",
+                  "  pm.expect(Number(json.port)).to.eql(5206);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login via ERP-5 (Row 29 - admin@demo.com)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@demo.com\",\n  \"password\": \"demo123\"\n}"
+            },
+            "url": {
+              "raw": "{{erp5_url}}/api/auth/login",
+              "host": ["{{erp5_url}}"],
+              "path": ["api", "auth", "login"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "var json = pm.response.json();",
+                  "if (json.data && json.data.token) {",
+                  "  pm.collectionVariables.set('jwt_token', json.data.token);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "2. Departments API",
+      "item": [
+        {
+          "name": "List Departments",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{jwt_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/api/departments",
+              "host": ["{{base_url}}"],
+              "path": ["api", "departments"]
+            }
+          }
+        },
+        {
+          "name": "Get Department by ID",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{jwt_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/api/departments/DEP-01",
+              "host": ["{{base_url}}"],
+              "path": ["api", "departments", "DEP-01"]
+            }
+          }
+        },
+        {
+          "name": "Create Department",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Legal & Compliance\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/departments",
+              "host": ["{{base_url}}"],
+              "path": ["api", "departments"]
+            }
+          }
+        },
+        {
+          "name": "Update Department",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Sales & Business Development\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/departments/DEP-01",
+              "host": ["{{base_url}}"],
+              "path": ["api", "departments", "DEP-01"]
+            }
+          }
+        },
+        {
+          "name": "Delete Department",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{jwt_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/api/departments/DEP-06",
+              "host": ["{{base_url}}"],
+              "path": ["api", "departments", "DEP-06"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Employees Directory API",
+      "item": [
+        {
+          "name": "List All Active Employees",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{jwt_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/api/employees",
+              "host": ["{{base_url}}"],
+              "path": ["api", "employees"]
+            }
+          }
+        },
+        {
+          "name": "Filter Employees by Role: Sales Rep (Row 1)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{jwt_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/api/employees?role_title=Sales%20Rep",
+              "host": ["{{base_url}}"],
+              "path": ["api", "employees"],
+              "query": [{ "key": "role_title", "value": "Sales Rep" }]
+            }
+          }
+        },
+        {
+          "name": "Filter Employees by Role: Service Engineer (Row 5)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{jwt_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/api/employees?role_title=Service%20Engineer",
+              "host": ["{{base_url}}"],
+              "path": ["api", "employees"],
+              "query": [{ "key": "role_title", "value": "Service Engineer" }]
+            }
+          }
+        },
+        {
+          "name": "Filter Employees by Department",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{jwt_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/api/employees?department=Sales",
+              "host": ["{{base_url}}"],
+              "path": ["api", "employees"],
+              "query": [{ "key": "department", "value": "Sales" }]
+            }
+          }
+        },
+        {
+          "name": "Get Employee Details (with Manager)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{jwt_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/api/employees/EMP-0001",
+              "host": ["{{base_url}}"],
+              "path": ["api", "employees", "EMP-0001"]
+            }
+          }
+        },
+        {
+          "name": "Create Employee",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Sunil Varma\",\n  \"email\": \"sunil.varma@electro.com\",\n  \"phone\": \"9820011199\",\n  \"department_id\": \"DEP-01\",\n  \"role_title\": \"Sales Rep\",\n  \"manager_id\": \"EMP-0012\",\n  \"join_date\": \"2026-11-01\",\n  \"base_salary\": 45000.00\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/employees",
+              "host": ["{{base_url}}"],
+              "path": ["api", "employees"]
+            }
+          }
+        },
+        {
+          "name": "Update Employee",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Rohan Kulkarni\",\n  \"role_title\": \"Senior Sales Rep\",\n  \"base_salary\": 52000.00,\n  \"manager_id\": \"EMP-0012\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/employees/EMP-0001",
+              "host": ["{{base_url}}"],
+              "path": ["api", "employees", "EMP-0001"]
+            }
+          }
+        },
+        {
+          "name": "Deactivate Employee",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{jwt_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/api/employees/EMP-0004/deactivate",
+              "host": ["{{base_url}}"],
+              "path": ["api", "employees", "EMP-0004", "deactivate"]
+            }
+          }
+        },
+        {
+          "name": "Reactivate Employee",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{jwt_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/api/employees/EMP-0004/activate",
+              "host": ["{{base_url}}"],
+              "path": ["api", "employees", "EMP-0004", "activate"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Attendance & Leaves API",
+      "item": [
+        {
+          "name": "Mark Attendance",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"employee_id\": \"EMP-0001\",\n  \"date\": \"2026-11-13\",\n  \"status\": \"present\",\n  \"check_in\": \"09:00:00\",\n  \"check_out\": \"18:00:00\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/attendance/mark",
+              "host": ["{{base_url}}"],
+              "path": ["api", "attendance", "mark"]
+            }
+          }
+        },
+        {
+          "name": "Get Attendance Logs",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{jwt_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/api/attendance?month=2026-11",
+              "host": ["{{base_url}}"],
+              "path": ["api", "attendance"],
+              "query": [{ "key": "month", "value": "2026-11" }]
+            }
+          }
+        },
+        {
+          "name": "Get Attendance Summary",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{jwt_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/api/attendance/summary?month=2026-11",
+              "host": ["{{base_url}}"],
+              "path": ["api", "attendance", "summary"],
+              "query": [{ "key": "month", "value": "2026-11" }]
+            }
+          }
+        },
+        {
+          "name": "Create Leave Request",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"employee_id\": \"EMP-0001\",\n  \"from_date\": \"2026-11-20\",\n  \"to_date\": \"2026-11-21\",\n  \"type\": \"casual\",\n  \"reason\": \"Family function\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/leave-requests",
+              "host": ["{{base_url}}"],
+              "path": ["api", "leave-requests"]
+            }
+          }
+        },
+        {
+          "name": "List Leave Requests",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{jwt_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/api/leave-requests",
+              "host": ["{{base_url}}"],
+              "path": ["api", "leave-requests"]
+            }
+          }
+        },
+        {
+          "name": "Approve Leave Request",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"approved\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/leave-requests/LV-0001/decision",
+              "host": ["{{base_url}}"],
+              "path": ["api", "leave-requests", "LV-0001", "decision"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Payroll API",
+      "item": [
+        {
+          "name": "Generate Monthly Payroll",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"month\": \"2026-11\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/payroll/generate",
+              "host": ["{{base_url}}"],
+              "path": ["api", "payroll", "generate"]
+            }
+          }
+        },
+        {
+          "name": "List Salary Slips",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{jwt_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/api/salary-slips?month=2026-11",
+              "host": ["{{base_url}}"],
+              "path": ["api", "salary-slips"],
+              "query": [{ "key": "month", "value": "2026-11" }]
+            }
+          }
+        },
+        {
+          "name": "Mark Salary Slip as Paid",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{jwt_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/api/salary-slips/SLIP-0001/paid",
+              "host": ["{{base_url}}"],
+              "path": ["api", "salary-slips", "SLIP-0001", "paid"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Commissions API",
+      "item": [
+        {
+          "name": "Sync Paid Invoices from ERP-5 (Row 28)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/commissions/sync",
+              "host": ["{{base_url}}"],
+              "path": ["api", "commissions", "sync"]
+            }
+          }
+        },
+        {
+          "name": "List All Commissions",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{jwt_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/api/commissions",
+              "host": ["{{base_url}}"],
+              "path": ["api", "commissions"]
+            }
+          }
+        },
+        {
+          "name": "Filter Commissions by Month & Sales Rep",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{jwt_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/api/commissions?month=2026-10&sales_rep_id=EMP-0001",
+              "host": ["{{base_url}}"],
+              "path": ["api", "commissions"],
+              "query": [
+                { "key": "month", "value": "2026-10" },
+                { "key": "sales_rep_id", "value": "EMP-0001" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Commission by ID",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{jwt_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/api/commissions/COMM-0001",
+              "host": ["{{base_url}}"],
+              "path": ["api", "commissions", "COMM-0001"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "7. Sales Performance Leaderboard API",
+      "item": [
+        {
+          "name": "Get All-Time Sales Leaderboard",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{jwt_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/api/performance/sales",
+              "host": ["{{base_url}}"],
+              "path": ["api", "performance", "sales"]
+            }
+          }
+        },
+        {
+          "name": "Get Monthly Sales Leaderboard",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{jwt_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/api/performance/sales?month=2026-10",
+              "host": ["{{base_url}}"],
+              "path": ["api", "performance", "sales"],
+              "query": [{ "key": "month", "value": "2026-10" }]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "8. Cross-Team Verification (Section 7 Rows 1, 5, 27, 28)",
+      "item": [
+        {
+          "name": "Row 1 (ERP-6 as Provider): CRM-1 Queries Sales Reps",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{jwt_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/api/employees?role_title=Sales%20Rep",
+              "host": ["{{base_url}}"],
+              "path": ["api", "employees"],
+              "query": [{ "key": "role_title", "value": "Sales Rep" }]
+            }
+          }
+        },
+        {
+          "name": "Row 5 (ERP-6 as Provider): CRM-2 Queries Service Engineers",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{jwt_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/api/employees?role_title=Service%20Engineer",
+              "host": ["{{base_url}}"],
+              "path": ["api", "employees"],
+              "query": [{ "key": "role_title", "value": "Service Engineer" }]
+            }
+          }
+        },
+        {
+          "name": "Row 27 (ERP-6 as Caller): Post Payroll Ledger Entry to ERP-5",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"salary\",\n  \"reference\": \"PAYROLL-2026-11\",\n  \"amount\": 645000.00\n}"
+            },
+            "url": {
+              "raw": "{{erp5_url}}/api/ledger/auto",
+              "host": ["{{erp5_url}}"],
+              "path": ["api", "ledger", "auto"]
+            }
+          }
+        },
+        {
+          "name": "Row 28 (ERP-6 as Caller): Fetch Paid Invoices from ERP-5",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{jwt_token}}" }],
+            "url": {
+              "raw": "{{erp5_url}}/api/invoices/paid",
+              "host": ["{{erp5_url}}"],
+              "path": ["api", "invoices", "paid"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "id": "TKT-MOCK",
+  "customer_id": "CUST-0001",
+  "customer_name": "Rajesh Kumar",
+  "subject": "Mock Support Inquiry",
+  "description": "Customer requested assistance with display setup",
+  "priority": "medium",
+  "status": "open",
+  "created_at": "2026-11-12T10:00:00.000Z"
+}
+

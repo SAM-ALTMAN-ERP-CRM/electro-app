@@ -1,0 +1,11 @@
+{
+  "id": "CUST-0002",
+  "name": "Sunrise Electronics Pvt Ltd",
+  "type": "corporate",
+  "email": "purchase@sunrise.com",
+  "phone": "9820223456",
+  "gstin": "27AABCS1234F1Z5",
+  "billing_address": "Plot 45, MIDC Industrial Area, Andheri East",
+  "shipping_address": "Plot 45, MIDC Industrial Area, Andheri East",
+  "city": "Mumbai"
+}

@@ -1,0 +1,369 @@
+{
+  "info": {
+    "_postman_id": "erp4-orders-dispatch-collection",
+    "name": "ERP-4 Orders & Dispatch API Collection",
+    "description": "Comprehensive Postman test collection for ERP-4 Orders & Dispatch microservice (Port 5204) covering Sales Orders (ERP4-A1, A3), Inventory Reservations (ERP4-B1, B3), Consignment Dispatches (ERP4-C1, C3), Returns Management (ERP4-D1, D3), and Section 7 cross-team integration verifications.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5204/api",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.e30.test",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Sales Orders",
+      "item": [
+        {
+          "name": "List All Sales Orders",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/sales-orders",
+              "host": ["{{baseUrl}}"],
+              "path": ["sales-orders"]
+            }
+          }
+        },
+        {
+          "name": "Filter Orders by Customer and Status",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/sales-orders?customer_id=CUST-0001&status=delivered",
+              "host": ["{{baseUrl}}"],
+              "path": ["sales-orders"],
+              "query": [
+                { "key": "customer_id", "value": "CUST-0001" },
+                { "key": "status", "value": "delivered" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Sales Order Details",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/sales-orders/SO-0001",
+              "host": ["{{baseUrl}}"],
+              "path": ["sales-orders", "SO-0001"]
+            }
+          }
+        },
+        {
+          "name": "Create Sales Order (Inbound from CRM-1)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"quote_id\": \"QUO-TEST-1001\",\n  \"customer_id\": \"CUST-0002\",\n  \"sales_rep_id\": \"EMP-0001\",\n  \"items\": [\n    {\n      \"sku\": \"SKU-0001\",\n      \"product_name\": \"55-inch 4K Smart TV\",\n      \"quantity\": 1,\n      \"unit_price\": 42990.00\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/sales-orders",
+              "host": ["{{baseUrl}}"],
+              "path": ["sales-orders"]
+            }
+          }
+        },
+        {
+          "name": "Confirm Sales Order (ERP4-A3)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/sales-orders/SO-0006/confirm",
+              "host": ["{{baseUrl}}"],
+              "path": ["sales-orders", "SO-0006", "confirm"]
+            }
+          }
+        },
+        {
+          "name": "Cancel Sales Order (ERP4-A3)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/sales-orders/SO-0007/cancel",
+              "host": ["{{baseUrl}}"],
+              "path": ["sales-orders", "SO-0007", "cancel"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Inventory Reservations",
+      "item": [
+        {
+          "name": "List Order Reservations",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/sales-orders/SO-0001/reservations",
+              "host": ["{{baseUrl}}"],
+              "path": ["sales-orders", "SO-0001", "reservations"]
+            }
+          }
+        },
+        {
+          "name": "Reserve Stock for Order Item",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"so_id\": \"SO-0006\",\n  \"sku\": \"SKU-0002\",\n  \"quantity\": 1\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/reservations",
+              "host": ["{{baseUrl}}"],
+              "path": ["reservations"]
+            }
+          }
+        },
+        {
+          "name": "Release Order Reservations",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/sales-orders/SO-0006/reservations/release",
+              "host": ["{{baseUrl}}"],
+              "path": ["sales-orders", "SO-0006", "reservations", "release"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Consignment Dispatches",
+      "item": [
+        {
+          "name": "List Dispatches",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/dispatches",
+              "host": ["{{baseUrl}}"],
+              "path": ["dispatches"]
+            }
+          }
+        },
+        {
+          "name": "Get Dispatches (Flat Format for CRM-2)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/dispatches?format=flat",
+              "host": ["{{baseUrl}}"],
+              "path": ["dispatches"],
+              "query": [
+                { "key": "format", "value": "flat" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Consignment Dispatch",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"so_id\": \"SO-0006\",\n  \"courier\": \"BlueDart\",\n  \"address\": \"Plot 18, Electronics City Phase 1, Hosur Road, Bengaluru 560100\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/dispatches",
+              "host": ["{{baseUrl}}"],
+              "path": ["dispatches"]
+            }
+          }
+        },
+        {
+          "name": "Advance Dispatch Status to Shipped",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"shipped\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/dispatches/DSP-0004/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["dispatches", "DSP-0004", "status"]
+            }
+          }
+        },
+        {
+          "name": "Advance Dispatch Status to Delivered",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"delivered\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/dispatches/DSP-0004/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["dispatches", "DSP-0004", "status"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Customer Returns",
+      "item": [
+        {
+          "name": "Get Returns Summary Metrics",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/returns/summary",
+              "host": ["{{baseUrl}}"],
+              "path": ["returns", "summary"]
+            }
+          }
+        },
+        {
+          "name": "List All Customer Returns",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/returns",
+              "host": ["{{baseUrl}}"],
+              "path": ["returns"]
+            }
+          }
+        },
+        {
+          "name": "Get Return Details by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/returns/RET-0001",
+              "host": ["{{baseUrl}}"],
+              "path": ["returns", "RET-0001"]
+            }
+          }
+        },
+        {
+          "name": "Raise New Customer Return",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"so_id\": \"SO-0001\",\n  \"serial_number\": \"TV55-2611-0001\",\n  \"reason\": \"Defective optical audio out port\",\n  \"outcome\": \"credit_note\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/returns",
+              "host": ["{{baseUrl}}"],
+              "path": ["returns"]
+            }
+          }
+        },
+        {
+          "name": "Inbound Return from CRM-2 RMA",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rma_id\": \"RMA-POSTMAN-001\",\n  \"serial_number\": \"TV55-2611-0003\",\n  \"reason\": \"Customer cancelled order prior to unboxing\",\n  \"outcome\": \"credit_note\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/returns/from-rma",
+              "host": ["{{baseUrl}}"],
+              "path": ["returns", "from-rma"]
+            }
+          }
+        },
+        {
+          "name": "Advance Return Status & Restock",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"restocked\",\n  \"issue_credit_note\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/returns/RET-0002/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["returns", "RET-0002", "status"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,52 @@
+[
+  {
+    "id": "CUST-0001",
+    "name": "Rajesh Kumar",
+    "company_name": "Apex Electronics Ltd",
+    "email": "rajesh.k@apexelectronics.in",
+    "phone": "+91 98201 12345",
+    "gstin": "27AABCA1234A1Z5",
+    "city": "Mumbai",
+    "state": "Maharashtra"
+  },
+  {
+    "id": "CUST-0002",
+    "name": "Anita Desai",
+    "company_name": "Desai Retail Innovations",
+    "email": "anita@desairetail.com",
+    "phone": "+91 98202 23456",
+    "gstin": "27BDEPA5678B2Z1",
+    "city": "Pune",
+    "state": "Maharashtra"
+  },
+  {
+    "id": "CUST-0003",
+    "name": "Vikram Sethi",
+    "company_name": "TechCorp Systems Pvt Ltd",
+    "email": "vikram@techcorp.in",
+    "phone": "+91 98203 34567",
+    "gstin": "29AAACT9876C1Z9",
+    "city": "Bengaluru",
+    "state": "Karnataka"
+  },
+  {
+    "id": "CUST-0004",
+    "name": "Sunita Rao",
+    "company_name": "Metro MegaStore Enterprises",
+    "email": "sunita@metromegastore.in",
+    "phone": "+91 98204 45678",
+    "gstin": "36AABCM4321D1Z8",
+    "city": "Hyderabad",
+    "state": "Telangana"
+  },
+  {
+    "id": "CUST-0005",
+    "name": "Karan Singhal",
+    "company_name": "Singhal Audio Visuals",
+    "email": "karan@singhalaudio.com",
+    "phone": "+91 98205 56789",
+    "gstin": "07AABCS8765E1Z3",
+    "city": "Delhi",
+    "state": "Delhi"
+  }
+]

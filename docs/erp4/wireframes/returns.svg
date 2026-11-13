@@ -1,0 +1,155 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 650" width="100%" height="100%">
+  <defs>
+    <style>
+      .bg { fill: #f8fafc; }
+      .sidebar { fill: #0f172a; }
+      .card { fill: #ffffff; stroke: #e2e8f0; stroke-width: 1; rx: 6px; }
+      .title { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-weight: 700; font-size: 18px; fill: #0f172a; }
+      .subtitle { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 12px; fill: #64748b; }
+      .side-title { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-weight: 700; font-size: 14px; fill: #f8fafc; }
+      .side-item { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 12px; fill: #94a3b8; }
+      .side-active { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-weight: 600; font-size: 12px; fill: #ffffff; }
+      .th { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-weight: 700; font-size: 11px; fill: #475569; text-transform: uppercase; }
+      .td { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 12px; fill: #1e293b; }
+      .td-id { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-weight: 700; font-size: 12px; fill: #0f172a; }
+      .td-mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; fill: #334155; }
+      .btn-primary { fill: #2563eb; rx: 5px; }
+      .btn-primary-text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-weight: 600; font-size: 12px; fill: #ffffff; }
+      .badge-blue { fill: #dbeafe; rx: 4px; }
+      .badge-blue-text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-weight: 600; font-size: 10px; fill: #1e40af; }
+      .badge-green { fill: #dcfce7; rx: 4px; }
+      .badge-green-text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-weight: 600; font-size: 10px; fill: #15803d; }
+      .badge-amber { fill: #fef3c7; rx: 4px; }
+      .badge-amber-text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-weight: 600; font-size: 10px; fill: #b45309; }
+      .badge-red { fill: #fee2e2; rx: 4px; }
+      .badge-red-text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-weight: 600; font-size: 10px; fill: #dc2626; }
+      .badge-gray { fill: #f1f5f9; rx: 4px; }
+      .badge-gray-text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-weight: 600; font-size: 10px; fill: #475569; }
+      .kpi-num { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-weight: 800; font-size: 20px; }
+      .input-box { fill: #ffffff; stroke: #cbd5e1; stroke-width: 1; rx: 5px; }
+    </style>
+  </defs>
+
+  <rect width="1000" height="650" class="bg" />
+
+  <!-- Global Sidebar Shell -->
+  <rect x="0" y="0" width="220" height="650" class="sidebar" />
+  <text x="20" y="35" class="side-title">⚡ ELECTRO APP</text>
+  <text x="20" y="55" class="subtitle" style="fill: #64748b;">CRM + ERP Integrated Suite</text>
+  <text x="20" y="100" class="subtitle" style="fill: #94a3b8; font-weight: 700;">ERP-4 ORDERS &amp; DISPATCH</text>
+  <text x="38" y="135" class="side-item">Sales Orders</text>
+  <text x="38" y="165" class="side-item">Courier Dispatch</text>
+  <rect x="15" y="175" width="190" height="32" fill="#1e293b" rx="4" />
+  <circle cx="28" cy="191" r="3" fill="#2563eb" />
+  <text x="38" y="195" class="side-active">Return Receipts</text>
+
+  <!-- Global Top Bar Shell -->
+  <rect x="220" y="0" width="780" height="45" fill="#ffffff" stroke="#e2e8f0" stroke-width="1" />
+  <text x="240" y="28" class="subtitle">Returns Lifecycle: <tspan font-weight="600" fill="#0f172a">Customer Returns &amp; RMA Receipts</tspan></text>
+  <rect x="880" y="12" width="100" height="22" class="badge-blue" />
+  <text x="900" y="27" class="badge-blue-text">Role: warehouse</text>
+
+  <!-- Main Content Area -->
+  <g transform="translate(240, 60)">
+    <text x="0" y="22" class="title">Returns &amp; Return Receipts</text>
+    <rect x="250" y="7" width="105" height="20" class="badge-blue" />
+    <text x="260" y="21" class="badge-blue-text">ERP-4 Returns</text>
+    <text x="0" y="42" class="subtitle">Inspect returned serialized inventory, process warehouse restocking, and issue credit notes.</text>
+
+    <rect x="610" y="5" width="130" height="32" class="btn-primary" />
+    <text x="625" y="25" class="btn-primary-text">+ Raise New Return</text>
+
+    <!-- KPI Summary Cards (ERP4-D3) -->
+    <g transform="translate(0, 58)">
+      <rect x="0" y="0" width="135" height="65" class="card" />
+      <text x="12" y="20" class="th">TOTAL RETURNS</text>
+      <text x="12" y="48" class="kpi-num" fill="#0f172a">4</text>
+
+      <rect x="150" y="0" width="135" height="65" class="card" />
+      <text x="162" y="20" class="th">REQUESTED</text>
+      <text x="162" y="48" class="kpi-num" fill="#64748b">1</text>
+
+      <rect x="300" y="0" width="135" height="65" class="card" />
+      <text x="312" y="20" class="th">RECEIVED</text>
+      <text x="312" y="48" class="kpi-num" fill="#d97706">1</text>
+
+      <rect x="450" y="0" width="135" height="65" class="card" />
+      <text x="462" y="20" class="th">RESTOCKED</text>
+      <text x="462" y="48" class="kpi-num" fill="#16a34a">1</text>
+
+      <rect x="600" y="0" width="140" height="65" class="card" />
+      <text x="612" y="20" class="th">SCRAPPED</text>
+      <text x="612" y="48" class="kpi-num" fill="#dc2626">1</text>
+    </g>
+
+    <!-- Filter & Search Bar -->
+    <g transform="translate(0, 138)">
+      <rect x="0" y="0" width="260" height="30" class="input-box" />
+      <text x="12" y="20" class="subtitle">🔍 Search Return ID, Order, Serial...</text>
+
+      <rect x="580" y="0" width="160" height="30" class="input-box" />
+      <text x="590" y="20" class="subtitle">Filter Status: All ▼</text>
+    </g>
+
+    <!-- Returns Table -->
+    <g transform="translate(0, 180)">
+      <rect x="0" y="0" width="740" height="360" class="card" />
+      <rect x="1" y="1" width="738" height="30" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1" rx="6" />
+      <text x="15" y="20" class="th">RETURN ID</text>
+      <text x="95" y="20" class="th">ORDER REF</text>
+      <text x="180" y="20" class="th">SERIAL NUMBER</text>
+      <text x="320" y="20" class="th">DEFECT REASON</text>
+      <text x="490" y="20" class="th">LINKED RMA</text>
+      <text x="580" y="20" class="th">STATUS</text>
+      <text x="680" y="20" class="th">ACTION</text>
+
+      <!-- Row 1 -->
+      <line x1="0" y1="70" x2="740" y2="70" stroke="#f1f5f9" />
+      <text x="15" y="55" class="td-id">RET-0001</text>
+      <text x="95" y="55" class="td" font-weight="600" fill="#2563eb">SO-0001</text>
+      <rect x="180" y="42" width="125" height="18" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1" rx="3" />
+      <text x="188" y="55" class="td-mono">TV55-2611-0001</text>
+      <text x="320" y="55" class="td">Display panel flickering</text>
+      <text x="490" y="55" class="td-mono">RMA-0001</text>
+      <rect x="580" y="44" width="75" height="18" class="badge-gray" />
+      <text x="592" y="57" class="badge-gray-text">requested</text>
+      <text x="685" y="55" class="td" font-weight="600" fill="#2563eb">Inspect →</text>
+
+      <!-- Row 2 -->
+      <line x1="0" y1="110" x2="740" y2="110" stroke="#f1f5f9" />
+      <text x="15" y="95" class="td-id">RET-0002</text>
+      <text x="95" y="95" class="td" font-weight="600" fill="#2563eb">SO-0002</text>
+      <rect x="180" y="82" width="125" height="18" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1" rx="3" />
+      <text x="188" y="95" class="td-mono">TV55-2611-0002</text>
+      <text x="320" y="95" class="td">Transit physical damage</text>
+      <text x="490" y="95" class="td-mono">RMA-0002</text>
+      <rect x="580" y="84" width="75" height="18" class="badge-amber" />
+      <text x="597" y="97" class="badge-amber-text">received</text>
+      <text x="685" y="95" class="td" font-weight="600" fill="#2563eb">Inspect →</text>
+
+      <!-- Row 3 -->
+      <line x1="0" y1="150" x2="740" y2="150" stroke="#f1f5f9" />
+      <text x="15" y="135" class="td-id">RET-0003</text>
+      <text x="95" y="135" class="td" font-weight="600" fill="#2563eb">SO-0003</text>
+      <rect x="180" y="122" width="125" height="18" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1" rx="3" />
+      <text x="188" y="135" class="td-mono">TV55-2611-0003</text>
+      <text x="320" y="135" class="td">Customer order cancellation</text>
+      <text x="490" y="135" class="subtitle">—</text>
+      <rect x="580" y="124" width="75" height="18" class="badge-green" />
+      <text x="592" y="137" class="badge-green-text">restocked</text>
+      <text x="685" y="135" class="td" font-weight="600" fill="#2563eb">Inspect →</text>
+
+      <!-- Row 4 -->
+      <line x1="0" y1="190" x2="740" y2="190" stroke="#f1f5f9" />
+      <text x="15" y="175" class="td-id">RET-0004</text>
+      <text x="95" y="175" class="td" font-weight="600" fill="#2563eb">SO-0004</text>
+      <rect x="180" y="162" width="125" height="18" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1" rx="3" />
+      <text x="188" y="175" class="td-mono">TV55-2611-0004</text>
+      <text x="320" y="175" class="td">Internal circuit board failure</text>
+      <text x="490" y="175" class="td-mono">RMA-0003</text>
+      <rect x="580" y="164" width="75" height="18" class="badge-red" />
+      <text x="597" y="177" class="badge-red-text">scrapped</text>
+      <text x="685" y="175" class="td" font-weight="600" fill="#2563eb">Inspect →</text>
+    </g>
+  </g>
+</svg>
