@@ -449,7 +449,14 @@ router.get('/surveys/:id/results', async (req, res) => {
 
     const pctPromoters = (promoters / total) * 100;
     const pctDetractors = (detractors / total) * 100;
+    promoters_pct = parseFloat(pctPromoters.toFixed(1));
+    passives_pct = parseFloat(((passives / total) * 100).toFixed(1));
+    detractors_pct = parseFloat(pctDetractors.toFixed(1));
     nps = Math.round(pctPromoters - pctDetractors);
+  } else {
+    promoters_pct = 0;
+    passives_pct = 0;
+    detractors_pct = 0;
   }
 
   const latestComments = responses
@@ -458,7 +465,9 @@ router.get('/surveys/:id/results', async (req, res) => {
     .map(r => ({
       customer_id: r.customer_id,
       score: parseInt(r.score, 10),
+      tier: parseInt(r.score, 10) >= 9 ? 'promoter' : parseInt(r.score, 10) >= 7 ? 'passive' : 'detractor',
       comment: r.comment,
+      date: r.created_at ? new Date(r.created_at).toISOString().split('T')[0] : '2026-10-15',
       created_at: r.created_at
     }));
 
@@ -467,13 +476,21 @@ router.get('/surveys/:id/results', async (req, res) => {
       survey_id: id,
       title: survey.title,
       type: survey.type,
+      total,
       total_responses: total,
       average_score: averageScore,
       promoters,
+      promoters_count: promoters,
+      promoters_pct,
       passives,
+      passives_count: passives,
+      passives_pct,
       detractors,
+      detractors_count: detractors,
+      detractors_pct,
       nps,
-      latest_comments: latestComments
+      latest_comments: latestComments,
+      comments: latestComments
     }
   });
 });

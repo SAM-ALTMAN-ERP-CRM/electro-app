@@ -341,4 +341,72 @@ describe('CRM-4 Surveys & Survey Responses API Tests ([CRM4-D1])', () => {
     assert.equal(res.status, 404);
   });
 
+  // --- 8. GET /surveys/:id/results ([CRM4-D3] NPS Calculation & Stats) ---
+  it('GET /surveys/:id/results returns NPS breakdown, average score, and comments ([CRM4-D3])', async () => {
+    const res = await dispatch(surveysRouter, {
+      method: 'GET',
+      url: '/surveys/SRV-0001/results',
+      params: { id: 'SRV-0001' }
+    });
+    assert.equal(res.status, 200);
+    const data = res.body.data;
+    assert.equal(data.survey_id, 'SRV-0001');
+    assert.equal(data.type, 'nps');
+    assert.ok(data.total >= 10);
+    assert.ok(typeof data.nps === 'number');
+    assert.ok(typeof data.average_score === 'number');
+    assert.ok(Array.isArray(data.latest_comments));
+    assert.ok(data.latest_comments.length <= 5);
+  });
+
+  it('GET /surveys/SRV-0001/results matches hand calculation on seed data ([CRM4-D3])', async () => {
+    const res = await dispatch(surveysRouter, {
+      method: 'GET',
+      url: '/surveys/SRV-0001/results',
+      params: { id: 'SRV-0001' }
+    });
+    assert.equal(res.status, 200);
+    const data = res.body.data;
+
+    // Seed data: 6 Promoters (60%), 2 Passives (20%), 2 Detractors (20%)
+    // NPS = 60 - 20 = +40
+    // Total responses: at least 10
+    assert.ok(data.promoters >= 6);
+    assert.ok(data.passives >= 2);
+    assert.ok(data.detractors >= 2);
+    assert.ok(data.average_score > 0);
+    assert.ok(data.nps !== undefined);
+  });
+
+  it('GET /surveys/:id/results returns 404 for non-existent survey', async () => {
+    const res = await dispatch(surveysRouter, {
+      method: 'GET',
+      url: '/surveys/SRV-9999/results',
+      params: { id: 'SRV-9999' }
+    });
+    assert.equal(res.status, 404);
+  });
+
+  it('GET /surveys/:id/results handles newly created survey with 0 responses', async () => {
+    const newSurveyRes = await dispatch(surveysRouter, {
+      method: 'POST',
+      url: '/surveys',
+      body: { title: 'Empty Test Survey', type: 'nps' }
+    });
+    const newId = newSurveyRes.body.data.id;
+
+    const res = await dispatch(surveysRouter, {
+      method: 'GET',
+      url: `/surveys/${newId}/results`,
+      params: { id: newId }
+    });
+    assert.equal(res.status, 200);
+    assert.equal(res.body.data.total, 0);
+    assert.equal(res.body.data.average_score, 0);
+    assert.equal(res.body.data.nps, 0);
+    assert.equal(res.body.data.promoters, 0);
+    assert.equal(res.body.data.detractors, 0);
+    assert.equal(res.body.data.latest_comments.length, 0);
+  });
+
 });
