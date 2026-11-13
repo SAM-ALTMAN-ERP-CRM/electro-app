@@ -65,3 +65,14 @@ VALUES
 SELECT setval('so_id_seq', 7, true);
 SELECT setval('res_id_seq', 7, true);
 SELECT setval('dsp_id_seq', 5, true);
+
+-- Seed 4 returns using serials TV55-2611-0001 to 0004
+INSERT INTO returns (id, so_id, serial_number, reason, rma_id, outcome, status, created_at)
+VALUES
+  ('RET-0001', 'SO-0001', 'TV55-2611-0001', 'Display panel flickering on HDMI 2', 'RMA-0001', 'credit_note', 'requested', '2026-10-15 10:00:00+05:30'),
+  ('RET-0002', 'SO-0002', 'TV55-2611-0002', 'Damaged during courier transit', 'RMA-0002', 'replacement', 'received', '2026-10-18 14:30:00+05:30'),
+  ('RET-0003', 'SO-0003', 'TV55-2611-0003', 'Customer cancelled before installation', NULL, 'credit_note', 'restocked', '2026-10-20 11:15:00+05:30'),
+  ('RET-0004', 'SO-0004', 'TV55-2611-0004', 'Internal power board short circuit', 'RMA-0003', 'scrapped', 'scrapped', '2026-10-22 16:00:00+05:30');
+
+SELECT setval('ret_id_seq', 4, true);
+

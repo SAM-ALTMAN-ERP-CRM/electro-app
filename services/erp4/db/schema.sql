@@ -64,6 +64,20 @@ CREATE TABLE IF NOT EXISTS dispatch_serials (
   serial_number VARCHAR(50) NOT NULL
 );
 
+-- Table: returns (Customer return receipts & RMA processing)
+CREATE SEQUENCE IF NOT EXISTS ret_id_seq START WITH 5 INCREMENT BY 1;
+
+CREATE TABLE IF NOT EXISTS returns (
+  id VARCHAR(20) PRIMARY KEY DEFAULT ('RET-' || LPAD(NEXTVAL('ret_id_seq')::TEXT, 4, '0')),
+  so_id VARCHAR(20) NOT NULL REFERENCES sales_orders(id),
+  serial_number VARCHAR(50) NOT NULL,
+  reason TEXT NOT NULL,
+  rma_id VARCHAR(50) UNIQUE,
+  outcome VARCHAR(50),
+  status VARCHAR(20) NOT NULL DEFAULT 'requested' CHECK (status IN ('requested', 'received', 'restocked', 'scrapped')),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Indexes for performance and query filtering
 CREATE INDEX IF NOT EXISTS idx_sales_orders_customer ON sales_orders(customer_id);
 CREATE INDEX IF NOT EXISTS idx_sales_orders_status ON sales_orders(status);
@@ -76,3 +90,8 @@ CREATE INDEX IF NOT EXISTS idx_dispatches_so_id ON dispatches(so_id);
 CREATE INDEX IF NOT EXISTS idx_dispatches_status ON dispatches(status);
 CREATE INDEX IF NOT EXISTS idx_dispatch_serials_dispatch_id ON dispatch_serials(dispatch_id);
 CREATE INDEX IF NOT EXISTS idx_dispatch_serials_serial ON dispatch_serials(serial_number);
+CREATE INDEX IF NOT EXISTS idx_returns_so_id ON returns(so_id);
+CREATE INDEX IF NOT EXISTS idx_returns_serial ON returns(serial_number);
+CREATE INDEX IF NOT EXISTS idx_returns_rma_id ON returns(rma_id);
+CREATE INDEX IF NOT EXISTS idx_returns_status ON returns(status);
+
