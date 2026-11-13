@@ -1,6 +1,8 @@
 import React from 'react';
 import EmployeesPage from './pages/EmployeesPage';
 import DepartmentsPage from './pages/DepartmentsPage';
+import AttendancePage from './pages/AttendancePage';
+import LeavesPage from './pages/LeavesPage';
 import CommissionsPage from './pages/CommissionsPage';
 import LeaderboardPage from './pages/LeaderboardPage';
 import PayrollPage from './pages/PayrollPage';
@@ -38,6 +40,16 @@ export default {
       element: <DepartmentsPage />
     },
     {
+      path: 'attendance',
+      label: 'Attendance',
+      element: <AttendancePage />
+    },
+    {
+      path: 'leaves',
+      label: 'Leaves',
+      element: <LeavesPage />
+    },
+    {
       path: 'payroll',
       label: 'Payroll',
       element: <PayrollPage />
@@ -58,3 +70,4 @@ export default {
     }
   ]
 };
+
