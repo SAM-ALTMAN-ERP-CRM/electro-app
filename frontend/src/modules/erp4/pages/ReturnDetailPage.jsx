@@ -57,17 +57,13 @@ export default function ReturnDetailPage() {
       setError(null);
       setSuccessMsg(null);
 
-      try {
-        await api('erp4', `/api/returns/${id}/status`, {
-          method: 'PATCH',
-          body: { status: newStatus }
-        });
-      } catch (patchErr) {
-        // Local optimistic update
-        setReturnItem(prev => ({ ...prev, status: newStatus }));
-      }
+      const res = await api('erp4', `/api/returns/${id}/status`, {
+        method: 'PATCH',
+        body: { status: newStatus }
+      });
+      const updated = res?.data || res;
 
-      setReturnItem(prev => ({ ...prev, status: newStatus }));
+      setReturnItem(prev => ({ ...prev, ...updated, status: newStatus }));
       setSuccessMsg(`Return status updated to '${newStatus}' successfully.`);
     } catch (err) {
       setError(err.message || 'Failed to update return status');
