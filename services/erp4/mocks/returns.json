@@ -1,0 +1,50 @@
+[
+  {
+    "id": "RET-0001",
+    "so_id": "SO-0001",
+    "customer_id": "CUST-0001",
+    "customer_name": "Aarav Mehta",
+    "serial_number": "TV55-2611-0001",
+    "reason": "Display panel flickering on HDMI 2",
+    "rma_id": "RMA-0001",
+    "outcome": "credit_note",
+    "status": "requested",
+    "created_at": "2026-10-15T10:00:00.000Z"
+  },
+  {
+    "id": "RET-0002",
+    "so_id": "SO-0002",
+    "customer_id": "CUST-0002",
+    "customer_name": "Sunrise Electronics Pvt Ltd",
+    "serial_number": "TV55-2611-0002",
+    "reason": "Damaged during courier transit",
+    "rma_id": "RMA-0002",
+    "outcome": "replacement",
+    "status": "received",
+    "created_at": "2026-10-18T14:30:00.000Z"
+  },
+  {
+    "id": "RET-0003",
+    "so_id": "SO-0003",
+    "customer_id": "CUST-0003",
+    "customer_name": "Priya Nair",
+    "serial_number": "TV55-2611-0003",
+    "reason": "Customer cancelled before installation",
+    "rma_id": null,
+    "outcome": "credit_note",
+    "status": "restocked",
+    "created_at": "2026-10-20T11:15:00.000Z"
+  },
+  {
+    "id": "RET-0004",
+    "so_id": "SO-0004",
+    "customer_id": "CUST-0004",
+    "customer_name": "TechWorld Retail Hub",
+    "serial_number": "TV55-2611-0004",
+    "reason": "Internal power board short circuit",
+    "rma_id": "RMA-0003",
+    "outcome": "scrapped",
+    "status": "scrapped",
+    "created_at": "2026-10-22T16:00:00.000Z"
+  }
+]
