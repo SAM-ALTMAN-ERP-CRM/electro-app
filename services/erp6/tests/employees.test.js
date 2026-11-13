@@ -192,6 +192,40 @@ describe('ERP6 Employees API Test Suite ([ERP6-A1])', () => {
     assert.equal(getRes.status, 404);
   });
 
+  it('GET /api/employees/:id returns direct reports list (ERP6-A3)', async () => {
+    // EMP-0012 (Rahul Verma - Admin) is manager of EMP-0001..0010
+    const res = await request(app, 'GET', '/api/employees/EMP-0012');
+    assert.equal(res.status, 200);
+    assert.ok(Array.isArray(res.body.data.direct_reports));
+    assert.ok(res.body.data.direct_reports.length > 0);
+    const reportIds = res.body.data.direct_reports.map(r => r.id);
+    assert.ok(reportIds.includes('EMP-0001'));
+  });
+
+  it('PATCH /api/employees/:id/deactivate deactivates employee and hides from default list (ERP6-A3)', async () => {
+    // Deactivate EMP-0004 (Sales Rep)
+    const deactRes = await request(app, 'PATCH', '/api/employees/EMP-0004/deactivate');
+    assert.equal(deactRes.status, 200);
+    assert.equal(deactRes.body.data.active, false);
+
+    // Default list hides inactive staff
+    const listRes = await request(app, 'GET', '/api/employees?role_title=Sales%20Rep');
+    assert.equal(listRes.status, 200);
+    const repIds = listRes.body.data.map(r => r.id);
+    assert.ok(!repIds.includes('EMP-0004'), 'Deactivated employee must not appear in default role_title query');
+    assert.equal(listRes.body.data.length, 3); // 3 active Sales Reps remain
+
+    // ?active=all includes deactivated employee
+    const allRes = await request(app, 'GET', '/api/employees?role_title=Sales%20Rep&active=all');
+    assert.equal(allRes.status, 200);
+    assert.equal(allRes.body.data.length, 4);
+
+    // Reactivate EMP-0004 to maintain clean seed state
+    const actRes = await request(app, 'PATCH', '/api/employees/EMP-0004/activate');
+    assert.equal(actRes.status, 200);
+    assert.equal(actRes.body.data.active, true);
+  });
+
   after(async () => {
     if (employeesRouter.pool) {
       await employeesRouter.pool.end();

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import { api } from '../../../api';
 
 /**
@@ -34,6 +35,7 @@ export default function EmployeesPage() {
   // Filters
   const [searchQuery, setSearchQuery] = useState('');
   const [departmentFilter, setDepartmentFilter] = useState('');
+  const [showInactive, setShowInactive] = useState(false); // Inactive staff hidden by default
 
   // Modal / Form state
   const [showForm, setShowForm] = useState(false);
@@ -66,7 +68,7 @@ export default function EmployeesPage() {
   }, []);
 
   /**
-   * Fetch employees with search and department filtering.
+   * Fetch employees with search, department filtering, and showInactive toggle.
    */
   const fetchEmployees = useCallback(async () => {
     try {
@@ -80,7 +82,10 @@ export default function EmployeesPage() {
       if (departmentFilter.trim()) {
         params.append('department', departmentFilter.trim());
       }
-      params.append('active', 'all'); // Show all employees in management directory
+      if (showInactive) {
+        params.append('active', 'all'); // Query all staff when checked
+      }
+      // When showInactive is false, no active param is sent -> backend defaults to active = true
 
       const queryString = params.toString() ? `?${params.toString()}` : '';
       const res = await api('erp6', `/api/employees${queryString}`);
@@ -91,7 +96,7 @@ export default function EmployeesPage() {
     } finally {
       setLoading(false);
     }
-  }, [searchQuery, departmentFilter]);
+  }, [searchQuery, departmentFilter, showInactive]);
 
   // Initial load
   useEffect(() => {
@@ -147,11 +152,45 @@ export default function EmployeesPage() {
   }
 
   /**
+   * Toggle employee active status (Deactivate / Activate).
+   */
+  async function handleToggleActive(emp) {
+    const willDeactivate = emp.active;
+    const confirmPrompt = willDeactivate
+      ? `Deactivate ${emp.name} (${emp.id})? They will disappear from the default active list and from other teams' dropdowns.`
+      : `Reactivate ${emp.name} (${emp.id})?`;
+
+    if (!window.confirm(confirmPrompt)) return;
+
+    try {
+      const endpoint = willDeactivate
+        ? `/api/employees/${emp.id}/deactivate`
+        : `/api/employees/${emp.id}/activate`;
+
+      await api('erp6', endpoint, { method: 'PATCH' });
+      setFeedback(
+        willDeactivate
+          ? `Employee ${emp.id} (${emp.name}) deactivated successfully.`
+          : `Employee ${emp.id} (${emp.name}) activated successfully.`
+      );
+      fetchEmployees();
+    } catch (err) {
+      setError(err.message || 'Failed to update employee status');
+    }
+  }
+
+  /**
    * Submit Add or Edit employee form.
    */
   async function handleSubmit(e) {
     e.preventDefault();
     setFormError('');
+
+    // Rule: manager cannot be the employee themself
+    if (editingEmployee && formData.manager_id && formData.manager_id === editingEmployee.id) {
+      setFormError('Rule violation: An employee cannot be their own manager.');
+      return;
+    }
 
     if (!formData.name.trim()) {
       setFormError('Employee name is required.');
@@ -344,8 +383,21 @@ export default function EmployeesPage() {
           </select>
         </div>
 
+        {/* Show inactive checkbox */}
+        <div style={{ alignSelf: 'flex-end', paddingBottom: '0.5rem' }}>
+          <label style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem', cursor: 'pointer', fontSize: '0.875rem', color: '#475569', userSelect: 'none' }}>
+            <input
+              type="checkbox"
+              checked={showInactive}
+              onChange={(e) => setShowInactive(e.target.checked)}
+              style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+            />
+            <span style={{ fontWeight: 500 }}>Show inactive</span>
+          </label>
+        </div>
+
         {/* Total count badge */}
-        <div style={{ marginLeft: 'auto', alignSelf: 'flex-end', paddingBottom: '0.3rem' }}>
+        <div style={{ marginLeft: 'auto', alignSelf: 'flex-end', paddingBottom: '0.5rem' }}>
           <span style={{ fontSize: '0.875rem', color: '#64748b' }}>
             Showing <strong>{employees.length}</strong> {employees.length === 1 ? 'employee' : 'employees'}
           </span>
@@ -361,7 +413,9 @@ export default function EmployeesPage() {
         <div style={{ padding: '3rem', textAlign: 'center', color: '#64748b', background: '#fff', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
           <p style={{ fontSize: '1.1rem', fontWeight: 600, color: '#334155' }}>No employees found</p>
           <p style={{ fontSize: '0.875rem', marginTop: '0.25rem' }}>
-            Try adjusting your search query or department filter, or click "+ Add Employee" to create one.
+            {showInactive
+              ? 'No employees match your search or department filter.'
+              : 'No active employees match the filter. Try checking "Show inactive" or click "+ Add Employee".'}
           </p>
         </div>
       ) : (
@@ -377,19 +431,28 @@ export default function EmployeesPage() {
                 <th>Manager</th>
                 <th style={{ textAlign: 'right' }}>Base Salary</th>
                 <th style={{ textAlign: 'center' }}>Status</th>
-                <th style={{ textAlign: 'center', width: '90px' }}>Actions</th>
+                <th style={{ textAlign: 'center', width: '170px' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
               {employees.map(emp => (
-                <tr key={emp.id}>
+                <tr key={emp.id} style={{ opacity: emp.active ? 1 : 0.65 }}>
                   <td>
-                    <span style={{ fontFamily: 'monospace', fontWeight: 600, color: '#2563eb' }}>
+                    <Link
+                      to={`/erp6/employees/${emp.id}`}
+                      style={{ fontFamily: 'monospace', fontWeight: 600, color: '#2563eb', textDecoration: 'none' }}
+                      title="View employee profile"
+                    >
                       {emp.id}
-                    </span>
+                    </Link>
                   </td>
                   <td>
-                    <strong style={{ color: '#0f172a' }}>{emp.name}</strong>
+                    <Link
+                      to={`/erp6/employees/${emp.id}`}
+                      style={{ color: '#0f172a', fontWeight: 600, textDecoration: 'none' }}
+                    >
+                      {emp.name}
+                    </Link>
                   </td>
                   <td>
                     <span style={{ color: '#334155', fontWeight: 500 }}>{emp.role_title}</span>
@@ -410,10 +473,13 @@ export default function EmployeesPage() {
                     )}
                   </td>
                   <td>
-                    {emp.manager_name ? (
-                      <span style={{ fontSize: '0.85rem', color: '#334155' }}>
-                        {emp.manager_name}
-                      </span>
+                    {emp.manager_id ? (
+                      <Link
+                        to={`/erp6/employees/${emp.manager_id}`}
+                        style={{ fontSize: '0.85rem', color: '#2563eb', textDecoration: 'none' }}
+                      >
+                        {emp.manager_name || emp.manager_id}
+                      </Link>
                     ) : (
                       <span style={{ color: '#94a3b8', fontSize: '0.85rem' }}>None</span>
                     )}
@@ -429,21 +495,53 @@ export default function EmployeesPage() {
                     )}
                   </td>
                   <td style={{ textAlign: 'center' }}>
-                    <button
-                      type="button"
-                      onClick={() => handleOpenEdit(emp)}
-                      style={{
-                        padding: '0.35rem 0.75rem',
-                        fontSize: '0.8rem',
-                        backgroundColor: '#f1f5f9',
-                        color: '#334155',
-                        border: '1px solid #cbd5e1',
-                        borderRadius: '4px',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      Edit
-                    </button>
+                    <div style={{ display: 'inline-flex', gap: '0.35rem' }}>
+                      <Link
+                        to={`/erp6/employees/${emp.id}`}
+                        style={{
+                          padding: '0.35rem 0.6rem',
+                          fontSize: '0.8rem',
+                          backgroundColor: '#f1f5f9',
+                          color: '#2563eb',
+                          border: '1px solid #cbd5e1',
+                          borderRadius: '4px',
+                          textDecoration: 'none',
+                          fontWeight: 500
+                        }}
+                      >
+                        View
+                      </Link>
+                      <button
+                        type="button"
+                        onClick={() => handleOpenEdit(emp)}
+                        style={{
+                          padding: '0.35rem 0.6rem',
+                          fontSize: '0.8rem',
+                          backgroundColor: '#f1f5f9',
+                          color: '#334155',
+                          border: '1px solid #cbd5e1',
+                          borderRadius: '4px',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleToggleActive(emp)}
+                        style={{
+                          padding: '0.35rem 0.6rem',
+                          fontSize: '0.8rem',
+                          backgroundColor: emp.active ? '#fee2e2' : '#dcfce7',
+                          color: emp.active ? '#b91c1c' : '#15803d',
+                          border: `1px solid ${emp.active ? '#fecaca' : '#bbf7d0'}`,
+                          borderRadius: '4px',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        {emp.active ? 'Deactivate' : 'Activate'}
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -530,7 +628,7 @@ export default function EmployeesPage() {
               <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '0.9rem' }}>
                 <div style={{ flex: 1 }}>
                   <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#475569', marginBottom: '0.25rem' }}>
-                    Email Address *
+                    Email Address * (Rule: Unique)
                   </label>
                   <input
                     type="email"
@@ -624,7 +722,7 @@ export default function EmployeesPage() {
               <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '0.9rem' }}>
                 <div style={{ flex: 1 }}>
                   <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#475569', marginBottom: '0.25rem' }}>
-                    Reporting Manager
+                    Reporting Manager (Rule: Cannot be self)
                   </label>
                   <select
                     value={formData.manager_id}

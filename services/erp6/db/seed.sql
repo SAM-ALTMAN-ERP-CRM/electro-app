@@ -136,5 +136,3 @@ SELECT setval(
     (SELECT COALESCE(MAX(CAST(SUBSTRING(id FROM 4) AS INTEGER)), 0) FROM leave_requests WHERE id LIKE 'LV-%')
   )
 );
-
-
