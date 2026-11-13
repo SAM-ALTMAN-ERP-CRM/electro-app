@@ -1,7 +1,7 @@
 const express = require('express');
 const { requireAuth } = require('../../_shared/auth');
 const { makePool } = require('../../_shared/db');
-const { callService } = require('../../_shared/callService');
+const { createPurchaseOrder } = require('../order-creation');
 
 const router = express.Router();
 const pool = makePool('erp2');
@@ -39,10 +39,9 @@ router.post('/purchase-requests/:id/convert', async (req, res, next) => {
       await client.query('ROLLBACK');
       return res.status(400).json({ error: 'Enter a positive unit cost with at most two decimal places' });
     }
-    const order = await callService('erp2', '/api/purchase-orders', {
-      method: 'POST',
-      body: { supplier_id: supplier_id.trim(), items: [{ sku: request.sku, product_name: request.product_name, quantity: request.quantity, unit_cost: cost }] }
-    });
+    // Create the order and update the request in the same transaction.
+    const order = await createPurchaseOrder(client, supplier_id.trim(), null,
+      [{ sku: request.sku, product_name: request.product_name, quantity: request.quantity, unit_cost: cost }]);
     await client.query("UPDATE purchase_requests SET status = 'converted' WHERE id = $1", [request.id]);
     await client.query('COMMIT');
     return res.status(201).json({ data: order });

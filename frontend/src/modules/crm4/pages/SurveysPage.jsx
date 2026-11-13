@@ -70,10 +70,11 @@ export default function SurveysPage() {
       };
 
       try {
-        await api('crm4', '/api/surveys', {
+        const res = await api('crm4', '/api/surveys', {
           method: 'POST',
           body: newSurvey
         });
+        if (res && res.id) newSurvey.id = res.id;
       } catch {
         // Local state fallback
       }

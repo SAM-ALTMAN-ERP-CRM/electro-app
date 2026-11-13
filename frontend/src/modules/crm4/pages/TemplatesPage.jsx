@@ -155,10 +155,11 @@ export default function TemplatesPage() {
         };
 
         try {
-          await api('crm4', '/api/templates', {
+          const res = await api('crm4', '/api/templates', {
             method: 'POST',
             body: newRecord
           });
+          if (res && res.id) newRecord.id = res.id;
         } catch {
           // Local fallback
         }
