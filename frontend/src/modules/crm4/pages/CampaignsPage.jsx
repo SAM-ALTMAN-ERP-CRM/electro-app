@@ -171,10 +171,11 @@ export default function CampaignsPage() {
         };
 
         try {
-          await api('crm4', '/api/campaigns', {
+          const res = await api('crm4', '/api/campaigns', {
             method: 'POST',
             body: newRecord
           });
+          if (res && res.id) newRecord.id = res.id;
         } catch {
           // Local fallback
         }
