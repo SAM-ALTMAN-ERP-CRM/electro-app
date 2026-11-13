@@ -137,7 +137,7 @@ SELECT setval(
   )
 );
 
--- 6. Salary Slips Seed (Build Issue: [ERP6-C1])
+-- 6. Salary Slips Seed (Build Issues: [ERP6-C1] & [ERP6-C3])
 -- 5 realistic seed rows adhering to shared IDs (EMP-0001 to EMP-0005) for month 2026-11
 INSERT INTO salary_slips (
   id, employee_id, month, base_salary, hra, allowances,

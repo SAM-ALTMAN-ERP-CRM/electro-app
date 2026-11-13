@@ -89,7 +89,7 @@ CREATE INDEX IF NOT EXISTS idx_leave_requests_status ON leave_requests(status);
 CREATE INDEX IF NOT EXISTS idx_leave_requests_from_date ON leave_requests(from_date);
 CREATE INDEX IF NOT EXISTS idx_leave_requests_to_date ON leave_requests(to_date);
 
--- 6. Salary Slips table and sequence (Build Issue: [ERP6-C1])
+-- 6. Salary Slips table and sequence (Build Issues: [ERP6-C1] & [ERP6-C3])
 CREATE SEQUENCE IF NOT EXISTS salary_slip_seq START 1;
 
 CREATE TABLE IF NOT EXISTS salary_slips (
