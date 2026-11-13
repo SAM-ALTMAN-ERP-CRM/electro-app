@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { api } from '../../../api';
 
 // Allowed couriers according to the cross-team contract
@@ -676,7 +677,28 @@ export default function DispatchPage() {
                       </td>
 
                       <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
-                        <div style={{ display: 'inline-flex', gap: '0.5rem', alignItems: 'center' }}>
+                        <div style={{ display: 'inline-flex', gap: '0.4rem', alignItems: 'center' }}>
+                          {/* "Print Dispatch Note" link */}
+                          <Link
+                            to={`/erp4/dispatch/${disp.id}/note`}
+                            style={{
+                              padding: '0.35rem 0.65rem',
+                              fontSize: '0.75rem',
+                              background: '#eff6ff',
+                              color: '#2563eb',
+                              border: '1px solid #bfdbfe',
+                              borderRadius: '4px',
+                              textDecoration: 'none',
+                              fontWeight: 500,
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '0.2rem'
+                            }}
+                            title="View printable dispatch note and delivery challan"
+                          >
+                            📄 Note
+                          </Link>
+
                           {/* "Shipped" button */}
                           <button
                             type="button"

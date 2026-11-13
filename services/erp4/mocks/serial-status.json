@@ -1,0 +1,20 @@
+[
+  {
+    "serial_number": "TV55-2611-0001",
+    "sku": "SKU-0001",
+    "status": "sold",
+    "updated_at": "2026-10-02T10:30:00.000Z"
+  },
+  {
+    "serial_number": "TV55-2611-0002",
+    "sku": "SKU-0001",
+    "status": "sold",
+    "updated_at": "2026-10-02T11:00:00.000Z"
+  },
+  {
+    "serial_number": "TV55-2611-0003",
+    "sku": "SKU-0001",
+    "status": "sold",
+    "updated_at": "2026-10-02T11:30:00.000Z"
+  }
+]

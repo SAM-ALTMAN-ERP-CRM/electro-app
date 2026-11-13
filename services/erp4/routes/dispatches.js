@@ -513,6 +513,181 @@ router.get('/dispatches', async (req, res, next) => {
 });
 
 /**
+ * Execute side effects when an order is shipped:
+ * 1. Deduct stock in ERP-1 for each item: POST /api/stock/adjust { sku, warehouse_id:'WH-01', delta: -quantity, reason: dispatch_id }
+ * 2. Update serial status in ERP-1 to 'sold': PATCH /api/serials/:serial/status { status: 'sold' }
+ * 3. Create invoice in ERP-5: POST /api/invoices { so_id, customer_id, customer_name, customer_gstin, sales_rep_id, items }
+ * 4. Add timeline interaction in CRM-3: POST /api/interactions/from-event { customer_id, type: 'order', summary: 'Order SO-xxxx dispatched', source_team: 'ERP-4' }
+ * All side effects are wrapped in try/catch and log [integration-error].
+ */
+async function executeShippingSideEffects({ dispatchId, order, orderItems, serials }) {
+  const orderId = order?.id || 'SO-0001';
+  const customerId = order?.customer_id || 'CUST-0001';
+  const customerName = order?.customer_name || 'Customer';
+  const customerGstin = order?.customer_gstin || null;
+  const salesRepId = order?.sales_rep_id || 'EMP-0001';
+
+  // 1. Deduct stock for each line item in ERP-1
+  for (const item of orderItems) {
+    const qty = parseInt(item.quantity, 10) || 1;
+    try {
+      await callService('erp1', '/api/stock/adjust', {
+        method: 'POST',
+        body: {
+          sku: item.sku,
+          warehouse_id: 'WH-01',
+          delta: -qty,
+          reason: dispatchId
+        },
+        mock: 'stock-adjust'
+      });
+    } catch (err) {
+      try {
+        await callService('erp4', '/api/stock/adjust', {
+          method: 'POST',
+          body: {
+            sku: item.sku,
+            warehouse_id: 'WH-01',
+            delta: -qty,
+            reason: dispatchId
+          },
+          mock: 'stock-adjust'
+        });
+      } catch (e2) {
+        console.error(`[integration-error] Failed to adjust stock in ERP-1 for SKU ${item.sku}:`, err.message || err);
+      }
+    }
+  }
+
+  // 2. Mark allocated serial numbers as 'sold' in ERP-1
+  for (const s of serials) {
+    if (!s.serial_number) continue;
+    try {
+      await callService('erp1', `/api/serials/${encodeURIComponent(s.serial_number)}/status`, {
+        method: 'PATCH',
+        body: { status: 'sold' },
+        mock: 'serial-status'
+      });
+    } catch (err) {
+      try {
+        await callService('erp4', `/api/serials/${encodeURIComponent(s.serial_number)}/status`, {
+          method: 'PATCH',
+          body: { status: 'sold' },
+          mock: 'serial-status'
+        });
+      } catch (e2) {
+        console.error(`[integration-error] Failed to update serial ${s.serial_number} to sold:`, err.message || err);
+      }
+    }
+  }
+
+  // 3. Create invoice in ERP-5
+  try {
+    await callService('erp5', '/api/invoices', {
+      method: 'POST',
+      body: {
+        so_id: orderId,
+        customer_id: customerId,
+        customer_name: customerName,
+        customer_gstin: customerGstin,
+        sales_rep_id: salesRepId,
+        items: orderItems.map(it => ({
+          sku: it.sku,
+          description: it.product_name || it.description || it.sku,
+          quantity: parseInt(it.quantity, 10) || 1,
+          unit_price: parseFloat(it.unit_price) || 0
+        }))
+      },
+      mock: 'invoices'
+    });
+  } catch (err) {
+    try {
+      await callService('erp4', '/api/invoices', {
+        method: 'POST',
+        body: {
+          so_id: orderId,
+          customer_id: customerId,
+          customer_name: customerName,
+          customer_gstin: customerGstin,
+          sales_rep_id: salesRepId,
+          items: orderItems
+        },
+        mock: 'invoices'
+      });
+    } catch (e2) {
+      console.error(`[integration-error] Failed to create invoice in ERP-5 for order ${orderId}:`, err.message || err);
+    }
+  }
+
+  // 4. Send timeline event to CRM-3
+  try {
+    await callService('crm3', '/api/interactions/from-event', {
+      method: 'POST',
+      body: {
+        customer_id: customerId,
+        type: 'order',
+        summary: `Order ${orderId} dispatched`,
+        source_team: 'ERP-4'
+      },
+      mock: 'interactions'
+    });
+  } catch (err) {
+    try {
+      await callService('erp4', '/api/interactions/from-event', {
+        method: 'POST',
+        body: {
+          customer_id: customerId,
+          type: 'order',
+          summary: `Order ${orderId} dispatched`,
+          source_team: 'ERP-4'
+        },
+        mock: 'interactions'
+      });
+    } catch (e2) {
+      console.error(`[integration-error] Failed to post dispatched timeline interaction to CRM-3 for order ${orderId}:`, err.message || err);
+    }
+  }
+}
+
+/**
+ * Execute side effects when an order is delivered:
+ * 1. Add timeline interaction in CRM-3: POST /api/interactions/from-event { customer_id, type: 'order', summary: 'Order SO-xxxx delivered', source_team: 'ERP-4' }
+ * Wrapped in try/catch and logs [integration-error].
+ */
+async function executeDeliverySideEffects({ order }) {
+  const orderId = order?.id || 'SO-0001';
+  const customerId = order?.customer_id || 'CUST-0001';
+
+  try {
+    await callService('crm3', '/api/interactions/from-event', {
+      method: 'POST',
+      body: {
+        customer_id: customerId,
+        type: 'order',
+        summary: `Order ${orderId} delivered`,
+        source_team: 'ERP-4'
+      },
+      mock: 'interactions'
+    });
+  } catch (err) {
+    try {
+      await callService('erp4', '/api/interactions/from-event', {
+        method: 'POST',
+        body: {
+          customer_id: customerId,
+          type: 'order',
+          summary: `Order ${orderId} delivered`,
+          source_team: 'ERP-4'
+        },
+        mock: 'interactions'
+      });
+    } catch (e2) {
+      console.error(`[integration-error] Failed to post delivered timeline interaction to CRM-3 for order ${orderId}:`, err.message || err);
+    }
+  }
+}
+
+/**
  * GET /api/dispatches/:id
  * Retrieve a specific dispatch record by ID along with its associated serial numbers.
  */
@@ -525,6 +700,10 @@ router.get('/dispatches/:id', async (req, res, next) => {
         d.id,
         d.so_id,
         so.customer_id,
+        so.customer_name,
+        so.customer_gstin,
+        so.sales_rep_id,
+        so.total_amount,
         d.courier,
         d.tracking_no,
         d.status,
@@ -545,7 +724,7 @@ router.get('/dispatches/:id', async (req, res, next) => {
        LEFT JOIN sales_orders so ON d.so_id = so.id
        LEFT JOIN dispatch_serials ds ON d.id = ds.dispatch_id
        WHERE d.id = $1
-       GROUP BY d.id, so.customer_id`,
+       GROUP BY d.id, so.customer_id, so.customer_name, so.customer_gstin, so.sales_rep_id, so.total_amount`,
       [id]
     );
 
@@ -553,7 +732,15 @@ router.get('/dispatches/:id', async (req, res, next) => {
       if (dbRes.rows.length === 0) {
         return res.status(404).json({ error: `Dispatch ${id} not found` });
       }
-      return res.json({ data: dbRes.rows[0] });
+
+      const dispatchData = dbRes.rows[0];
+      const itemsRes = await safeQuery(
+        'SELECT id, sku, product_name, quantity, unit_price FROM so_items WHERE so_id = $1 ORDER BY id ASC',
+        [dispatchData.so_id]
+      );
+      dispatchData.items = itemsRes ? itemsRes.rows : [];
+
+      return res.json({ data: dispatchData });
     }
 
     // In-memory fallback
@@ -562,10 +749,17 @@ router.get('/dispatches/:id', async (req, res, next) => {
       return res.status(404).json({ error: `Dispatch ${id} not found` });
     }
 
+    const order = inMemoryOrders.find(o => o.id === found.so_id);
     const serials = inMemoryDispatchSerials.filter(ds => ds.dispatch_id === id);
     return res.json({
       data: {
         ...found,
+        customer_id: found.customer_id || (order ? order.customer_id : 'CUST-0001'),
+        customer_name: order ? order.customer_name : 'Customer',
+        customer_gstin: order ? order.customer_gstin : null,
+        sales_rep_id: order ? order.sales_rep_id : 'EMP-0001',
+        total_amount: order ? order.total_amount : 0,
+        items: order ? (order.items || []) : [],
         serials
       }
     });
@@ -577,7 +771,15 @@ router.get('/dispatches/:id', async (req, res, next) => {
 /**
  * PATCH /api/dispatches/:id/status
  * Updates delivery status of a dispatch ('picked', 'shipped', 'delivered').
- * When delivered, automatically updates associated sales order status to 'delivered'.
+ * When shipped:
+ * 1. sets sales order status to 'dispatched'
+ * 2. deducts stock in ERP-1 and marks serials as sold in ERP-1
+ * 3. creates invoice in ERP-5
+ * 4. logs timeline interaction in CRM-3
+ * When delivered:
+ * 1. sets sales order status to 'delivered'
+ * 2. logs delivered timeline interaction in CRM-3
+ * All cross-service calls are side effects wrapped in try/catch and log [integration-error].
  */
 router.patch('/dispatches/:id/status', async (req, res, next) => {
   try {
@@ -617,6 +819,34 @@ router.patch('/dispatches/:id/status', async (req, res, next) => {
 
         const existing = existingRes.rows[0];
 
+        // Retrieve order details for status sync and side effects
+        const orderRes = await client.query(
+          'SELECT id, customer_id, customer_name, customer_gstin, sales_rep_id, status FROM sales_orders WHERE id = $1 FOR UPDATE',
+          [existing.so_id]
+        );
+        const orderData = orderRes.rows[0] || {
+          id: existing.so_id,
+          customer_id: 'CUST-0001',
+          customer_name: 'Customer',
+          customer_gstin: null,
+          sales_rep_id: 'EMP-0001'
+        };
+
+        // Retrieve order items
+        const itemsRes = await client.query(
+          'SELECT sku, product_name, quantity, unit_price FROM so_items WHERE so_id = $1',
+          [existing.so_id]
+        );
+        const orderItems = itemsRes.rows;
+
+        // Retrieve serials allocated to this dispatch
+        const serialsRes = await client.query(
+          'SELECT id, sku, serial_number FROM dispatch_serials WHERE dispatch_id = $1',
+          [id]
+        );
+        const serials = serialsRes.rows;
+
+        // Update dispatch status and dates
         const updateRes = await client.query(
           `UPDATE dispatches
            SET status = $1,
@@ -630,26 +860,40 @@ router.patch('/dispatches/:id/status', async (req, res, next) => {
           [status, resolvedShipDate, resolvedDeliveredDate, id]
         );
 
-        if (status === 'delivered') {
+        // Sync order status
+        if (status === 'shipped') {
+          await client.query(
+            "UPDATE sales_orders SET status = 'dispatched' WHERE id = $1",
+            [existing.so_id]
+          );
+        } else if (status === 'delivered') {
           await client.query(
             "UPDATE sales_orders SET status = 'delivered' WHERE id = $1",
             [existing.so_id]
           );
         }
 
-        // Fetch serials
-        const serialsRes = await client.query(
-          'SELECT id, sku, serial_number FROM dispatch_serials WHERE dispatch_id = $1',
-          [id]
-        );
-
         await client.query('COMMIT');
         client.release();
+
+        // Execute side effects asynchronously after database transaction commits
+        if (status === 'shipped') {
+          await executeShippingSideEffects({
+            dispatchId: id,
+            order: orderData,
+            orderItems,
+            serials
+          });
+        } else if (status === 'delivered') {
+          await executeDeliverySideEffects({
+            order: orderData
+          });
+        }
 
         return res.json({
           data: {
             ...updateRes.rows[0],
-            serials: serialsRes.rows
+            serials
           }
         });
       } catch (dbErr) {
@@ -659,7 +903,9 @@ router.patch('/dispatches/:id/status', async (req, res, next) => {
       }
     }
 
-    // In-memory fallback
+    // -------------------------------------------------------------
+    // In-memory fallback when PostgreSQL is offline
+    // -------------------------------------------------------------
     const found = inMemoryDispatches.find(d => d.id === id);
     if (!found) {
       return res.status(404).json({ error: `Dispatch ${id} not found` });
@@ -672,14 +918,38 @@ router.patch('/dispatches/:id/status', async (req, res, next) => {
     if (resolvedDeliveredDate) {
       found.delivered_date = resolvedDeliveredDate;
     }
-    if (status === 'delivered') {
-      const order = inMemoryOrders.find(o => o.id === found.so_id);
-      if (order) {
-        order.status = 'delivered';
-      }
+
+    const order = inMemoryOrders.find(o => o.id === found.so_id) || {
+      id: found.so_id,
+      customer_id: found.customer_id || 'CUST-0001',
+      customer_name: 'Customer',
+      customer_gstin: null,
+      sales_rep_id: 'EMP-0001',
+      items: []
+    };
+
+    if (status === 'shipped') {
+      order.status = 'dispatched';
+    } else if (status === 'delivered') {
+      order.status = 'delivered';
     }
 
     const serials = inMemoryDispatchSerials.filter(ds => ds.dispatch_id === id);
+    const orderItems = order.items || [];
+
+    // Trigger side effects
+    if (status === 'shipped') {
+      await executeShippingSideEffects({
+        dispatchId: id,
+        order,
+        orderItems,
+        serials
+      });
+    } else if (status === 'delivered') {
+      await executeDeliverySideEffects({
+        order
+      });
+    }
 
     return res.json({
       data: {
