@@ -81,10 +81,11 @@ export default function AudiencesPage() {
       };
 
       try {
-        await api('crm4', '/api/audiences', {
+        const res = await api('crm4', '/api/audiences', {
           method: 'POST',
           body: newAudience
         });
+        if (res && res.id) newAudience.id = res.id;
       } catch {
         // Local state fallback
       }

@@ -223,10 +223,11 @@ export default function AudienceDetailPage() {
       };
 
       try {
-        await api('crm4', `/api/audiences/${audienceId}/members`, {
+        const res = await api('crm4', `/api/audiences/${audienceId}/members`, {
           method: 'POST',
           body: newMember
         });
+        if (res && res.id) newMember.id = res.id;
       } catch {
         // Local state update
       }
