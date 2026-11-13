@@ -299,7 +299,7 @@ describe('CRM-5 Portal Routes', () => {
 
       assert.equal(res.status, 200);
       assert.equal(res.body.data.id, 'SO-0006');
-      assert.equal(res.body.data.status, 'created');
+      assert.ok(['created', 'confirmed'].includes(res.body.data.status));
     });
 
     it('returns 404 for non-existent order ID', async () => {

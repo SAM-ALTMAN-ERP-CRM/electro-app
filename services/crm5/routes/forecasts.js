@@ -65,6 +65,15 @@ function loadMockOpportunities() {
   return [];
 }
 
+// Helper: format forecast row with numeric target_amount
+function formatForecast(row) {
+  if (!row) return null;
+  return {
+    ...row,
+    target_amount: Number(row.target_amount)
+  };
+}
+
 // Protect all routes with requireAuth
 router.use(requireAuth);
 
@@ -79,8 +88,11 @@ async function getWeightedPipeline(req, res) {
     try {
       opportunities = await callService('crm1', '/api/opportunities', { mock: 'opportunities' });
     } catch (err) {
-      console.warn('[crm5] callService CRM-1 opportunities fallback:', err.message);
-      opportunities = loadMockOpportunities();
+      try {
+        opportunities = await callService('crm5', '/api/forecast/opportunities', { mock: 'opportunities' });
+      } catch (mockErr) {
+        opportunities = loadMockOpportunities();
+      }
     }
 
     const oppsList = Array.isArray(opportunities) && opportunities.length > 0
@@ -109,7 +121,7 @@ async function getWeightedPipeline(req, res) {
       return {
         stage,
         label: stage.charAt(0).toUpperCase() + stage.slice(1),
-        probability: prob * 100,
+        probability: Math.round(prob * 100),
         count: stageOpps.length,
         total_expected_value: Number(stageTotal.toFixed(2)),
         weighted_value: Number(stageWeighted.toFixed(2))
@@ -156,35 +168,75 @@ router.get('/forecast/weighted', getWeightedPipeline);
 router.get('/forecasts/weighted', getWeightedPipeline);
 
 /**
- * GET /api/forecasts
+ * GET /api/forecasts & /api/forecast
  * Returns all saved monthly forecast targets.
  */
-router.get('/forecasts', async (req, res) => {
+async function listForecasts(req, res) {
   try {
     if (pool) {
       try {
         const result = await pool.query('SELECT id, month, target_amount, notes, created_at FROM forecasts ORDER BY month DESC');
-        return res.json({ data: result.rows });
+        return res.json({ data: result.rows.map(formatForecast) });
       } catch (dbErr) {
         console.warn('[crm5] Database query error on forecasts, using memory fallback:', dbErr.message);
       }
     }
-    return res.json({ data: [...inMemoryForecasts].sort((a, b) => b.month.localeCompare(a.month)) });
+    const sorted = [...inMemoryForecasts].sort((a, b) => b.month.localeCompare(a.month));
+    return res.json({ data: sorted.map(formatForecast) });
   } catch (error) {
     console.error('[crm5] Error retrieving forecasts:', error.message);
     return res.status(500).json({ error: 'Failed to retrieve forecasts' });
   }
-});
+}
+
+router.get('/forecasts', listForecasts);
+router.get('/forecast', listForecasts);
 
 /**
- * POST /api/forecasts
+ * GET /api/forecasts/:id & /api/forecast/:id
+ * Retrieves a single forecast target by ID or month.
+ */
+async function getForecastById(req, res, next) {
+  try {
+    const { id } = req.params;
+    if (id === 'trend' || id === 'weighted') {
+      return next ? next() : res.status(404).json({ error: `Not handled here` });
+    }
+    if (pool) {
+      try {
+        const query = 'SELECT id, month, target_amount, notes, created_at FROM forecasts WHERE id = $1 OR month = $1';
+        const result = await pool.query(query, [id]);
+        if (result.rows.length > 0) {
+          return res.json({ data: formatForecast(result.rows[0]) });
+        }
+      } catch (dbErr) {
+        console.warn('[crm5] DB query error for forecast id, using memory fallback:', dbErr.message);
+      }
+    }
+
+    const match = inMemoryForecasts.find(f => f.id === id || f.month === id);
+    if (!match) {
+      return res.status(404).json({ error: `Forecast '${id}' not found` });
+    }
+    return res.json({ data: formatForecast(match) });
+  } catch (error) {
+    console.error('[crm5] Error retrieving forecast by id:', error.message);
+    return res.status(500).json({ error: 'Failed to retrieve forecast' });
+  }
+}
+
+router.get('/forecasts/:id', getForecastById);
+router.get('/forecast/:id', getForecastById);
+
+/**
+ * POST /api/forecasts & /api/forecast
  * Creates a new target or updates an existing month's target.
  */
-router.post('/forecasts', async (req, res) => {
+async function createOrUpdateForecast(req, res) {
   try {
     const { month, target_amount, notes } = req.body;
 
-    if (!month || !/^\d{4}-\d{2}$/.test(month)) {
+    if (!month || !/^\d{4}-(0[1-9]|1[0-2])$/.test(month)) {
       return res.status(400).json({ error: 'Valid month in YYYY-MM format is required' });
     }
 
@@ -204,7 +256,7 @@ router.post('/forecasts', async (req, res) => {
           RETURNING id, month, target_amount, notes, created_at
         `;
         const result = await pool.query(query, [month, amountNum, notes || '']);
-        return res.status(201).json({ data: result.rows[0] });
+        return res.status(201).json({ data: formatForecast(result.rows[0]) });
       } catch (dbErr) {
         console.warn('[crm5] Database insert error, using memory fallback:', dbErr.message);
       }
@@ -231,18 +283,21 @@ router.post('/forecasts', async (req, res) => {
       inMemoryForecasts.unshift(record);
     }
 
-    return res.status(201).json({ data: record });
+    return res.status(201).json({ data: formatForecast(record) });
   } catch (error) {
     console.error('[crm5] Error saving forecast:', error.message);
     return res.status(500).json({ error: 'Failed to save forecast target' });
   }
-});
+}
+
+router.post('/forecasts', createOrUpdateForecast);
+router.post('/forecast', createOrUpdateForecast);
 
 /**
- * PUT /api/forecasts/:id
- * Updates an existing forecast target by ID.
+ * PUT /api/forecasts/:id & /api/forecast/:id
+ * Updates an existing forecast target by ID or month.
  */
-router.put('/forecasts/:id', async (req, res) => {
+async function updateForecast(req, res) {
   try {
     const { id } = req.params;
     const { target_amount, notes } = req.body;
@@ -257,64 +312,71 @@ router.put('/forecasts/:id', async (req, res) => {
         const query = `
           UPDATE forecasts
           SET target_amount = $1, notes = $2
-          WHERE id = $3
+          WHERE id = $3 OR month = $3
           RETURNING id, month, target_amount, notes, created_at
         `;
         const result = await pool.query(query, [amountNum, notes || '', id]);
         if (result.rows.length === 0) {
           return res.status(404).json({ error: `Forecast '${id}' not found` });
         }
-        return res.json({ data: result.rows[0] });
+        return res.json({ data: formatForecast(result.rows[0]) });
       } catch (dbErr) {
         console.warn('[crm5] DB update error, using memory fallback:', dbErr.message);
       }
     }
 
-    const match = inMemoryForecasts.find(f => f.id === id);
+    const match = inMemoryForecasts.find(f => f.id === id || f.month === id);
     if (!match) {
       return res.status(404).json({ error: `Forecast '${id}' not found` });
     }
     match.target_amount = amountNum;
     if (notes !== undefined) match.notes = notes;
 
-    return res.json({ data: match });
+    return res.json({ data: formatForecast(match) });
   } catch (error) {
     console.error('[crm5] Error updating forecast:', error.message);
     return res.status(500).json({ error: 'Failed to update forecast' });
   }
-});
+}
+
+router.put('/forecasts/:id', updateForecast);
+router.put('/forecast/:id', updateForecast);
 
 /**
- * DELETE /api/forecasts/:id
- * Deletes a forecast target.
+ * DELETE /api/forecasts/:id & /api/forecast/:id
+ * Deletes a forecast target by ID or month.
  */
-router.delete('/forecasts/:id', async (req, res) => {
+async function deleteForecast(req, res) {
   try {
     const { id } = req.params;
 
     if (pool) {
       try {
-        const result = await pool.query('DELETE FROM forecasts WHERE id = $1 RETURNING id', [id]);
+        const result = await pool.query('DELETE FROM forecasts WHERE id = $1 OR month = $1 RETURNING id', [id]);
         if (result.rows.length === 0) {
           return res.status(404).json({ error: `Forecast '${id}' not found` });
         }
-        return res.json({ data: { message: `Forecast '${id}' deleted successfully` } });
+        return res.json({ data: { message: `Forecast '${id}' deleted successfully`, id: result.rows[0].id } });
       } catch (dbErr) {
         console.warn('[crm5] DB delete error, using memory fallback:', dbErr.message);
       }
     }
 
-    const idx = inMemoryForecasts.findIndex(f => f.id === id);
+    const idx = inMemoryForecasts.findIndex(f => f.id === id || f.month === id);
     if (idx === -1) {
       return res.status(404).json({ error: `Forecast '${id}' not found` });
     }
+    const deletedId = inMemoryForecasts[idx].id;
     inMemoryForecasts.splice(idx, 1);
-    return res.json({ data: { message: `Forecast '${id}' deleted successfully` } });
+    return res.json({ data: { message: `Forecast '${id}' deleted successfully`, id: deletedId } });
   } catch (error) {
     console.error('[crm5] Error deleting forecast:', error.message);
     return res.status(500).json({ error: 'Failed to delete forecast' });
   }
-});
+}
+
+router.delete('/forecasts/:id', deleteForecast);
+router.delete('/forecast/:id', deleteForecast);
 
 const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
