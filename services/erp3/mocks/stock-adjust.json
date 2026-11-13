@@ -1,0 +1,8 @@
+{
+  "success": true,
+  "sku": "SKU-0101",
+  "warehouse_id": "WH-01",
+  "delta": -10,
+  "new_stock": 90,
+  "reason": "WO-0001"
+}

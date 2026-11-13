@@ -40,6 +40,44 @@ CREATE TABLE IF NOT EXISTS reservations (
   CONSTRAINT uq_reservations_so_sku UNIQUE (so_id, sku)
 );
 
+-- Sequence for Dispatch IDs (DSP-0001, DSP-0002, ...)
+CREATE SEQUENCE IF NOT EXISTS dsp_id_seq START WITH 1;
+
+-- Table: dispatches
+CREATE TABLE IF NOT EXISTS dispatches (
+  id VARCHAR(20) PRIMARY KEY DEFAULT ('DSP-' || LPAD(nextval('dsp_id_seq')::TEXT, 4, '0')),
+  so_id VARCHAR(20) NOT NULL REFERENCES sales_orders(id) ON DELETE CASCADE,
+  courier VARCHAR(50) NOT NULL CHECK (courier IN ('BlueDart', 'Delhivery', 'DTDC')),
+  tracking_no VARCHAR(100) NOT NULL,
+  status VARCHAR(20) NOT NULL DEFAULT 'picked' CHECK (status IN ('picked', 'shipped', 'delivered')),
+  ship_date DATE,
+  delivered_date DATE,
+  address TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Table: dispatch_serials (Serialized items in each dispatch consignment)
+CREATE TABLE IF NOT EXISTS dispatch_serials (
+  id SERIAL PRIMARY KEY,
+  dispatch_id VARCHAR(20) NOT NULL REFERENCES dispatches(id) ON DELETE CASCADE,
+  sku VARCHAR(30) NOT NULL,
+  serial_number VARCHAR(50) NOT NULL
+);
+
+-- Table: returns (Customer return receipts & RMA processing)
+CREATE SEQUENCE IF NOT EXISTS ret_id_seq START WITH 5 INCREMENT BY 1;
+
+CREATE TABLE IF NOT EXISTS returns (
+  id VARCHAR(20) PRIMARY KEY DEFAULT ('RET-' || LPAD(NEXTVAL('ret_id_seq')::TEXT, 4, '0')),
+  so_id VARCHAR(20) NOT NULL REFERENCES sales_orders(id),
+  serial_number VARCHAR(50) NOT NULL,
+  reason TEXT NOT NULL,
+  rma_id VARCHAR(50) UNIQUE,
+  outcome VARCHAR(50),
+  status VARCHAR(20) NOT NULL DEFAULT 'requested' CHECK (status IN ('requested', 'received', 'restocked', 'scrapped')),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Indexes for performance and query filtering
 CREATE INDEX IF NOT EXISTS idx_sales_orders_customer ON sales_orders(customer_id);
 CREATE INDEX IF NOT EXISTS idx_sales_orders_status ON sales_orders(status);
@@ -48,3 +86,12 @@ CREATE INDEX IF NOT EXISTS idx_so_items_so_id ON so_items(so_id);
 CREATE INDEX IF NOT EXISTS idx_reservations_so_id ON reservations(so_id);
 CREATE INDEX IF NOT EXISTS idx_reservations_sku ON reservations(sku);
 CREATE INDEX IF NOT EXISTS idx_reservations_status ON reservations(status);
+CREATE INDEX IF NOT EXISTS idx_dispatches_so_id ON dispatches(so_id);
+CREATE INDEX IF NOT EXISTS idx_dispatches_status ON dispatches(status);
+CREATE INDEX IF NOT EXISTS idx_dispatch_serials_dispatch_id ON dispatch_serials(dispatch_id);
+CREATE INDEX IF NOT EXISTS idx_dispatch_serials_serial ON dispatch_serials(serial_number);
+CREATE INDEX IF NOT EXISTS idx_returns_so_id ON returns(so_id);
+CREATE INDEX IF NOT EXISTS idx_returns_serial ON returns(serial_number);
+CREATE INDEX IF NOT EXISTS idx_returns_rma_id ON returns(rma_id);
+CREATE INDEX IF NOT EXISTS idx_returns_status ON returns(status);
+

@@ -1,0 +1,37 @@
+[
+  {
+    "dispatch_id": "DSP-0001",
+    "serial_number": "TV55-2611-0001",
+    "sku": "SKU-0001",
+    "customer_id": "CUST-0001",
+    "ship_date": "2026-08-12"
+  },
+  {
+    "dispatch_id": "DSP-0002",
+    "serial_number": "TV55-2611-0002",
+    "sku": "SKU-0001",
+    "customer_id": "CUST-0002",
+    "ship_date": "2026-08-12"
+  },
+  {
+    "dispatch_id": "DSP-0003",
+    "serial_number": "TV55-2611-0003",
+    "sku": "SKU-0001",
+    "customer_id": "CUST-0003",
+    "ship_date": "2026-08-12"
+  },
+  {
+    "dispatch_id": "DSP-0006",
+    "serial_number": "TV55-2611-0006",
+    "sku": "SKU-0001",
+    "customer_id": "CUST-0006",
+    "ship_date": "2026-11-06"
+  },
+  {
+    "dispatch_id": "DSP-0007",
+    "serial_number": "TV55-2611-0007",
+    "sku": "SKU-0001",
+    "customer_id": "CUST-0007",
+    "ship_date": "2026-11-08"
+  }
+]

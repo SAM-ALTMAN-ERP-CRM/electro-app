@@ -1,0 +1,794 @@
+{
+  "info": {
+    "name": "CRM-3 Customer 360 API Collection",
+    "description": "Complete Postman testing suite for CRM-3 microservice endpoints (Port 5103) covering customer master directory, contacts, timeline interactions, dynamic segments, duplicate merges, CSV onboarding, and Section 7 cross-team verification.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:5103",
+      "type": "string"
+    },
+    {
+      "key": "jwt_token",
+      "value": "mock_jwt_token_crm3_admin",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. System & Health",
+      "item": [
+        {
+          "name": "Service Health Check",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/health"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test(\"Service name matches CRM3\", function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.status).to.eql(\"ok\");",
+                  "    pm.expect(json.team).to.eql(\"crm3\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "2. Customers & Contacts (CRM3-A1, A3)",
+      "item": [
+        {
+          "name": "List All Customers",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "url": "{{base_url}}/api/customers"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test(\"Returns array of customer objects\", function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.data).to.be.an(\"array\");",
+                  "    pm.expect(json.data.length).to.be.at.least(1);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Filter Customers by Type and Query",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/customers?type=corporate&q=Sunrise",
+              "host": ["{{base_url}}"],
+              "path": ["api", "customers"],
+              "query": [
+                { "key": "type", "value": "corporate" },
+                { "key": "q", "value": "Sunrise" }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test(\"Filtered results match corporate type\", function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.data.every(c => c.type === 'corporate')).to.be.true;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Customer by ID (CUST-0002)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "url": "{{base_url}}/api/customers/CUST-0002"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test(\"Returns valid customer details with GSTIN\", function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.data.id).to.eql(\"CUST-0002\");",
+                  "    pm.expect(json.data.gstin).to.eql(\"27AABCS1234F1Z5\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create Valid Corporate Customer",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Nexus Global Infotech\",\n  \"type\": \"corporate\",\n  \"email\": \"procurement@nexusglobal.com\",\n  \"phone\": \"9820055555\",\n  \"gstin\": \"27AABCN5555M1Z9\",\n  \"billing_address\": \"1001 Infinity Tower, Mindspace\",\n  \"shipping_address\": \"1001 Infinity Tower, Mindspace\",\n  \"city\": \"Mumbai\"\n}"
+            },
+            "url": "{{base_url}}/api/customers"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "pm.test(\"Returns created customer ID\", function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.data.id).to.match(/^CUST-/);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Validation Failure - Missing GSTIN for Corporate",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Alpha Corporate Without GSTIN\",\n  \"type\": \"corporate\",\n  \"email\": \"alpha@corp.com\",\n  \"phone\": \"9820066666\",\n  \"city\": \"Delhi\"\n}"
+            },
+            "url": "{{base_url}}/api/customers"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 400\", function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "pm.test(\"Returns descriptive GSTIN error message\", function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.error).to.include(\"GSTIN\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Validation Failure - Duplicate Email (409 Conflict)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Duplicate Aarav Attempt\",\n  \"type\": \"retail\",\n  \"email\": \"aarav.mehta@example.com\",\n  \"phone\": \"9899999999\",\n  \"city\": \"Mumbai\"\n}"
+            },
+            "url": "{{base_url}}/api/customers"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 409\", function () {",
+                  "    pm.response.to.have.status(409);",
+                  "});",
+                  "pm.test(\"Returns duplicate email error message\", function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.error).to.include(\"already exists\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "List Customer Contacts (CUST-0001)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "url": "{{base_url}}/api/customers/CUST-0001/contacts"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test(\"Returns contacts array\", function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.data).to.be.an(\"array\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Add Customer Contact",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Ravi Sharma\",\n  \"phone\": \"9820011122\",\n  \"email\": \"ravi.sharma@example.com\",\n  \"designation\": \"Alternate Contact\"\n}"
+            },
+            "url": "{{base_url}}/api/customers/CUST-0001/contacts"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "pm.test(\"Contact created with CON- ID\", function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.data.id).to.match(/^CON-/);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "3. Interactions & Timeline (CRM3-B1, B3)",
+      "item": [
+        {
+          "name": "Get Customer Interactions Timeline",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "url": "{{base_url}}/api/customers/CUST-0001/interactions"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test(\"Interactions are sorted newest first\", function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.data).to.be.an(\"array\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create Manual Note/Interaction",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customer_id\": \"CUST-0001\",\n  \"type\": \"note\",\n  \"summary\": \"Customer called to inquire about festive warranty extension policy.\",\n  \"source_team\": \"crm3\"\n}"
+            },
+            "url": "{{base_url}}/api/interactions"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "pm.test(\"Interaction generated with INT- ID\", function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.data.id).to.match(/^INT-/);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cross-Team Ingestion - Event from ERP-4",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customer_id\": \"CUST-0001\",\n  \"type\": \"order\",\n  \"summary\": \"Order SO-0001 dispatched via BlueDart\",\n  \"source_team\": \"erp4\"\n}"
+            },
+            "url": "{{base_url}}/api/interactions/from-event"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "pm.test(\"Event recorded with source attribution\", function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.data.source_team).to.eql(\"erp4\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Duplicate Event Suppression Check",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customer_id\": \"CUST-0001\",\n  \"type\": \"order\",\n  \"summary\": \"Order SO-0001 dispatched via BlueDart\",\n  \"source_team\": \"erp4\"\n}"
+            },
+            "url": "{{base_url}}/api/interactions/from-event"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "pm.test(\"Duplicate handled gracefully\", function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.data).to.be.an(\"object\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "4. Segments & Targeting (CRM3-C1, C3)",
+      "item": [
+        {
+          "name": "List All Segments",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "url": "{{base_url}}/api/segments"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test(\"Returns seed segments\", function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.data).to.be.an(\"array\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Segment Matched Customers (Corporate in Mumbai)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "url": "{{base_url}}/api/segments/SEG-0001/customers"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test(\"Evaluates criteria correctly (matches CUST-0002)\", function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.data.length).to.eql(1);",
+                  "    pm.expect(json.data[0].id).to.eql(\"CUST-0002\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Export Segment Customers as CSV",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "url": "{{base_url}}/api/segments/SEG-0001/export.csv"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test(\"Response has CSV content type\", function () {",
+                  "    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"text/csv\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Add Customer Tag (VIP)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tag\": \"VIP\"\n}"
+            },
+            "url": "{{base_url}}/api/customers/CUST-0001/tags"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "pm.test(\"Returns updated tags array containing VIP\", function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.data).to.include(\"VIP\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "5. Duplicates, Merge & Import (CRM3-D1, D3)",
+      "item": [
+        {
+          "name": "Detect Duplicate Customer Clusters",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "url": "{{base_url}}/api/customers/duplicates"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test(\"Detects duplicate clusters\", function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.data).to.be.an(\"array\");",
+                  "    pm.expect(json.data.length).to.be.at.least(2);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Execute Atomic Merge Transaction",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"keep_id\": \"CUST-0001\",\n  \"remove_id\": \"CUST-0009\"\n}"
+            },
+            "url": "{{base_url}}/api/customers/merge"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test(\"Merge reports moved contacts and removed customer\", function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.data.keep_id).to.eql(\"CUST-0001\");",
+                  "    pm.expect(json.data.remove_id).to.eql(\"CUST-0009\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Bulk Customer Import (Valid + Invalid Rows)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customers\": [\n    {\n      \"name\": \"Apex Appliances\",\n      \"type\": \"dealer\",\n      \"email\": \"contact@apex.com\",\n      \"phone\": \"9820088888\",\n      \"gstin\": \"27AABCA8888F1Z4\",\n      \"billing_address\": \"Shop 12 Lamington Road\",\n      \"city\": \"Mumbai\"\n    },\n    {\n      \"name\": \"Invalid Row\",\n      \"type\": \"retail\",\n      \"email\": \"bad-email-address\",\n      \"phone\": \"123\"\n    }\n  ]\n}"
+            },
+            "url": "{{base_url}}/api/customers/import"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test(\"Reports inserted count and error breakdown\", function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.data.inserted).to.eql(1);",
+                  "    pm.expect(json.data.skipped).to.eql(1);",
+                  "    pm.expect(json.data.errors).to.be.an(\"array\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "6. Cross-Team Verification (Section 7 Rows)",
+      "item": [
+        {
+          "name": "Row 4: Ingest External Event (ERP-4 Dispatch)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customer_id\": \"CUST-0001\",\n  \"type\": \"order\",\n  \"summary\": \"Order SO-0001 dispatched\",\n  \"source_team\": \"erp4\"\n}"
+            },
+            "url": "{{base_url}}/api/interactions/from-event"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "pm.test(\"Interaction attributed to erp4\", function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.data.source_team).to.eql(\"erp4\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Row 8: Target Segment Customers (CRM-4 Marketing)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "url": "{{base_url}}/api/segments/SEG-0001/customers"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test(\"Returns matching corporate customer CUST-0002\", function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.data[0].id).to.eql(\"CUST-0002\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Row 10: Fetch Customer Master for Portal Dashboard (CRM-5)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "url": "{{base_url}}/api/customers"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test(\"Returns customer master list\", function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.data.length).to.be.at.least(1);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Row 12: Resolve Customer for Support Ticket (CRM-5)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "url": "{{base_url}}/api/customers/CUST-0001"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test(\"Customer record matches CUST-0001\", function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.data.id).to.eql(\"CUST-0001\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Row 19: Get Customer GSTIN & Address for Tax Invoice (ERP-5)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "url": "{{base_url}}/api/customers/CUST-0002"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test(\"Returns GSTIN and billing address\", function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.data.gstin).to.eql(\"27AABCS1234F1Z5\");",
+                  "    pm.expect(json.data.billing_address).to.be.a(\"string\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

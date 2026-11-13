@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="600" viewBox="0 0 960 600" role="img" aria-labelledby="title desc">
+  <title id="title">CRM-3 Interaction Timeline Wireframe</title>
+  <desc id="desc">Wireframe layout for /crm3/customers/:id/timeline (Vertical Chronological Feed &amp; Log Note)</desc>
+  <rect width="960" height="600" fill="#f8fafc"/>
+  <rect x="20" y="20" width="920" height="560" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5"/>
+
+  <!-- Back Link & Header -->
+  <text x="50" y="55" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="500" fill="#2563eb">&lt; Back to Customer Profile</text>
+  <text x="50" y="90" font-family="system-ui, -apple-system, sans-serif" font-size="22" font-weight="700" fill="#0f172a">Interaction Timeline</text>
+  <text x="50" y="115" font-family="system-ui, -apple-system, sans-serif" font-size="13" fill="#64748b">Unified chronological event stream for <tspan font-weight="600" fill="#0f172a">Aarav Mehta</tspan> (CUST-0001)</text>
+  <line x1="50" y1="130" x2="910" y2="130" stroke="#e2e8f0"/>
+
+  <!-- Add Note Card -->
+  <rect x="50" y="145" width="860" height="90" rx="6" fill="#f8fafc" stroke="#e2e8f0"/>
+  <text x="70" y="170" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="700" fill="#0f172a">Log New Interaction</text>
+
+  <rect x="70" y="185" width="110" height="32" rx="4" fill="#ffffff" stroke="#cbd5e1"/>
+  <text x="80" y="205" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#334155">Call ▼</text>
+
+  <rect x="195" y="185" width="550" height="32" rx="4" fill="#ffffff" stroke="#cbd5e1"/>
+  <text x="210" y="205" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#94a3b8">Enter interaction notes or summary...</text>
+
+  <rect x="760" y="185" width="130" height="32" rx="6" fill="#2563eb"/>
+  <text x="790" y="205" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="600" fill="#ffffff">Log Note</text>
+
+  <!-- Timeline Filter Toolbar -->
+  <text x="50" y="265" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="600" fill="#475569">Filter by Type:</text>
+  <rect x="145" y="248" width="120" height="28" rx="4" fill="#ffffff" stroke="#cbd5e1"/>
+  <text x="155" y="266" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#334155">All Types ▼</text>
+
+  <text x="285" y="265" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="600" fill="#475569">From:</text>
+  <rect x="330" y="248" width="110" height="28" rx="4" fill="#ffffff" stroke="#cbd5e1"/>
+  <text x="340" y="266" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#94a3b8">YYYY-MM-DD</text>
+
+  <!-- Timeline Rail and Events -->
+  <line x1="75" y1="300" x2="75" y2="540" stroke="#cbd5e1" stroke-width="2"/>
+
+  <!-- Event 1 (Order from ERP-4) -->
+  <circle cx="75" cy="320" r="7" fill="#16a34a"/>
+  <rect x="100" y="305" width="810" height="65" rx="6" fill="#ffffff" stroke="#e2e8f0"/>
+  <text x="115" y="325" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="600" fill="#0f172a">06 Nov 2026, 14:30</text>
+  <rect x="235" y="312" width="55" height="18" rx="9" fill="#dcfce7"/>
+  <text x="245" y="325" font-family="system-ui, -apple-system, sans-serif" font-size="10" font-weight="700" fill="#15803d">ORDER</text>
+  <rect x="300" y="312" width="55" height="18" rx="9" fill="#f1f5f9"/>
+  <text x="310" y="325" font-family="system-ui, -apple-system, sans-serif" font-size="10" font-weight="700" fill="#475569">ERP-4</text>
+  <text x="115" y="352" font-family="system-ui, -apple-system, sans-serif" font-size="13" fill="#334155">Order SO-0001 placed for 55-inch 4K Smart TV (SKU-0001) · Total: ₹45,000.00</text>
+
+  <!-- Event 2 (Call from CRM-1) -->
+  <circle cx="75" cy="400" r="7" fill="#2563eb"/>
+  <rect x="100" y="385" width="810" height="65" rx="6" fill="#ffffff" stroke="#e2e8f0"/>
+  <text x="115" y="405" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="600" fill="#0f172a">05 Nov 2026, 10:15</text>
+  <rect x="235" y="392" width="50" height="18" rx="9" fill="#dbeafe"/>
+  <text x="245" y="405" font-family="system-ui, -apple-system, sans-serif" font-size="10" font-weight="700" fill="#1d4ed8">CALL</text>
+  <rect x="295" y="392" width="55" height="18" rx="9" fill="#f1f5f9"/>
+  <text x="305" y="405" font-family="system-ui, -apple-system, sans-serif" font-size="10" font-weight="700" fill="#475569">CRM-1</text>
+  <text x="115" y="432" font-family="system-ui, -apple-system, sans-serif" font-size="13" fill="#334155">Followed up on festive product inquiry. Client interested in 4K OLED models for home setup.</text>
+
+  <!-- Event 3 (Support Ticket from CRM-5) -->
+  <circle cx="75" cy="480" r="7" fill="#dc2626"/>
+  <rect x="100" y="465" width="810" height="65" rx="6" fill="#ffffff" stroke="#e2e8f0"/>
+  <text x="115" y="485" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="600" fill="#0f172a">04 Nov 2026, 16:00</text>
+  <rect x="235" y="472" width="55" height="18" rx="9" fill="#fee2e2"/>
+  <text x="245" y="485" font-family="system-ui, -apple-system, sans-serif" font-size="10" font-weight="700" fill="#b91c1c">TICKET</text>
+  <rect x="300" y="472" width="55" height="18" rx="9" fill="#f1f5f9"/>
+  <text x="310" y="485" font-family="system-ui, -apple-system, sans-serif" font-size="10" font-weight="700" fill="#475569">CRM-5</text>
+  <text x="115" y="512" font-family="system-ui, -apple-system, sans-serif" font-size="13" fill="#334155">Ticket TKT-0012 resolved: remote setup assistance completed successfully by EMP-0005.</text>
+</svg>
