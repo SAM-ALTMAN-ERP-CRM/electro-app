@@ -1,0 +1,8 @@
+{
+  "SKU-0001": { "available": true, "total": 50 },
+  "SKU-0002": { "available": true, "total": 35 },
+  "SKU-0003": { "available": false, "total": 0 },
+  "SKU-0004": { "available": true, "total": 40 },
+  "SKU-0005": { "available": true, "total": 25 },
+  "SKU-0008": { "available": true, "total": 60 }
+}
