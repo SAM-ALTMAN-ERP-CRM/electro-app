@@ -58,9 +58,20 @@ try {
   console.warn('[erp4] Could not load mock dispatches:', err.message);
 }
 
+let inMemoryReturns = [];
+try {
+  const p = path.resolve(__dirname, 'mocks/returns.json');
+  if (fs.existsSync(p)) {
+    inMemoryReturns = JSON.parse(fs.readFileSync(p, 'utf-8'));
+  }
+} catch (err) {
+  console.warn('[erp4] Could not load mock returns:', err.message);
+}
+
 module.exports = {
   inMemoryOrders,
   inMemoryReservations,
   inMemoryDispatches,
-  inMemoryDispatchSerials
+  inMemoryDispatchSerials,
+  inMemoryReturns
 };
