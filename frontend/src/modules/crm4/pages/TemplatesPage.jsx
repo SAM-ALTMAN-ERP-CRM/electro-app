@@ -57,6 +57,10 @@ export default function TemplatesPage() {
   const [sampleProduct, setSampleProduct] = useState('Smart LED TV 55"');
   const [sampleOffer, setSampleOffer] = useState('Festive 15% Off');
 
+  // Server render verification state
+  const [serverRenderStatus, setServerRenderStatus] = useState(null);
+  const [serverRenderLoading, setServerRenderLoading] = useState(false);
+
   // Fetch templates from backend
   const fetchTemplates = useCallback(async () => {
     setLoading(true);
@@ -84,28 +88,61 @@ export default function TemplatesPage() {
 
   // Unknown placeholder detection (CRM4-C3)
   const unknownPlaceholders = useMemo(() => {
-    const matches = body.match(/\{\{([^}]+)\}\}/g) || [];
-    const valid = ['{{name}}', '{{product}}', '{{offer}}'];
-    return matches.filter(m => !valid.includes(m));
+    const matches = (body.match(/\{\{([^}]+)\}\}/g) || []).map(m => m.replace(/[{}]/g, '').trim());
+    const valid = ['name', 'product', 'offer'];
+    return [...new Set(matches.filter(m => !valid.includes(m.toLowerCase())))];
   }, [body]);
 
   // Real-time Live Render Preview (CRM4-C3)
   const renderedText = useMemo(() => {
     let text = body;
-    text = text.replace(/\{\{name\}\}/g, sampleName || 'Aarav Mehta');
-    text = text.replace(/\{\{product\}\}/g, sampleProduct || 'Smart LED TV 55"');
-    text = text.replace(/\{\{offer\}\}/g, sampleOffer || 'Festive 15% Off');
+    text = text.replace(/\{\{name\}\}/gi, sampleName || 'Aarav Mehta');
+    text = text.replace(/\{\{product\}\}/gi, sampleProduct || 'Smart LED TV 55"');
+    text = text.replace(/\{\{offer\}\}/gi, sampleOffer || 'Festive 15% Off');
     return text;
   }, [body, sampleName, sampleProduct, sampleOffer]);
 
   const renderedSubject = useMemo(() => {
     if (!subject) return '';
     let subj = subject;
-    subj = subj.replace(/\{\{name\}\}/g, sampleName || 'Aarav Mehta');
-    subj = subj.replace(/\{\{product\}\}/g, sampleProduct || 'Smart LED TV 55"');
-    subj = subj.replace(/\{\{offer\}\}/g, sampleOffer || 'Festive 15% Off');
+    subj = subj.replace(/\{\{name\}\}/gi, sampleName || 'Aarav Mehta');
+    subj = subj.replace(/\{\{product\}\}/gi, sampleProduct || 'Smart LED TV 55"');
+    subj = subj.replace(/\{\{offer\}\}/gi, sampleOffer || 'Festive 15% Off');
     return subj;
   }, [subject, sampleName, sampleProduct, sampleOffer]);
+
+  // Call POST /templates/:id/render on server [CRM4-C3]
+  const handleTestServerRender = async () => {
+    setServerRenderLoading(true);
+    setServerRenderStatus(null);
+    try {
+      const templateId = editingId || (templates[0] && templates[0].id) || 'TPL-0001';
+      const res = await api('crm4', `/api/templates/${templateId}/render`, {
+        method: 'POST',
+        body: {
+          name: sampleName,
+          product: sampleProduct,
+          offer: sampleOffer,
+          body,
+          subject,
+          channel
+        }
+      });
+      const data = res?.data || res;
+      setServerRenderStatus({
+        success: true,
+        data,
+        message: `Rendered successfully (${data.character_count} chars). ${data.warnings?.length ? data.warnings.join(' ') : 'No warnings.'}`
+      });
+    } catch (err) {
+      setServerRenderStatus({
+        success: false,
+        message: err.message || 'Server render failed'
+      });
+    } finally {
+      setServerRenderLoading(false);
+    }
+  };
 
   // Save or update template
   const handleSave = async (e) => {
@@ -485,6 +522,45 @@ export default function TemplatesPage() {
                   ? '✓ Placeholder validation passed (All tokens recognized)'
                   : '✗ Placeholder validation failed (Check unknown tokens)'}
               </div>
+            </div>
+
+            {/* Server Render Test Trigger (CRM4-C3) */}
+            <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid #e2e8f0' }}>
+              <button
+                type="button"
+                onClick={handleTestServerRender}
+                disabled={serverRenderLoading}
+                style={{
+                  width: '100%',
+                  padding: '0.5rem',
+                  fontSize: '0.8rem',
+                  fontWeight: 600,
+                  background: '#f1f5f9',
+                  color: '#334155',
+                  border: '1px solid #cbd5e1',
+                  borderRadius: '6px',
+                  cursor: serverRenderLoading ? 'not-allowed' : 'pointer'
+                }}
+              >
+                {serverRenderLoading ? 'Calling POST /render...' : '⚡ Verify with Server API (POST /templates/:id/render)'}
+              </button>
+
+              {serverRenderStatus && (
+                <div
+                  style={{
+                    marginTop: '0.5rem',
+                    padding: '0.5rem 0.75rem',
+                    borderRadius: '6px',
+                    fontSize: '0.75rem',
+                    background: serverRenderStatus.success ? '#f0fdf4' : '#fef2f2',
+                    border: `1px solid ${serverRenderStatus.success ? '#86efac' : '#fca5a5'}`,
+                    color: serverRenderStatus.success ? '#15803d' : '#b91c1c'
+                  }}
+                >
+                  <strong>{serverRenderStatus.success ? 'Server Success: ' : 'Server Rejection: '}</strong>
+                  {serverRenderStatus.message}
+                </div>
+              )}
             </div>
           </div>
         </div>

@@ -350,18 +350,23 @@ router.post('/templates/:id/render', async (req, res) => {
   const values = { name, product, offer };
   const KNOWN_PLACEHOLDERS = ['name', 'product', 'offer'];
 
-  // Detect unknown placeholders in body and subject
-  const bodyPlaceholders = (template.body.match(/\{\{([^}]+)\}\}/g) || []).map(p => p.replace(/[{}]/g, '').trim());
-  const subjectPlaceholders = template.subject
-    ? (template.subject.match(/\{\{([^}]+)\}\}/g) || []).map(p => p.replace(/[{}]/g, '').trim())
+  // Support rendering custom body / subject / channel overrides if passed in body
+  const bodyToRender = req.body && req.body.body !== undefined ? req.body.body : template.body;
+  const subjectToRender = req.body && req.body.subject !== undefined ? req.body.subject : template.subject;
+  const channelToRender = req.body && req.body.channel !== undefined ? req.body.channel : template.channel;
+
+  // Detect unknown placeholders in body and subject (case-insensitive check)
+  const bodyPlaceholders = (bodyToRender.match(/\{\{([^}]+)\}\}/g) || []).map(p => p.replace(/[{}]/g, '').trim());
+  const subjectPlaceholders = subjectToRender
+    ? (subjectToRender.match(/\{\{([^}]+)\}\}/g) || []).map(p => p.replace(/[{}]/g, '').trim())
     : [];
 
   const allPlaceholders = [...new Set([...bodyPlaceholders, ...subjectPlaceholders])];
-  const unknownPlaceholders = allPlaceholders.filter(p => !KNOWN_PLACEHOLDERS.includes(p));
+  const unknownPlaceholders = allPlaceholders.filter(p => !KNOWN_PLACEHOLDERS.includes(p.toLowerCase()));
 
-  // Perform placeholder replacement
-  let renderedBody = template.body;
-  let renderedSubject = template.subject;
+  // Perform placeholder replacement (case-insensitive)
+  let renderedBody = bodyToRender;
+  let renderedSubject = subjectToRender;
 
   for (const [key, val] of Object.entries(values)) {
     const regex = new RegExp(`\\{\\{${key}\\}\\}`, 'gi');
@@ -372,7 +377,7 @@ router.post('/templates/:id/render', async (req, res) => {
   }
 
   // Enforce SMS length restriction (160 characters)
-  if (template.channel === 'sms' && renderedBody.length > 160) {
+  if (channelToRender === 'sms' && renderedBody.length > 160) {
     return res.status(400).json({
       error: `SMS rendered body exceeds 160 character limit (${renderedBody.length} characters)`
     });
@@ -385,10 +390,12 @@ router.post('/templates/:id/render', async (req, res) => {
   return res.json({
     data: {
       template_id: id,
-      channel: template.channel,
+      channel: channelToRender,
       rendered_subject: renderedSubject,
       rendered_body: renderedBody,
+      rendered_text: renderedBody,
       character_count: renderedBody.length,
+      unknown_placeholders: unknownPlaceholders,
       warnings
     }
   });
