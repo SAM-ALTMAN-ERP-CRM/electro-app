@@ -1,0 +1,131 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="620" viewBox="0 0 960 620" role="img" aria-labelledby="title desc">
+  <title id="title">CRM-4 Marketing Campaigns Wireframe</title>
+  <desc id="desc">Wireframe layout for /crm4/campaigns (Campaigns Directory, Create Form &amp; Send Simulation)</desc>
+  <rect width="960" height="620" fill="#f8fafc"/>
+  <rect x="20" y="16" width="920" height="588" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5"/>
+
+  <!-- Top bar / Page Header -->
+  <text x="50" y="55" font-family="system-ui, -apple-system, sans-serif" font-size="22" font-weight="700" fill="#0f172a">Marketing Campaigns</text>
+  <rect x="310" y="38" width="70" height="24" rx="12" fill="#dbeafe"/>
+  <text x="325" y="54" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="600" fill="#1d4ed8">CRM-4</text>
+  <text x="50" y="80" font-family="system-ui, -apple-system, sans-serif" font-size="13" fill="#64748b">Plan multi-channel marketing campaigns, link audience segments &amp; simulate broadcasts</text>
+  <line x1="50" y1="96" x2="910" y2="96" stroke="#e2e8f0" stroke-width="1"/>
+
+  <!-- Quick KPI Metric Cards -->
+  <rect x="50" y="108" width="195" height="52" rx="6" fill="#f8fafc" stroke="#e2e8f0"/>
+  <text x="65" y="128" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#64748b">TOTAL CAMPAIGNS</text>
+  <text x="65" y="150" font-family="system-ui, -apple-system, sans-serif" font-size="18" font-weight="700" fill="#0f172a">5</text>
+
+  <rect x="265" y="108" width="195" height="52" rx="6" fill="#f8fafc" stroke="#e2e8f0"/>
+  <text x="280" y="128" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#64748b">DRAFT</text>
+  <text x="280" y="150" font-family="system-ui, -apple-system, sans-serif" font-size="18" font-weight="700" fill="#b45309">2</text>
+
+  <rect x="480" y="108" width="195" height="52" rx="6" fill="#f8fafc" stroke="#e2e8f0"/>
+  <text x="495" y="128" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#64748b">SCHEDULED</text>
+  <text x="495" y="150" font-family="system-ui, -apple-system, sans-serif" font-size="18" font-weight="700" fill="#1d4ed8">1</text>
+
+  <rect x="695" y="108" width="215" height="52" rx="6" fill="#f8fafc" stroke="#e2e8f0"/>
+  <text x="710" y="128" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#64748b">SENT / COMPLETED</text>
+  <text x="710" y="150" font-family="system-ui, -apple-system, sans-serif" font-size="18" font-weight="700" fill="#15803d">2</text>
+
+  <!-- Filter & Action Controls -->
+  <rect x="50" y="172" width="300" height="34" rx="6" fill="#ffffff" stroke="#cbd5e1"/>
+  <text x="65" y="194" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#94a3b8">🔍 Search campaigns by name or objective...</text>
+
+  <rect x="365" y="172" width="140" height="34" rx="6" fill="#ffffff" stroke="#cbd5e1"/>
+  <text x="380" y="194" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#334155">Channel: All ▼</text>
+
+  <rect x="520" y="172" width="140" height="34" rx="6" fill="#ffffff" stroke="#cbd5e1"/>
+  <text x="535" y="194" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#334155">Status: All ▼</text>
+
+  <rect x="760" y="172" width="150" height="34" rx="6" fill="#2563eb"/>
+  <text x="785" y="194" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="600" fill="#ffffff">+ Create Campaign</text>
+
+  <!-- Campaigns Table Card -->
+  <rect x="50" y="218" width="860" height="175" rx="6" fill="#ffffff" stroke="#e2e8f0"/>
+  <!-- Table Header -->
+  <rect x="50" y="218" width="860" height="32" rx="6" fill="#f8fafc"/>
+  <text x="65" y="238" font-family="system-ui, -apple-system, sans-serif" font-size="10" font-weight="700" fill="#64748b">ID</text>
+  <text x="145" y="238" font-family="system-ui, -apple-system, sans-serif" font-size="10" font-weight="700" fill="#64748b">NAME</text>
+  <text x="315" y="238" font-family="system-ui, -apple-system, sans-serif" font-size="10" font-weight="700" fill="#64748b">CHANNEL</text>
+  <text x="405" y="238" font-family="system-ui, -apple-system, sans-serif" font-size="10" font-weight="700" fill="#64748b">STATUS</text>
+  <text x="500" y="238" font-family="system-ui, -apple-system, sans-serif" font-size="10" font-weight="700" fill="#64748b">SEGMENT</text>
+  <text x="600" y="238" font-family="system-ui, -apple-system, sans-serif" font-size="10" font-weight="700" fill="#64748b">TEMPLATE</text>
+  <text x="705" y="238" font-family="system-ui, -apple-system, sans-serif" font-size="10" font-weight="700" fill="#64748b">SCHEDULED</text>
+  <text x="815" y="238" font-family="system-ui, -apple-system, sans-serif" font-size="10" font-weight="700" fill="#64748b">ACTIONS</text>
+  <line x1="50" y1="250" x2="910" y2="250" stroke="#e2e8f0"/>
+
+  <!-- Row 1 -->
+  <text x="65" y="274" font-family="monospace" font-size="12" font-weight="600" fill="#0f172a">CMP-0001</text>
+  <text x="145" y="274" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="500" fill="#0f172a">Diwali Festive Sale</text>
+  <rect x="315" y="261" width="55" height="18" rx="9" fill="#dbeafe"/>
+  <text x="327" y="274" font-family="system-ui, -apple-system, sans-serif" font-size="10" font-weight="600" fill="#1d4ed8">email</text>
+  <rect x="405" y="261" width="50" height="18" rx="9" fill="#dcfce7"/>
+  <text x="419" y="274" font-family="system-ui, -apple-system, sans-serif" font-size="10" font-weight="600" fill="#15803d">sent</text>
+  <text x="500" y="274" font-family="monospace" font-size="11" fill="#475569">SEG-0001</text>
+  <text x="600" y="274" font-family="monospace" font-size="11" fill="#475569">TPL-0002</text>
+  <text x="705" y="274" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#64748b">2026-10-25</text>
+  <text x="815" y="274" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#16a34a">✓ Sent (8)</text>
+  <line x1="50" y1="288" x2="910" y2="288" stroke="#f1f5f9"/>
+
+  <!-- Row 2 -->
+  <text x="65" y="312" font-family="monospace" font-size="12" font-weight="600" fill="#0f172a">CMP-0002</text>
+  <text x="145" y="312" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="500" fill="#0f172a">Smart LED Launch</text>
+  <rect x="315" y="299" width="65" height="18" rx="9" fill="#dcfce7"/>
+  <text x="324" y="312" font-family="system-ui, -apple-system, sans-serif" font-size="10" font-weight="600" fill="#15803d">whatsapp</text>
+  <rect x="405" y="299" width="75" height="18" rx="9" fill="#dbeafe"/>
+  <text x="413" y="312" font-family="system-ui, -apple-system, sans-serif" font-size="10" font-weight="600" fill="#1d4ed8">scheduled</text>
+  <text x="500" y="312" font-family="monospace" font-size="11" fill="#475569">SEG-0002</text>
+  <text x="600" y="312" font-family="monospace" font-size="11" fill="#475569">TPL-0001</text>
+  <text x="705" y="312" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#64748b">2026-11-20</text>
+  <rect x="815" y="298" width="70" height="20" rx="4" fill="#2563eb"/>
+  <text x="823" y="312" font-family="system-ui, -apple-system, sans-serif" font-size="10" font-weight="600" fill="#ffffff">Send Now</text>
+  <line x1="50" y1="326" x2="910" y2="326" stroke="#f1f5f9"/>
+
+  <!-- Row 3 -->
+  <text x="65" y="350" font-family="monospace" font-size="12" font-weight="600" fill="#0f172a">CMP-0003</text>
+  <text x="145" y="350" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="500" fill="#0f172a">Warranty Care Reminder</text>
+  <rect x="315" y="337" width="45" height="18" rx="9" fill="#fef3c7"/>
+  <text x="327" y="350" font-family="system-ui, -apple-system, sans-serif" font-size="10" font-weight="600" fill="#b45309">sms</text>
+  <rect x="405" y="337" width="50" height="18" rx="9" fill="#fef3c7"/>
+  <text x="417" y="350" font-family="system-ui, -apple-system, sans-serif" font-size="10" font-weight="600" fill="#b45309">draft</text>
+  <text x="500" y="350" font-family="monospace" font-size="11" fill="#475569">SEG-0003</text>
+  <text x="600" y="350" font-family="monospace" font-size="11" fill="#475569">TPL-0003</text>
+  <text x="705" y="350" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#64748b">2026-12-01</text>
+  <rect x="815" y="336" width="45" height="20" rx="4" fill="#e2e8f0"/>
+  <text x="826" y="350" font-family="system-ui, -apple-system, sans-serif" font-size="10" font-weight="600" fill="#334155">Edit</text>
+  <line x1="50" y1="364" x2="910" y2="364" stroke="#f1f5f9"/>
+
+  <!-- Create/Edit Form Card -->
+  <rect x="50" y="405" width="860" height="185" rx="6" fill="#f8fafc" stroke="#e2e8f0"/>
+  <text x="70" y="428" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="700" fill="#0f172a">Create / Edit Campaign Form</text>
+
+  <text x="70" y="454" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#475569">Campaign Name *</text>
+  <rect x="70" y="462" width="230" height="28" rx="4" fill="#ffffff" stroke="#cbd5e1"/>
+  <text x="80" y="480" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#334155">Winter Clearance Offer</text>
+
+  <text x="320" y="454" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#475569">Channel *</text>
+  <rect x="320" y="462" width="130" height="28" rx="4" fill="#ffffff" stroke="#cbd5e1"/>
+  <text x="330" y="480" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#334155">Email ▼</text>
+
+  <text x="470" y="454" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#475569">Target Segment (CRM-3) *</text>
+  <rect x="470" y="462" width="200" height="28" rx="4" fill="#ffffff" stroke="#cbd5e1"/>
+  <text x="480" y="480" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#334155">SEG-0001 (High Value) ▼</text>
+
+  <text x="690" y="454" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#475569">Template (CRM-4) *</text>
+  <rect x="690" y="462" width="200" height="28" rx="4" fill="#ffffff" stroke="#cbd5e1"/>
+  <text x="700" y="480" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#334155">TPL-0002 (Festive Offer) ▼</text>
+
+  <text x="70" y="515" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#475569">Objective / Notes</text>
+  <rect x="70" y="523" width="480" height="28" rx="4" fill="#ffffff" stroke="#cbd5e1"/>
+  <text x="80" y="541" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#334155">Drive year-end inventory liquidation with 15% discount code</text>
+
+  <text x="570" y="515" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#475569">Scheduled Date</text>
+  <rect x="570" y="523" width="160" height="28" rx="4" fill="#ffffff" stroke="#cbd5e1"/>
+  <text x="580" y="541" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#334155">2026-12-15 10:00</text>
+
+  <rect x="750" y="523" width="140" height="28" rx="4" fill="#2563eb"/>
+  <text x="778" y="541" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#ffffff">Save Campaign</text>
+
+  <text x="70" y="574" font-family="system-ui, -apple-system, sans-serif" font-size="10" fill="#64748b">ℹ️ Sending a campaign simulates customer messages and automatically posts interaction timeline events to CRM-3.</text>
+</svg>
