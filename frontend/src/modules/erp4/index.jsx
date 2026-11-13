@@ -3,10 +3,12 @@ import OrdersListPage from './pages/OrdersListPage';
 import OrderDetailPage from './pages/OrderDetailPage';
 import DispatchPage from './pages/DispatchPage';
 import DispatchNotePage from './pages/DispatchNotePage';
+import ReturnsListPage from './pages/ReturnsListPage';
+import ReturnDetailPage from './pages/ReturnDetailPage';
 
 export default {
   id: 'erp4',
-  title: 'Orders and Dispatch',
+  title: 'Orders & Dispatch',
   roles: ['admin', 'sales', 'warehouse'],
   routes: [
     {
@@ -30,6 +32,15 @@ export default {
     {
       path: 'dispatch/:id/note',
       element: <DispatchNotePage />
+    },
+    {
+      path: 'returns',
+      label: 'Returns',
+      element: <ReturnsListPage />
+    },
+    {
+      path: 'returns/:id',
+      element: <ReturnDetailPage />
     }
   ]
 };
