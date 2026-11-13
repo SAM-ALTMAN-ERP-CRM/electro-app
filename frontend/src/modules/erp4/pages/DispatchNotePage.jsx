@@ -8,6 +8,7 @@ export default function DispatchNotePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // Load dispatch note details from backend
   useEffect(() => {
     let isMounted = true;
 
@@ -40,6 +41,7 @@ export default function DispatchNotePage() {
     };
   }, [id]);
 
+  // Status badge styling helper
   const renderStatusBadge = (status) => {
     const s = (status || '').toLowerCase();
     let badgeClass = 'badge-gray';
@@ -54,6 +56,7 @@ export default function DispatchNotePage() {
     return <span className={`badge ${badgeClass}`}>{label}</span>;
   };
 
+  // Format currency in Indian Rupees
   const formatINR = (val) => {
     const num = parseFloat(val) || 0;
     return `₹${num.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -87,9 +90,10 @@ export default function DispatchNotePage() {
 
   return (
     <div className="dispatch-note-wrapper" style={{ padding: '1.5rem', maxWidth: '860px', margin: '0 auto' }}>
-      {/* Dedicated Print Stylesheet */}
+      {/* Print CSS Rules */}
       <style>{`
         @media print {
+          /* Hide non-printable UI shells and navigation */
           .no-print,
           .sidebar,
           .top-bar,
@@ -131,7 +135,7 @@ export default function DispatchNotePage() {
         }
       `}</style>
 
-      {/* Action Controls for Screen View */}
+      {/* Top action toolbar (Screen Only) */}
       <div className="no-print" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
         <Link
           to="/erp4/dispatch"
@@ -171,7 +175,7 @@ export default function DispatchNotePage() {
         </div>
       </div>
 
-      {/* Dispatch Document Sheet */}
+      {/* Printable Dispatch Document Sheet */}
       <div
         className="dispatch-note-sheet"
         style={{
@@ -213,6 +217,7 @@ export default function DispatchNotePage() {
 
         {/* Metadata Grid: Dispatch Details + Customer Delivery Info */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1.75rem' }}>
+          {/* Dispatch & Courier Info */}
           <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
             <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#0f172a', textTransform: 'uppercase', marginBottom: '0.5rem', borderBottom: '1px solid #cbd5e1', paddingBottom: '0.25rem' }}>
               Consignment & Logistics
@@ -243,6 +248,7 @@ export default function DispatchNotePage() {
             </table>
           </div>
 
+          {/* Customer & Delivery Address */}
           <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
             <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#0f172a', textTransform: 'uppercase', marginBottom: '0.5rem', borderBottom: '1px solid #cbd5e1', paddingBottom: '0.25rem' }}>
               Consignee & Shipping Destination
@@ -276,7 +282,7 @@ export default function DispatchNotePage() {
           </div>
         </div>
 
-        {/* Line Items Table */}
+        {/* Line Items & Serial Numbers */}
         <div style={{ marginBottom: '1.75rem' }}>
           <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#0f172a', textTransform: 'uppercase', marginBottom: '0.5rem' }}>
             Dispatched Line Items
@@ -323,7 +329,7 @@ export default function DispatchNotePage() {
           </table>
         </div>
 
-        {/* Assigned Serial Numbers Box */}
+        {/* Serial Numbers Box */}
         <div style={{ background: '#fafafa', border: '1px dashed #cbd5e1', borderRadius: '6px', padding: '1rem', marginBottom: '2rem' }}>
           <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#0f172a', textTransform: 'uppercase', marginBottom: '0.5rem' }}>
             Assigned Serial Numbers ({serials.length} units)
@@ -357,18 +363,21 @@ export default function DispatchNotePage() {
         {/* Verification and Signatures Footer */}
         <div style={{ borderTop: '1px solid #cbd5e1', paddingTop: '1.5rem', marginTop: '1rem' }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1.5rem', textAlign: 'center' }}>
+            {/* Dispatcher Signature */}
             <div>
               <div style={{ height: '50px', borderBottom: '1px solid #94a3b8', marginBottom: '0.5rem' }}></div>
               <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#0f172a' }}>Dispatch Officer</div>
               <div style={{ fontSize: '0.75rem', color: '#64748b' }}>Warehouse WH-01 (Mumbai)</div>
             </div>
 
+            {/* Courier Pickup Signature */}
             <div>
               <div style={{ height: '50px', borderBottom: '1px solid #94a3b8', marginBottom: '0.5rem' }}></div>
               <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#0f172a' }}>Courier Carrier Representative</div>
               <div style={{ fontSize: '0.75rem', color: '#64748b' }}>{dispatch.courier} Pickup Agent</div>
             </div>
 
+            {/* Customer Receiving Signature */}
             <div>
               <div style={{ height: '50px', borderBottom: '1px solid #94a3b8', marginBottom: '0.5rem' }}></div>
               <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#0f172a' }}>Receiver's Signature & Stamp</div>

@@ -8,7 +8,7 @@ import ReturnDetailPage from './pages/ReturnDetailPage';
 
 export default {
   id: 'erp4',
-  title: 'Orders and Dispatch',
+  title: 'Orders & Dispatch',
   roles: ['admin', 'sales', 'warehouse'],
   routes: [
     {
