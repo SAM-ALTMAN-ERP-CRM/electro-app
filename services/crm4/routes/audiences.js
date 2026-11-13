@@ -3,6 +3,7 @@ const router = express.Router();
 const path = require('path');
 const fs = require('fs');
 const { requireAuth } = require('../../_shared/auth');
+const { callService } = require('../../_shared/callService');
 
 // Connect to crm4_db PostgreSQL database pool if driver and DB are available
 let pool = null;
@@ -612,7 +613,31 @@ router.patch('/audiences/:id/members/:member_id', async (req, res) => {
         });
       }
 
-      return res.json({ data: formatMember(result.rows[0]) });
+      // Also sync in-memory store if present
+      const memInMemory = inMemoryMembers.find(
+        m => m.audience_id === id && (m.id === member_id || m.customer_id === member_id)
+      );
+      if (memInMemory) {
+        if (opted_out !== undefined) memInMemory.opted_out = Boolean(opted_out);
+        if (name !== undefined && name.trim()) memInMemory.name = name.trim();
+        if (email !== undefined && email.trim()) memInMemory.email = email.trim();
+        if (phone !== undefined) memInMemory.phone = phone.trim();
+      }
+
+      const countRes = await pool.query(`
+        SELECT COUNT(id)::int AS member_count,
+               COUNT(CASE WHEN opted_out = false THEN 1 END)::int AS reachable_count
+        FROM audience_members WHERE audience_id = $1
+      `, [id]);
+      const counts = countRes.rows[0] || { member_count: 0, reachable_count: 0 };
+
+      return res.json({
+        data: {
+          ...formatMember(result.rows[0]),
+          member_count: counts.member_count,
+          reachable_count: counts.reachable_count
+        }
+      });
     } catch (err) {
       console.warn('[crm4] DB error updating member preference, falling back to in-memory store:', err.message);
     }
@@ -633,7 +658,15 @@ router.patch('/audiences/:id/members/:member_id', async (req, res) => {
   if (email !== undefined && email.trim()) member.email = email.trim();
   if (phone !== undefined) member.phone = phone.trim();
 
-  return res.json({ data: formatMember(member) });
+  const counts = getAudienceCounts(id);
+
+  return res.json({
+    data: {
+      ...formatMember(member),
+      member_count: counts.member_count,
+      reachable_count: counts.reachable_count
+    }
+  });
 });
 
 /**
@@ -682,35 +715,148 @@ router.delete('/audiences/:id/members/:member_id', async (req, res) => {
 
 /**
  * POST /audiences/:id/import-segment (CRM4-B3)
- * Bulk import customer segment contacts into an audience
+ * Bulk import customer segment contacts into an audience from CRM-3
+ * Skips customers already present in the audience to prevent duplicates.
  */
 router.post('/audiences/:id/import-segment', async (req, res) => {
   const { id } = req.params;
   const { segment_id } = req.body || {};
+  const targetSegmentId = segment_id || 'SEG-0001';
 
+  // 1. Fetch customer list from CRM-3 with mock fallback
+  let segmentCustomers = null;
+  try {
+    const serviceRes = await callService('crm3', `/api/segments/${targetSegmentId}/customers`, {
+      method: 'GET',
+      mock: 'segment-customers'
+    });
+    if (Array.isArray(serviceRes)) {
+      segmentCustomers = serviceRes;
+    } else if (serviceRes && Array.isArray(serviceRes.data)) {
+      segmentCustomers = serviceRes.data;
+    }
+  } catch (serviceErr) {
+    // If CRM-3 is offline or mock not located in crm3, load from crm4 local mock
+    const localMockPath = path.resolve(__dirname, '../mocks/segment-customers.json');
+    if (fs.existsSync(localMockPath)) {
+      try {
+        segmentCustomers = JSON.parse(fs.readFileSync(localMockPath, 'utf8'));
+      } catch (e) {
+        console.warn('[crm4] Error loading local segment-customers mock:', e.message);
+      }
+    }
+  }
+
+  // Fallback to local mock if serviceRes didn't return an array
+  if (!Array.isArray(segmentCustomers) || segmentCustomers.length === 0) {
+    const localMockPath = path.resolve(__dirname, '../mocks/segment-customers.json');
+    if (fs.existsSync(localMockPath)) {
+      try {
+        segmentCustomers = JSON.parse(fs.readFileSync(localMockPath, 'utf8'));
+      } catch (e) {
+        console.warn('[crm4] Error reading local segment-customers mock:', e.message);
+      }
+    }
+  }
+
+  // Realistic fallback seed adhering to Section 5
+  if (!Array.isArray(segmentCustomers) || segmentCustomers.length === 0) {
+    segmentCustomers = [
+      { id: 'CUST-0001', name: 'Aarav Mehta', email: 'aarav.mehta@example.com', phone: '9820112345' },
+      { id: 'CUST-0002', name: 'Sunrise Electronics Pvt Ltd', email: 'purchase@sunrise.com', phone: '9820223456' },
+      { id: 'CUST-0003', name: 'Priya Nair', email: 'priya.nair@example.com', phone: '9847134567' }
+    ];
+  }
+
+  // 2. Database path
+  if (pool) {
+    try {
+      const audCheck = await pool.query('SELECT id FROM audiences WHERE id = $1', [id]);
+      if (audCheck.rows.length === 0) {
+        return res.status(404).json({ error: `Audience with id '${id}' not found` });
+      }
+
+      const existingMembersRes = await pool.query(
+        'SELECT customer_id FROM audience_members WHERE audience_id = $1',
+        [id]
+      );
+      const existingCustomerIds = new Set(existingMembersRes.rows.map(r => r.customer_id));
+
+      let imported = 0;
+      let skipped = 0;
+
+      for (const c of segmentCustomers) {
+        const custId = c.customer_id || c.id;
+        if (!custId) continue;
+
+        if (existingCustomerIds.has(custId)) {
+          skipped++;
+        } else {
+          const seqRes = await pool.query("SELECT nextval('audience_member_seq') AS seq");
+          const memberId = `MEM-${String(seqRes.rows[0].seq).padStart(4, '0')}`;
+          const custName = c.name || 'Valued Customer';
+          const custEmail = c.email || `${custId.toLowerCase()}@example.com`;
+          const custPhone = c.phone || null;
+
+          await pool.query(
+            `INSERT INTO audience_members (id, audience_id, customer_id, name, email, phone, opted_out, created_at)
+             VALUES ($1, $2, $3, $4, $5, $6, false, NOW())`,
+            [memberId, id, custId, custName, custEmail, custPhone]
+          );
+
+          existingCustomerIds.add(custId);
+          imported++;
+        }
+      }
+
+      // Keep in-memory store in sync as well
+      for (const c of segmentCustomers) {
+        const custId = c.customer_id || c.id;
+        if (!custId) continue;
+        if (!inMemoryMembers.some(m => m.audience_id === id && m.customer_id === custId)) {
+          inMemoryMembers.push({
+            id: `MEM-${String(nextMemberSeq++).padStart(4, '0')}`,
+            audience_id: id,
+            customer_id: custId,
+            name: c.name || 'Valued Customer',
+            email: c.email || `${custId.toLowerCase()}@example.com`,
+            phone: c.phone || null,
+            opted_out: false,
+            created_at: new Date().toISOString()
+          });
+        }
+      }
+
+      return res.json({
+        data: {
+          message: `Import completed from ${targetSegmentId}`,
+          audience_id: id,
+          segment_id: targetSegmentId,
+          imported,
+          skipped,
+          total: imported + skipped
+        }
+      });
+    } catch (err) {
+      console.warn('[crm4] DB error importing segment, falling back to in-memory store:', err.message);
+    }
+  }
+
+  // 3. Fallback: In-memory store
   const audExists = inMemoryAudiences.some(a => a.id === id);
   if (!audExists) {
     return res.status(404).json({ error: `Audience with id '${id}' not found` });
   }
 
-  // Realistic sample customer segment contacts adhering to Section 5 shared IDs
-  const segmentContacts = [
-    { customer_id: 'CUST-0001', name: 'Aarav Mehta', email: 'aarav.mehta@example.com', phone: '9820112345' },
-    { customer_id: 'CUST-0002', name: 'Sunrise Electronics Pvt Ltd', email: 'purchase@sunrise.com', phone: '9820223456' },
-    { customer_id: 'CUST-0003', name: 'Priya Nair', email: 'priya.nair@example.com', phone: '9847134567' },
-    { customer_id: 'CUST-0004', name: 'BrightHome Retail LLP', email: 'contact@brighthome.com', phone: '9850145678' },
-    { customer_id: 'CUST-0005', name: 'Kiran Patel', email: 'kiran.patel@example.com', phone: '9879156789' },
-    { customer_id: 'CUST-0006', name: 'Metro Offices Ltd', email: 'admin@metrooffices.com', phone: '9811167890' },
-    { customer_id: 'CUST-0007', name: 'Sneha Iyer', email: 'sneha.iyer@example.com', phone: '9840178901' },
-    { customer_id: 'CUST-0008', name: 'Gadget Hub', email: 'sales@gadgethub.com', phone: '9845189012' }
-  ];
-
   let imported = 0;
   let skipped = 0;
 
-  for (const contact of segmentContacts) {
+  for (const c of segmentCustomers) {
+    const custId = c.customer_id || c.id;
+    if (!custId) continue;
+
     const exists = inMemoryMembers.some(
-      m => m.audience_id === id && m.customer_id === contact.customer_id
+      m => m.audience_id === id && m.customer_id === custId
     );
     if (exists) {
       skipped++;
@@ -718,10 +864,10 @@ router.post('/audiences/:id/import-segment', async (req, res) => {
       inMemoryMembers.push({
         id: `MEM-${String(nextMemberSeq++).padStart(4, '0')}`,
         audience_id: id,
-        customer_id: contact.customer_id,
-        name: contact.name,
-        email: contact.email,
-        phone: contact.phone,
+        customer_id: custId,
+        name: c.name || 'Valued Customer',
+        email: c.email || `${custId.toLowerCase()}@example.com`,
+        phone: c.phone || null,
         opted_out: false,
         created_at: new Date().toISOString()
       });
@@ -731,7 +877,9 @@ router.post('/audiences/:id/import-segment', async (req, res) => {
 
   return res.json({
     data: {
-      message: `Import completed from ${segment_id || 'segment'}`,
+      message: `Import completed from ${targetSegmentId}`,
+      audience_id: id,
+      segment_id: targetSegmentId,
       imported,
       skipped,
       total: imported + skipped

@@ -313,4 +313,118 @@ describe('CRM-4 Audiences & Audience Members API Tests ([CRM4-B1])', () => {
     assert.equal(res.status, 404);
   });
 
+  describe('Segment Import & Opt-Out Reachability Tests ([CRM4-B3])', () => {
+
+    it('POST /audiences/:id/import-segment imports customers and skips existing duplicates', async () => {
+      // 1. Create a fresh audience with 0 members
+      const createAudRes = await dispatch(audiencesRouter, {
+        method: 'POST',
+        url: '/audiences',
+        body: {
+          name: 'Target VIP Import Test',
+          description: 'Audience created specifically for segment import test'
+        }
+      });
+      assert.equal(createAudRes.status, 201);
+      const testAudId = createAudRes.body.data.id;
+
+      // Initial count check
+      const initialAud = await dispatch(audiencesRouter, {
+        method: 'GET',
+        url: `/audiences/${testAudId}`
+      });
+      assert.equal(initialAud.body.data.member_count, 0);
+      assert.equal(initialAud.body.data.reachable_count, 0);
+
+      // 2. Import segment SEG-0001
+      const import1Res = await dispatch(audiencesRouter, {
+        method: 'POST',
+        url: `/audiences/${testAudId}/import-segment`,
+        body: { segment_id: 'SEG-0001' }
+      });
+      assert.equal(import1Res.status, 200);
+      assert.ok(import1Res.body.data);
+      assert.ok(import1Res.body.data.imported > 0, 'First import should import members');
+      assert.equal(import1Res.body.data.skipped, 0, 'First import should have 0 skipped on empty audience');
+      const firstImportedCount = import1Res.body.data.imported;
+
+      // Verify audience member and reachable counts updated
+      const afterImport1Aud = await dispatch(audiencesRouter, {
+        method: 'GET',
+        url: `/audiences/${testAudId}`
+      });
+      assert.equal(afterImport1Aud.body.data.member_count, firstImportedCount);
+      assert.equal(afterImport1Aud.body.data.reachable_count, firstImportedCount);
+
+      // 3. Second import of the EXACT SAME segment -> Acceptance Criterion: "importing twice adds no duplicates"
+      const import2Res = await dispatch(audiencesRouter, {
+        method: 'POST',
+        url: `/audiences/${testAudId}/import-segment`,
+        body: { segment_id: 'SEG-0001' }
+      });
+      assert.equal(import2Res.status, 200);
+      assert.equal(import2Res.body.data.imported, 0, 'Second import must import 0 new members');
+      assert.equal(import2Res.body.data.skipped, firstImportedCount, 'Second import must skip all existing members');
+
+      // Verify member count did not increase
+      const afterImport2Aud = await dispatch(audiencesRouter, {
+        method: 'GET',
+        url: `/audiences/${testAudId}`
+      });
+      assert.equal(afterImport2Aud.body.data.member_count, firstImportedCount);
+      assert.equal(afterImport2Aud.body.data.reachable_count, firstImportedCount);
+    });
+
+    it('Toggling opt-out changes reachable count on audience -> Acceptance Criterion: "toggling opt-out changes the reachable count"', async () => {
+      // Fetch initial state of AUD-0001
+      const audBefore = await dispatch(audiencesRouter, {
+        method: 'GET',
+        url: '/audiences/AUD-0001'
+      });
+      assert.equal(audBefore.status, 200);
+      const initialReachable = audBefore.body.data.reachable_count;
+
+      // Toggle MEM-0002 from opted_out: false to opted_out: true
+      const patchOptOut = await dispatch(audiencesRouter, {
+        method: 'PATCH',
+        url: '/audiences/AUD-0001/members/MEM-0002',
+        body: { opted_out: true }
+      });
+      assert.equal(patchOptOut.status, 200);
+      assert.equal(patchOptOut.body.data.opted_out, true);
+
+      // Verify reachable count decreased by 1
+      const audAfterOptOut = await dispatch(audiencesRouter, {
+        method: 'GET',
+        url: '/audiences/AUD-0001'
+      });
+      assert.equal(audAfterOptOut.body.data.reachable_count, initialReachable - 1);
+
+      // Toggle MEM-0002 back to opted_out: false
+      const patchOptIn = await dispatch(audiencesRouter, {
+        method: 'PATCH',
+        url: '/audiences/AUD-0001/members/MEM-0002',
+        body: { opted_out: false }
+      });
+      assert.equal(patchOptIn.status, 200);
+      assert.equal(patchOptIn.body.data.opted_out, false);
+
+      // Verify reachable count restored
+      const audAfterOptIn = await dispatch(audiencesRouter, {
+        method: 'GET',
+        url: '/audiences/AUD-0001'
+      });
+      assert.equal(audAfterOptIn.body.data.reachable_count, initialReachable);
+    });
+
+    it('POST /audiences/:id/import-segment returns 404 for non-existent audience', async () => {
+      const res = await dispatch(audiencesRouter, {
+        method: 'POST',
+        url: '/audiences/AUD-9999/import-segment',
+        body: { segment_id: 'SEG-0001' }
+      });
+      assert.equal(res.status, 404);
+      assert.ok(res.body.error);
+    });
+  });
 });
