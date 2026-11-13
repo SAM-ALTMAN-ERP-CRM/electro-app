@@ -219,14 +219,18 @@ router.get('/attendance/summary', async (req, res) => {
       SELECT
         e.id AS employee_id,
         e.name,
+        e.department_id,
+        d.name AS department_name,
         COUNT(CASE WHEN a.status = 'present' THEN 1 END)::INT AS present_days,
         COUNT(CASE WHEN a.status = 'half_day' THEN 1 END)::INT AS half_days,
         COUNT(CASE WHEN a.status = 'absent' THEN 1 END)::INT AS absent_days,
-        COUNT(CASE WHEN a.status = 'leave' THEN 1 END)::INT AS leave_days
+        COUNT(CASE WHEN a.status = 'leave' THEN 1 END)::INT AS leave_days,
+        COUNT(a.id)::INT AS total_days
       FROM employees e
+      LEFT JOIN departments d ON d.id = e.department_id
       LEFT JOIN attendance a ON a.employee_id = e.id AND to_char(a.date, 'YYYY-MM') = $1
       WHERE e.active = true
-      GROUP BY e.id, e.name
+      GROUP BY e.id, e.name, e.department_id, d.name
       ORDER BY e.id ASC
     `;
 
