@@ -183,19 +183,31 @@ router.get('/dashboard/sales-summary', async (req, res) => {
     try {
       leads = await callService('crm1', '/api/leads', { mock: 'leads' });
     } catch (err) {
-      console.warn('[crm5] Could not fetch crm1 leads, will use mock if needed:', err.message);
+      try {
+        leads = await callService('crm5', '/api/leads', { mock: 'leads' });
+      } catch (err2) {
+        console.warn('[crm5] Could not fetch crm1 leads, will use mock if needed:', err.message);
+      }
     }
 
     try {
       opportunities = await callService('crm1', '/api/opportunities', { mock: 'opportunities' });
     } catch (err) {
-      console.warn('[crm5] Could not fetch crm1 opportunities, will use mock if needed:', err.message);
+      try {
+        opportunities = await callService('crm5', '/api/opportunities', { mock: 'opportunities' });
+      } catch (err2) {
+        console.warn('[crm5] Could not fetch crm1 opportunities, will use mock if needed:', err.message);
+      }
     }
 
     try {
       quotes = await callService('crm1', '/api/quotes', { mock: 'quotes' });
     } catch (err) {
-      console.warn('[crm5] Could not fetch crm1 quotes, will use mock if needed:', err.message);
+      try {
+        quotes = await callService('crm5', '/api/quotes', { mock: 'quotes' });
+      } catch (err2) {
+        console.warn('[crm5] Could not fetch crm1 quotes, will use mock if needed:', err.message);
+      }
     }
 
     const mock = loadMockSummary();
@@ -244,6 +256,7 @@ router.get('/dashboard/sales-summary', async (req, res) => {
       .filter(o => o.stage === 'won')
       .reduce((sum, o) => sum + (Number(o.expected_value) || 0), 0);
     const acceptedQuotes = finalQuotes.filter(q => q.status === 'accepted').length;
+    const sentQuotes = finalQuotes.filter(q => q.status === 'sent' || q.status === 'accepted').length;
 
     const summary = {
       range,
@@ -251,6 +264,8 @@ router.get('/dashboard/sales-summary', async (req, res) => {
       open_opportunities: openOppsCount,
       won_value: Number(wonValue.toFixed(2)),
       quotes_accepted: acceptedQuotes,
+      quotes_sent: sentQuotes,
+      total_quotes: finalQuotes.length,
       opportunities_by_stage: opportunitiesByStage,
       recent_opportunities: finalOpps.slice(0, 10)
     };
@@ -263,10 +278,10 @@ router.get('/dashboard/sales-summary', async (req, res) => {
 });
 
 /**
- * POST /api/dashboard/snapshot
+ * POST /api/dashboard/snapshot & /api/dashboard/snapshots
  * Captures and saves current dashboard metrics and selected date range into the database.
  */
-router.post('/dashboard/snapshot', async (req, res) => {
+async function createSnapshot(req, res) {
   try {
     const range = req.body.range || (req.body.metrics && req.body.metrics.range) || 'all_time';
     const validRanges = ['this_week', 'this_month', 'all_time'];
@@ -298,6 +313,7 @@ router.post('/dashboard/snapshot', async (req, res) => {
       open_opportunities: Number(metrics.open_opportunities) || 0,
       won_value: Number(Number(metrics.won_value || 0).toFixed(2)),
       quotes_accepted: Number(metrics.quotes_accepted) || 0,
+      quotes_sent: Number(metrics.quotes_sent) || Number(metrics.quotes_accepted) || 0,
       opportunities_by_stage: metrics.opportunities_by_stage || []
     };
 
@@ -352,13 +368,16 @@ router.post('/dashboard/snapshot', async (req, res) => {
     console.error('[crm5] Error creating snapshot:', error.message);
     return res.status(500).json({ error: 'Failed to save snapshot' });
   }
-});
+}
+
+router.post('/dashboard/snapshot', createSnapshot);
+router.post('/dashboard/snapshots', createSnapshot);
 
 /**
- * GET /api/dashboard/snapshots
+ * GET /api/dashboard/snapshots & /api/dashboard/snapshot
  * Returns historical saved snapshots in descending creation-time order.
  */
-router.get('/dashboard/snapshots', async (req, res) => {
+async function listSnapshots(req, res) {
   try {
     if (pool) {
       try {
@@ -389,7 +408,10 @@ router.get('/dashboard/snapshots', async (req, res) => {
     console.error('[crm5] Error retrieving snapshots:', error.message);
     return res.status(500).json({ error: 'Failed to retrieve snapshots' });
   }
-});
+}
+
+router.get('/dashboard/snapshots', listSnapshots);
+router.get('/dashboard/snapshot', listSnapshots);
 
 router.getDateRangeBoundaries = getDateRangeBoundaries;
 router.filterByCreatedAt = filterByCreatedAt;
