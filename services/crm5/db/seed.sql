@@ -34,7 +34,7 @@ VALUES
   ('RPT-0001', 'Leads by Source', 'CRM-1', 'sales,admin'),
   ('RPT-0002', 'Tickets by Status', 'CRM-2', 'support,admin'),
   ('RPT-0003', 'Customers by Type', 'CRM-3', 'sales,support,admin')
-ON CONFLICT DO NOTHING;
+ON CONFLICT (id) DO NOTHING;
 
 -- Sync PostgreSQL sequences past seeded IDs so new inserts do not collide on primary keys
 SELECT setval('snapshot_seq', GREATEST(1, (SELECT COALESCE(MAX(CAST(SUBSTRING(id FROM 5) AS INTEGER)), 0) FROM dashboard_snapshots WHERE id ~ '^SNP-[0-9]+$')));

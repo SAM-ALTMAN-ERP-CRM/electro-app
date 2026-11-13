@@ -1,0 +1,136 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 650" width="100%" height="100%">
+  <defs>
+    <style>
+      .bg { fill: #f1f5f9; }
+      .sheet { fill: #ffffff; stroke: #cbd5e1; stroke-width: 1; rx: 4px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.05)); }
+      .title { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-weight: 800; font-size: 16px; fill: #0f172a; }
+      .doc-type { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-weight: 800; font-size: 16px; fill: #2563eb; letter-spacing: 0.5px; }
+      .subtitle { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 11px; fill: #475569; }
+      .th { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-weight: 700; font-size: 10px; fill: #334155; text-transform: uppercase; }
+      .td { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 11px; fill: #1e293b; }
+      .td-mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; fill: #0f172a; font-weight: 600; }
+      .btn-primary { fill: #2563eb; rx: 4px; }
+      .btn-primary-text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-weight: 600; font-size: 11px; fill: #ffffff; }
+      .box { fill: #f8fafc; stroke: #e2e8f0; stroke-width: 1; rx: 4px; }
+      .badge-green { fill: #dcfce7; rx: 4px; }
+      .badge-green-text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-weight: 600; font-size: 10px; fill: #15803d; }
+    </style>
+  </defs>
+
+  <!-- Background Canvas -->
+  <rect width="1000" height="650" class="bg" />
+
+  <!-- Screen Top Bar & Print Trigger -->
+  <g transform="translate(180, 15)">
+    <text x="0" y="20" class="subtitle" font-weight="600" fill="#2563eb">← Back to Dispatches</text>
+    <rect x="520" y="2" width="130" height="28" class="btn-primary" />
+    <text x="532" y="20" class="btn-primary-text">🖨️ Print Dispatch Note</text>
+  </g>
+
+  <!-- Printable A4 Sheet Simulation -->
+  <g transform="translate(180, 50)">
+    <rect x="0" y="0" width="650" height="580" class="sheet" />
+
+    <!-- Document Header -->
+    <g transform="translate(25, 25)">
+      <text x="0" y="16" class="title">⚡ ELECTRO ENTERPRISES PVT LTD</text>
+      <text x="0" y="32" class="subtitle">Central Warehouse WH-01 · MIDC Industrial Area, Mumbai 400093</text>
+      <text x="0" y="46" class="subtitle">GSTIN: <tspan font-weight="600" fill="#0f172a">27AAACE1234F1Z8</tspan> · Tel: +91 22 4900 8800</text>
+
+      <text x="460" y="16" class="doc-type">DISPATCH NOTE</text>
+      <text x="460" y="32" class="subtitle" font-weight="600">Delivery Challan &amp; Packing Slip</text>
+      <rect x="520" y="38" width="70" height="18" class="badge-green" />
+      <text x="532" y="51" class="badge-green-text">delivered</text>
+
+      <line x1="0" y1="65" x2="600" y2="65" stroke="#0f172a" stroke-width="2" />
+    </g>
+
+    <!-- Metadata Grid: Logistics & Customer -->
+    <g transform="translate(25, 105)">
+      <!-- Left Box: Logistics -->
+      <rect x="0" y="0" width="290" height="95" class="box" />
+      <text x="12" y="18" class="th" fill="#2563eb">Consignment &amp; Logistics</text>
+      <line x1="12" y1="24" x2="278" y2="24" stroke="#e2e8f0" />
+      <text x="12" y="42" class="subtitle">Dispatch ID:</text>
+      <text x="100" y="42" class="td-mono">DSP-0001</text>
+      <text x="12" y="58" class="subtitle">Sales Order:</text>
+      <text x="100" y="58" class="td-mono" fill="#2563eb">SO-0001</text>
+      <text x="12" y="74" class="subtitle">Ship Date:</text>
+      <text x="100" y="74" class="td">2026-10-02</text>
+      <text x="12" y="90" class="subtitle">Courier &amp; AWB:</text>
+      <text x="100" y="90" class="td">BlueDart (<tspan class="td-mono">TRK-DSP-0001</tspan>)</text>
+
+      <!-- Right Box: Consignee & Shipping Destination -->
+      <rect x="310" y="0" width="290" height="95" class="box" />
+      <text x="322" y="18" class="th" fill="#2563eb">Consignee &amp; Destination</text>
+      <line x1="322" y1="24" x2="588" y2="24" stroke="#e2e8f0" />
+      <text x="322" y="42" class="subtitle">Customer:</text>
+      <text x="390" y="42" class="td" font-weight="700">Aarav Mehta (CUST-0001)</text>
+      <text x="322" y="58" class="subtitle">GSTIN:</text>
+      <text x="390" y="58" class="subtitle">Consumer / Unregistered</text>
+      <text x="322" y="74" class="subtitle">Address:</text>
+      <text x="390" y="74" class="td" font-size="10px">1201 Marina Bay, Bandra West</text>
+      <text x="390" y="87" class="td" font-size="10px">Mumbai, Maharashtra 400050</text>
+    </g>
+
+    <!-- Dispatched Items Table -->
+    <g transform="translate(25, 215)">
+      <text x="0" y="15" class="th">Dispatched Line Items</text>
+
+      <rect x="0" y="25" width="600" height="90" class="box" />
+      <!-- Header -->
+      <rect x="1" y="26" width="598" height="22" fill="#e2e8f0" rx="3" />
+      <text x="12" y="41" class="th">#</text>
+      <text x="35" y="41" class="th">SKU CODE</text>
+      <text x="120" y="41" class="th">PRODUCT DESCRIPTION</text>
+      <text x="380" y="41" class="th">QTY</text>
+      <text x="440" y="41" class="th">UNIT PRICE</text>
+      <text x="530" y="41" class="th">TOTAL (₹)</text>
+
+      <!-- Row 1 -->
+      <text x="12" y="66" class="subtitle">1</text>
+      <text x="35" y="66" class="td-mono">SKU-0001</text>
+      <text x="120" y="66" class="td">55-inch 4K Smart TV</text>
+      <text x="380" y="66" class="td" font-weight="700">1</text>
+      <text x="440" y="66" class="td">₹42,990.00</text>
+      <text x="530" y="66" class="td" font-weight="700">₹42,990.00</text>
+
+      <!-- Table Total Footer -->
+      <line x1="0" y1="85" x2="600" y2="85" stroke="#cbd5e1" />
+      <text x="350" y="103" class="subtitle" font-weight="700">Total Units Dispatched: 1 Unit</text>
+    </g>
+
+    <!-- Serial Numbers Box -->
+    <g transform="translate(25, 345)">
+      <rect x="0" y="0" width="600" height="55" fill="#fafafa" stroke="#cbd5e1" stroke-dasharray="4 3" rx="4" />
+      <text x="15" y="18" class="th">Allocated Serial Numbers (1 Unit)</text>
+      <rect x="15" y="26" width="180" height="20" fill="#ffffff" stroke="#cbd5e1" rx="3" />
+      <text x="25" y="40" class="td-mono">SKU-0001: TV55-2611-0001</text>
+    </g>
+
+    <!-- Signatures Block -->
+    <g transform="translate(25, 425)">
+      <line x1="0" y1="0" x2="600" y2="0" stroke="#cbd5e1" />
+
+      <!-- Sig 1: Warehouse Officer -->
+      <line x1="20" y1="45" x2="160" y2="45" stroke="#94a3b8" />
+      <text x="30" y="60" class="td" font-weight="700">Dispatch Officer</text>
+      <text x="25" y="74" class="subtitle">Warehouse WH-01 (Mumbai)</text>
+
+      <!-- Sig 2: Courier Carrier -->
+      <line x1="230" y1="45" x2="370" y2="45" stroke="#94a3b8" />
+      <text x="240" y="60" class="td" font-weight="700">Courier Carrier Agent</text>
+      <text x="245" y="74" class="subtitle">BlueDart Pickup Officer</text>
+
+      <!-- Sig 3: Consignee -->
+      <line x1="440" y1="45" x2="580" y2="45" stroke="#94a3b8" />
+      <text x="445" y="60" class="td" font-weight="700">Receiver Stamp &amp; Sign</text>
+      <text x="440" y="74" class="subtitle">Goods in Good Condition</text>
+
+      <!-- Statutory footer -->
+      <text x="80" y="115" class="subtitle" font-size="9px" fill="#94a3b8">
+        This computer-generated delivery challan is issued under Section 31 of CGST Act 2017 for goods transport.
+      </text>
+    </g>
+  </g>
+</svg>

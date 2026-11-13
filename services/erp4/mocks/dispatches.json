@@ -1,0 +1,67 @@
+[
+  {
+    "dispatch_id": "DSP-0001",
+    "so_id": "SO-0001",
+    "serial_number": "TV55-2611-0001",
+    "sku": "SKU-0001",
+    "customer_id": "CUST-0001",
+    "ship_date": "2026-10-02",
+    "delivered_date": "2026-10-04",
+    "courier": "BlueDart",
+    "tracking_no": "BD-98210341",
+    "status": "delivered",
+    "address": "1201 Marina Bay, Bandra West, Mumbai 400050"
+  },
+  {
+    "dispatch_id": "DSP-0002",
+    "so_id": "SO-0002",
+    "serial_number": "TV55-2611-0002",
+    "sku": "SKU-0001",
+    "customer_id": "CUST-0002",
+    "ship_date": "2026-10-06",
+    "delivered_date": "2026-10-08",
+    "courier": "Delhivery",
+    "tracking_no": "DL-44820192",
+    "status": "delivered",
+    "address": "Plot 45, MIDC Industrial Area, Andheri East, Mumbai 400093"
+  },
+  {
+    "dispatch_id": "DSP-0003",
+    "so_id": "SO-0003",
+    "serial_number": "TV55-2611-0003",
+    "sku": "SKU-0001",
+    "customer_id": "CUST-0003",
+    "ship_date": "2026-10-11",
+    "delivered_date": "2026-10-13",
+    "courier": "DTDC",
+    "tracking_no": "DT-77192033",
+    "status": "delivered",
+    "address": "8B Palm Meadows, Panampilly Nagar, Kochi 682036"
+  },
+  {
+    "dispatch_id": "DSP-0004",
+    "so_id": "SO-0004",
+    "serial_number": "TV55-2611-0004",
+    "sku": "SKU-0001",
+    "customer_id": "CUST-0004",
+    "ship_date": "2026-10-16",
+    "delivered_date": null,
+    "courier": "BlueDart",
+    "tracking_no": "BD-11209384",
+    "status": "shipped",
+    "address": "Shop 12-14, Phoenix Market City, Viman Nagar, Pune 411014"
+  },
+  {
+    "dispatch_id": "DSP-0005",
+    "so_id": "SO-0005",
+    "serial_number": "TV55-2611-0005",
+    "sku": "SKU-0001",
+    "customer_id": "CUST-0005",
+    "ship_date": "2026-10-21",
+    "delivered_date": null,
+    "courier": "Delhivery",
+    "tracking_no": "DL-88291044",
+    "status": "shipped",
+    "address": "504 Sunrise Heights, Bodakdev, Ahmedabad 380054"
+  }
+]

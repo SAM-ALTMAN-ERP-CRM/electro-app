@@ -1,6 +1,7 @@
 import React from 'react';
 import SuppliersPage from './pages/SuppliersPage';
 import SupplierDetailPage from './pages/SupplierDetailPage';
+import RequestsPage from './pages/RequestsPage';
 
 /**
  * ERP-2 Purchasing and Suppliers module registration.
@@ -29,6 +30,11 @@ export default {
     {
       path: 'suppliers/:id',
       element: <SupplierDetailPage />
+    },
+    {
+      path: 'requests',
+      label: 'Purchase requests',
+      element: <RequestsPage />
     }
   ]
 };

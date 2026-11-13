@@ -1,0 +1,515 @@
+{
+  "info": {
+    "name": "CRM-4 Marketing & Engagement API Collection",
+    "_postman_id": "crm4-marketing-api-v1",
+    "description": "Comprehensive Postman test collection for CRM-4 Marketing & Engagement microservice (Port 5104) covering Campaigns, Audiences, Templates, Enquiries, Surveys, and Section 7 cross-team verification.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5104",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "dev_test_token",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Health & Diagnostics",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "health"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Campaigns API ([CRM4-A1], [CRM4-A3])",
+      "item": [
+        {
+          "name": "List Campaigns",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/campaigns",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "campaigns"]
+            }
+          }
+        },
+        {
+          "name": "Get Campaign by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/campaigns/CMP-0001",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "campaigns", "CMP-0001"]
+            }
+          }
+        },
+        {
+          "name": "Create Campaign",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Commercial Display Upgrade\",\n  \"objective\": \"B2B display promotional discounts\",\n  \"channel\": \"email\",\n  \"status\": \"draft\",\n  \"segment_id\": \"SEG-0002\",\n  \"template_id\": \"TPL-0001\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/campaigns",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "campaigns"]
+            }
+          }
+        },
+        {
+          "name": "Update Campaign Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"scheduled\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/campaigns/CMP-0003/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "campaigns", "CMP-0003", "status"]
+            }
+          }
+        },
+        {
+          "name": "Simulate Campaign Send Broadcast",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/campaigns/CMP-0002/send",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "campaigns", "CMP-0002", "send"]
+            }
+          }
+        },
+        {
+          "name": "Get Campaign Sent Messages",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/campaigns/CMP-0001/messages",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "campaigns", "CMP-0001", "messages"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Audiences & Members API ([CRM4-B1], [CRM4-B3])",
+      "item": [
+        {
+          "name": "List Audiences",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/audiences",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "audiences"]
+            }
+          }
+        },
+        {
+          "name": "Get Audience by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/audiences/AUD-0001",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "audiences", "AUD-0001"]
+            }
+          }
+        },
+        {
+          "name": "Create Audience",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Smart Home Retail Leads\",\n  \"description\": \"Buyers looking for IoT smart kitchen tech\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/audiences",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "audiences"]
+            }
+          }
+        },
+        {
+          "name": "Get Audience Members",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/audiences/AUD-0001/members",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "audiences", "AUD-0001", "members"]
+            }
+          }
+        },
+        {
+          "name": "Add Audience Member",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customer_id\": \"CUST-0005\",\n  \"name\": \"Kiran Patel\",\n  \"email\": \"kiran.patel@example.com\",\n  \"phone\": \"9879156789\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/audiences/AUD-0002/members",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "audiences", "AUD-0002", "members"]
+            }
+          }
+        },
+        {
+          "name": "Toggle Member Opt-Out",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"opted_out\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/audiences/AUD-0001/members/MEM-0001",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "audiences", "AUD-0001", "members", "MEM-0001"]
+            }
+          }
+        },
+        {
+          "name": "Import Segment to Audience",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"segment_id\": \"SEG-0001\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/audiences/AUD-0001/import-segment",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "audiences", "AUD-0001", "import-segment"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Templates & Renderer API ([CRM4-C1], [CRM4-C3])",
+      "item": [
+        {
+          "name": "List Templates",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/templates",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "templates"]
+            }
+          }
+        },
+        {
+          "name": "Get Template by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/templates/TPL-0001",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "templates", "TPL-0001"]
+            }
+          }
+        },
+        {
+          "name": "Create Template",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"AMC Renewal Notice\",\n  \"channel\": \"sms\",\n  \"subject\": null,\n  \"body\": \"Dear {{name}}, protect your {{product}} today! {{offer}}. Reply YES.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/templates",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "templates"]
+            }
+          }
+        },
+        {
+          "name": "Render Template with Placeholders",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Aarav Mehta\",\n  \"product\": \"55-inch Smart LED TV\",\n  \"offer\": \"Flat ₹3,000 Off\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/templates/TPL-0001/render",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "templates", "TPL-0001", "render"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Enquiries & Lead Capture API ([CRM4-B4])",
+      "item": [
+        {
+          "name": "List Enquiries",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/enquiries",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "enquiries"]
+            }
+          }
+        },
+        {
+          "name": "Submit Enquiry (Creates CRM-1 Lead)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Rajiv Verma\",\n  \"phone\": \"9820066666\",\n  \"email\": \"rajiv.verma@example.com\",\n  \"source\": \"web\",\n  \"product_interest\": \"SKU-0001\",\n  \"notes\": \"Interested in smart TV festive offer\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/enquiries",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "enquiries"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Surveys & NPS API ([CRM4-D1], [CRM4-D3])",
+      "item": [
+        {
+          "name": "List Surveys",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/surveys",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "surveys"]
+            }
+          }
+        },
+        {
+          "name": "Get Survey Responses",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/surveys/SRV-0001/responses",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "surveys", "SRV-0001", "responses"]
+            }
+          }
+        },
+        {
+          "name": "Record Survey Response",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customer_id\": \"CUST-0001\",\n  \"score\": 10,\n  \"comment\": \"Exceptional installation and wall-mount support!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/surveys/SRV-0001/responses",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "surveys", "SRV-0001", "responses"]
+            }
+          }
+        },
+        {
+          "name": "Get NPS Survey Results",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/surveys/SRV-0001/results",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "surveys", "SRV-0001", "results"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "7. Section 7 Cross-Team Verification (Rows 2, 4, 8, 9)",
+      "item": [
+        {
+          "name": "Row 2: Product Catalog (ERP-1)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "http://localhost:5201/api/products",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "5201",
+              "path": ["api", "products"]
+            }
+          }
+        },
+        {
+          "name": "Row 4: Post Timeline Interaction (CRM-3)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customer_id\": \"CUST-0001\",\n  \"type\": \"email\",\n  \"summary\": \"Campaign CMP-0001 sent\",\n  \"source_team\": \"CRM-4\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:5103/api/interactions/from-event",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "5103",
+              "path": ["api", "interactions", "from-event"]
+            }
+          }
+        },
+        {
+          "name": "Row 8: Query Segment Customers (CRM-3)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "http://localhost:5103/api/segments/SEG-0001/customers",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "5103",
+              "path": ["api", "segments", "SEG-0001", "customers"]
+            }
+          }
+        },
+        {
+          "name": "Row 9: Create Lead from Enquiry (CRM-1)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Rajiv Verma\",\n  \"phone\": \"9820066666\",\n  \"email\": \"rajiv.verma@example.com\",\n  \"source\": \"web\",\n  \"product_interest\": \"SKU-0001\",\n  \"sales_rep_id\": \"EMP-0001\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:5101/api/leads",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "5101",
+              "path": ["api", "leads"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

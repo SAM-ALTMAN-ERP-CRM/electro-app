@@ -81,7 +81,63 @@ SELECT setval(
   )
 );
 
--- 4. Salary Slips Seed (Build Issues: [ERP6-C1] & [ERP6-C3])
+-- 4. Attendance Seed (Build Issue: [ERP6-B1])
+-- Realistic daily logs adhering to shared employee IDs (EMP-0001 to EMP-0004)
+INSERT INTO attendance (
+  id, employee_id, date, status, check_in, check_out
+) VALUES
+  ('ATT-0001', 'EMP-0001', '2026-11-02', 'present', '09:00:00', '18:00:00'),
+  ('ATT-0002', 'EMP-0001', '2026-11-03', 'present', '09:15:00', '18:00:00'),
+  ('ATT-0003', 'EMP-0001', '2026-11-04', 'half_day', '09:00:00', '13:30:00'),
+  ('ATT-0004', 'EMP-0001', '2026-11-05', 'absent', NULL, NULL),
+  ('ATT-0005', 'EMP-0002', '2026-11-02', 'present', '09:05:00', '18:10:00'),
+  ('ATT-0006', 'EMP-0002', '2026-11-03', 'present', '08:55:00', '18:00:00'),
+  ('ATT-0007', 'EMP-0003', '2026-11-02', 'present', '09:00:00', '17:45:00'),
+  ('ATT-0008', 'EMP-0003', '2026-11-03', 'leave', NULL, NULL),
+  ('ATT-0009', 'EMP-0004', '2026-11-02', 'present', '09:30:00', '18:30:00'),
+  ('ATT-0010', 'EMP-0004', '2026-11-03', 'present', '09:00:00', '18:00:00')
+ON CONFLICT (employee_id, date) DO UPDATE SET
+  status = EXCLUDED.status,
+  check_in = EXCLUDED.check_in,
+  check_out = EXCLUDED.check_out,
+  updated_at = NOW();
+
+SELECT setval(
+  'attendance_seq',
+  GREATEST(
+    10,
+    (SELECT COALESCE(MAX(CAST(SUBSTRING(id FROM 5) AS INTEGER)), 0) FROM attendance WHERE id LIKE 'ATT-%')
+  )
+);
+
+-- 5. Leave Requests Seed (Build Issue: [ERP6-B1])
+-- Realistic leave requests adhering to shared employee IDs (EMP-0001 to EMP-0004)
+INSERT INTO leave_requests (
+  id, employee_id, from_date, to_date, type, status, reason
+) VALUES
+  ('LV-0001', 'EMP-0001', '2026-11-20', '2026-11-21', 'casual', 'pending', 'Family function'),
+  ('LV-0002', 'EMP-0002', '2026-11-10', '2026-11-12', 'casual', 'approved', 'Personal travel'),
+  ('LV-0003', 'EMP-0003', '2026-11-03', '2026-11-03', 'sick', 'approved', 'Viral fever'),
+  ('LV-0004', 'EMP-0004', '2026-11-25', '2026-11-26', 'earned', 'rejected', 'Urgent client demos scheduled'),
+  ('LV-0005', 'EMP-0002', '2026-11-27', '2026-11-28', 'sick', 'pending', 'Medical checkup')
+ON CONFLICT (id) DO UPDATE SET
+  employee_id = EXCLUDED.employee_id,
+  from_date = EXCLUDED.from_date,
+  to_date = EXCLUDED.to_date,
+  type = EXCLUDED.type,
+  status = EXCLUDED.status,
+  reason = EXCLUDED.reason,
+  updated_at = NOW();
+
+SELECT setval(
+  'leave_request_seq',
+  GREATEST(
+    5,
+    (SELECT COALESCE(MAX(CAST(SUBSTRING(id FROM 4) AS INTEGER)), 0) FROM leave_requests WHERE id LIKE 'LV-%')
+  )
+);
+
+-- 6. Salary Slips Seed (Build Issues: [ERP6-C1] & [ERP6-C3])
 -- 5 realistic seed rows adhering to shared IDs (EMP-0001 to EMP-0005) for Month 2026-11
 INSERT INTO salary_slips (
   id, employee_id, month, base_salary, hra, allowances, pf_deduction, absent_days, absent_deduction, commission, net_pay, status, generated_at
@@ -109,5 +165,3 @@ SELECT setval(
     (SELECT COALESCE(MAX(CAST(SUBSTRING(id FROM 11) AS INTEGER)), 0) FROM salary_slips WHERE id LIKE 'SLIP-2611-%')
   )
 );
-
-
