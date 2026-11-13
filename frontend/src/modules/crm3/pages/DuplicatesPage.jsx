@@ -4,69 +4,69 @@ import { api } from '../../../api';
 // Realistic Section 5 Shared Seed Contract duplicates fallback
 const SEED_DUPLICATE_GROUPS = [
   {
-    group_id: 'dup-phone-9820011111',
+    group_id: 'dup-phone-9820112345',
     match_field: 'phone',
-    match_value: '9820011111',
-    reason: 'Duplicate Phone Number (9820011111)',
+    match_value: '9820112345',
+    reason: 'Duplicate Phone Number (9820112345)',
     customers: [
       {
         id: 'CUST-0001',
         name: 'Aarav Mehta',
         type: 'retail',
         email: 'aarav.mehta@example.com',
-        phone: '9820011111',
+        phone: '9820112345',
         gstin: null,
-        billing_address: '12 Linking Road, Bandra West',
-        shipping_address: '12 Linking Road, Bandra West',
+        billing_address: '101, Sea View Apartments, Worli',
+        shipping_address: '101, Sea View Apartments, Worli',
         city: 'Mumbai',
-        created_at: '2026-11-01T09:00:00.000Z',
+        created_at: '2026-11-01T10:00:00.000Z',
         contacts_count: 1
       },
       {
         id: 'CUST-0009',
-        name: 'Aarav Mehta (Duplicate)',
+        name: 'Aarav Mehta (Branch)',
         type: 'retail',
-        email: 'aarav.duplicate@example.com',
-        phone: '9820011111',
+        email: 'aarav.alt@example.com',
+        phone: '9820112345',
         gstin: null,
-        billing_address: '12 Linking Road, Bandra West',
-        shipping_address: '12 Linking Road, Bandra West',
+        billing_address: '101, Sea View Apartments, Worli',
+        shipping_address: '101, Sea View Apartments, Worli',
         city: 'Mumbai',
-        created_at: '2026-11-01T09:30:00.000Z',
+        created_at: '2026-11-01T10:40:00.000Z',
         contacts_count: 1
       }
     ]
   },
   {
-    group_id: 'dup-email-contact-sunrise-com',
+    group_id: 'dup-email-purchase-sunrise-com',
     match_field: 'email',
-    match_value: 'contact@sunrise.com',
-    reason: 'Duplicate Email Address (contact@sunrise.com)',
+    match_value: 'purchase@sunrise.com',
+    reason: 'Duplicate Email Address (purchase@sunrise.com)',
     customers: [
       {
         id: 'CUST-0002',
         name: 'Sunrise Electronics Pvt Ltd',
         type: 'corporate',
-        email: 'contact@sunrise.com',
-        phone: '9820022222',
+        email: 'purchase@sunrise.com',
+        phone: '9820223456',
         gstin: '27AABCS1234F1Z5',
-        billing_address: '88 Nariman Point, Express Towers',
-        shipping_address: 'Plot 42 MIDC Andheri East',
+        billing_address: 'Plot 45, MIDC Industrial Area, Andheri East',
+        shipping_address: 'Plot 45, MIDC Industrial Area, Andheri East',
         city: 'Mumbai',
-        created_at: '2026-11-01T09:05:00.000Z',
+        created_at: '2026-11-01T10:05:00.000Z',
         contacts_count: 2
       },
       {
         id: 'CUST-0010',
-        name: 'Sunrise Electronics (Branch)',
+        name: 'Sunrise Electronics Pune Branch',
         type: 'corporate',
-        email: 'contact@sunrise.com',
-        phone: '9820033333',
+        email: 'purchase@sunrise.com',
+        phone: '9820998877',
         gstin: '27AABCS1234F1Z5',
-        billing_address: '18 Senapati Bapat Road',
-        shipping_address: 'Hinjewadi Tech Park Phase 2',
+        billing_address: 'Shop 5, Deccan Gymkhana',
+        shipping_address: 'Shop 5, Deccan Gymkhana',
         city: 'Pune',
-        created_at: '2026-11-01T09:35:00.000Z',
+        created_at: '2026-11-01T10:45:00.000Z',
         contacts_count: 1
       }
     ]

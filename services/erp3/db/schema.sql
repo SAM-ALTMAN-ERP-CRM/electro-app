@@ -2,6 +2,8 @@
 -- Re-runnable: DROP tables in reverse dependency order, then CREATE them.
 
 -- Drop tables in reverse dependency order
+DROP TABLE IF EXISTS material_issues;
+DROP TABLE IF EXISTS work_order_materials;
 DROP TABLE IF EXISTS qc_checks;
 DROP TABLE IF EXISTS work_orders;
 DROP TABLE IF EXISTS bom_items;
@@ -22,6 +24,14 @@ CREATE SEQUENCE work_orders_seq START 1;
 -- Sequence for QC Check IDs: QC-0001, QC-0002, ... [ERP3-D1]
 DROP SEQUENCE IF EXISTS qc_checks_seq;
 CREATE SEQUENCE qc_checks_seq START 1;
+
+-- Sequence for Work Order Material IDs: WOM-0001, WOM-0002, ... [ERP3-B3]
+DROP SEQUENCE IF EXISTS work_order_materials_seq;
+CREATE SEQUENCE work_order_materials_seq START 1;
+
+-- Sequence for Material Issue IDs: MI-0001, MI-0002, ... [ERP3-C1]
+DROP SEQUENCE IF EXISTS material_issues_seq;
+CREATE SEQUENCE material_issues_seq START 1;
 
 -- boms: one row per product version (the "header")
 CREATE TABLE boms (
@@ -85,3 +95,29 @@ CREATE TABLE qc_checks (
 
 CREATE INDEX IF NOT EXISTS idx_qc_checks_wo_id ON qc_checks(wo_id);
 CREATE INDEX IF NOT EXISTS idx_qc_checks_result ON qc_checks(result);
+
+-- work_order_materials: component requirements copied from BOM upon work order creation [ERP3-B3]
+CREATE TABLE work_order_materials (
+  id            TEXT PRIMARY KEY
+                  DEFAULT 'WOM-' || LPAD(nextval('work_order_materials_seq')::TEXT, 4, '0'),
+  wo_id         TEXT           NOT NULL REFERENCES work_orders(id) ON DELETE CASCADE,
+  component_sku TEXT           NOT NULL,
+  required_qty  NUMERIC(10, 3) NOT NULL CHECK (required_qty >= 0),
+  issued_qty    NUMERIC(10, 3) NOT NULL DEFAULT 0 CHECK (issued_qty >= 0)
+);
+
+CREATE INDEX IF NOT EXISTS idx_wom_wo_id ON work_order_materials(wo_id);
+CREATE INDEX IF NOT EXISTS idx_wom_component_sku ON work_order_materials(component_sku);
+
+-- material_issues: logs raw materials issued to a work order [ERP3-C1]
+CREATE TABLE material_issues (
+  id            TEXT PRIMARY KEY
+                  DEFAULT 'MI-' || LPAD(nextval('material_issues_seq')::TEXT, 4, '0'),
+  wo_id         TEXT           NOT NULL REFERENCES work_orders(id) ON DELETE CASCADE,
+  component_sku TEXT           NOT NULL,
+  qty           NUMERIC(10, 3) NOT NULL CHECK (qty > 0),
+  issued_at     TIMESTAMPTZ    NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_material_issues_wo_id ON material_issues(wo_id);
+CREATE INDEX IF NOT EXISTS idx_material_issues_component_sku ON material_issues(component_sku);

@@ -1,0 +1,112 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="620" viewBox="0 0 960 620" role="img" aria-labelledby="title desc">
+  <title id="title">CRM-4 Message Templates Studio Wireframe</title>
+  <desc id="desc">Wireframe layout for /crm4/templates (Template List, Live Preview &amp; Placeholder Validation)</desc>
+  <rect width="960" height="620" fill="#f8fafc"/>
+  <rect x="20" y="16" width="920" height="588" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5"/>
+
+  <!-- Top bar / Page Header -->
+  <text x="50" y="55" font-family="system-ui, -apple-system, sans-serif" font-size="22" font-weight="700" fill="#0f172a">Message Templates</text>
+  <rect x="300" y="38" width="70" height="24" rx="12" fill="#dbeafe"/>
+  <text x="315" y="54" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="600" fill="#1d4ed8">CRM-4</text>
+  <text x="50" y="80" font-family="system-ui, -apple-system, sans-serif" font-size="13" fill="#64748b">Author multi-channel templates with {{name}}, {{product}}, {{offer}} placeholders &amp; live render preview</text>
+  <line x1="50" y1="96" x2="910" y2="96" stroke="#e2e8f0" stroke-width="1"/>
+
+  <!-- Top: Templates Summary Table -->
+  <rect x="50" y="108" width="860" height="152" rx="6" fill="#ffffff" stroke="#e2e8f0"/>
+  <rect x="50" y="108" width="860" height="30" rx="6" fill="#f8fafc"/>
+  <text x="65" y="128" font-family="system-ui, -apple-system, sans-serif" font-size="10" font-weight="700" fill="#64748b">ID</text>
+  <text x="145" y="128" font-family="system-ui, -apple-system, sans-serif" font-size="10" font-weight="700" fill="#64748b">TEMPLATE NAME</text>
+  <text x="310" y="128" font-family="system-ui, -apple-system, sans-serif" font-size="10" font-weight="700" fill="#64748b">CHANNEL</text>
+  <text x="410" y="128" font-family="system-ui, -apple-system, sans-serif" font-size="10" font-weight="700" fill="#64748b">SUBJECT / BODY SNIPPET</text>
+  <text x="730" y="128" font-family="system-ui, -apple-system, sans-serif" font-size="10" font-weight="700" fill="#64748b">LENGTH</text>
+  <text x="830" y="128" font-family="system-ui, -apple-system, sans-serif" font-size="10" font-weight="700" fill="#64748b">ACTIONS</text>
+  <line x1="50" y1="138" x2="910" y2="138" stroke="#e2e8f0"/>
+
+  <!-- Row 1 -->
+  <text x="65" y="160" font-family="monospace" font-size="11" font-weight="600" fill="#0f172a">TPL-0001</text>
+  <text x="145" y="160" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#0f172a">Product Launch</text>
+  <rect x="310" y="148" width="65" height="16" rx="8" fill="#dcfce7"/>
+  <text x="318" y="160" font-family="system-ui, -apple-system, sans-serif" font-size="9" font-weight="600" fill="#15803d">whatsapp</text>
+  <text x="410" y="160" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#475569">Hi {{name}}! Check out our newest {{product}} with {{offer}}...</text>
+  <text x="730" y="160" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#64748b">84 chars</text>
+  <text x="830" y="160" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#2563eb">Edit</text>
+  <line x1="50" y1="172" x2="910" y2="172" stroke="#f1f5f9"/>
+
+  <!-- Row 2 -->
+  <text x="65" y="194" font-family="monospace" font-size="11" font-weight="600" fill="#0f172a">TPL-0002</text>
+  <text x="145" y="194" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#0f172a">Festive Special Offer</text>
+  <rect x="310" y="182" width="55" height="16" rx="8" fill="#dbeafe"/>
+  <text x="322" y="194" font-family="system-ui, -apple-system, sans-serif" font-size="9" font-weight="600" fill="#1d4ed8">email</text>
+  <text x="410" y="194" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#475569">Subject: Exclusive {{offer}} on {{product}} for {{name}}</text>
+  <text x="730" y="194" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#64748b">195 chars</text>
+  <text x="830" y="194" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#2563eb">Edit</text>
+  <line x1="50" y1="206" x2="910" y2="206" stroke="#f1f5f9"/>
+
+  <!-- Row 3 -->
+  <text x="65" y="228" font-family="monospace" font-size="11" font-weight="600" fill="#0f172a">TPL-0003</text>
+  <text x="145" y="228" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#0f172a">Warranty Care SMS</text>
+  <rect x="310" y="216" width="45" height="16" rx="8" fill="#fef3c7"/>
+  <text x="322" y="228" font-family="system-ui, -apple-system, sans-serif" font-size="9" font-weight="600" fill="#b45309">sms</text>
+  <text x="410" y="228" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#475569">Dear {{name}}, protect your {{product}} with our {{offer}}. Call 1800...</text>
+  <text x="730" y="228" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#15803d">95/160</text>
+  <text x="830" y="228" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#2563eb">Edit</text>
+
+  <!-- Bottom Split Pane: Left Editor, Right Live Render Preview -->
+  <!-- Left Editor -->
+  <rect x="50" y="272" width="470" height="315" rx="6" fill="#f8fafc" stroke="#e2e8f0"/>
+  <text x="70" y="296" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="700" fill="#0f172a">Template Editor</text>
+
+  <text x="70" y="322" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#475569">Template Name *</text>
+  <rect x="70" y="330" width="220" height="26" rx="4" fill="#ffffff" stroke="#cbd5e1"/>
+  <text x="80" y="347" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#0f172a">Warranty Care SMS</text>
+
+  <text x="305" y="322" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#475569">Channel *</text>
+  <rect x="305" y="330" width="195" height="26" rx="4" fill="#ffffff" stroke="#cbd5e1"/>
+  <text x="315" y="347" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#0f172a">SMS (160 char limit) ▼</text>
+
+  <text x="70" y="375" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#475569">Insert Dynamic Placeholders:</text>
+  <!-- Placeholder Quick Insert Buttons -->
+  <rect x="70" y="383" width="75" height="22" rx="4" fill="#e2e8f0"/>
+  <text x="77" y="398" font-family="monospace" font-size="10" font-weight="600" fill="#1e293b">+ {{name}}</text>
+  <rect x="155" y="383" width="85" height="22" rx="4" fill="#e2e8f0"/>
+  <text x="162" y="398" font-family="monospace" font-size="10" font-weight="600" fill="#1e293b">+ {{product}}</text>
+  <rect x="250" y="383" width="75" height="22" rx="4" fill="#e2e8f0"/>
+  <text x="258" y="398" font-family="monospace" font-size="10" font-weight="600" fill="#1e293b">+ {{offer}}</text>
+
+  <text x="70" y="425" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#475569">Message Body *</text>
+  <rect x="70" y="433" width="430" height="85" rx="4" fill="#ffffff" stroke="#cbd5e1"/>
+  <text x="80" y="453" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#0f172a">Dear {{name}}, extend warranty for your {{product}} today!</text>
+  <text x="80" y="471" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#0f172a">Avail our exclusive {{offer}}. Reply YES or call 1800-ELECTRO.</text>
+
+  <!-- SMS Counter & Actions -->
+  <text x="70" y="534" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#15803d">Char Count: 114 / 160 (Within SMS Limit)</text>
+  <rect x="70" y="546" width="130" height="28" rx="4" fill="#2563eb"/>
+  <text x="95" y="564" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#ffffff">Save Template</text>
+  <rect x="210" y="546" width="80" height="28" rx="4" fill="#e2e8f0"/>
+  <text x="232" y="564" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#334155">Reset</text>
+
+  <!-- Right: Live Render Preview (CRM4-C3) -->
+  <rect x="540" y="272" width="370" height="315" rx="6" fill="#ffffff" stroke="#e2e8f0"/>
+  <rect x="540" y="272" width="370" height="34" rx="6" fill="#f8fafc"/>
+  <text x="555" y="294" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="700" fill="#0f172a">📱 Live Message Render Preview</text>
+  <line x1="540" y1="306" x2="910" y2="306" stroke="#e2e8f0"/>
+
+  <!-- Sample Values Tested -->
+  <text x="555" y="328" font-family="system-ui, -apple-system, sans-serif" font-size="10" font-weight="600" fill="#64748b">SAMPLE SUBSTITUTION VALUES:</text>
+  <text x="555" y="346" font-family="system-ui, -apple-system, sans-serif" font-size="10" fill="#334155"><tspan font-weight="600">{{name}}:</tspan> Aarav Mehta</text>
+  <text x="555" y="362" font-family="system-ui, -apple-system, sans-serif" font-size="10" fill="#334155"><tspan font-weight="600">{{product}}:</tspan> Smart LED TV 55"</text>
+  <text x="555" y="378" font-family="system-ui, -apple-system, sans-serif" font-size="10" fill="#334155"><tspan font-weight="600">{{offer}}:</tspan> Festive 15% Off</text>
+
+  <!-- Rendered Bubble Mockup -->
+  <rect x="555" y="396" width="340" height="110" rx="8" fill="#eff6ff" stroke="#bfdbfe"/>
+  <text x="570" y="418" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="700" fill="#1e40af">SMS from: ELECTRO-CARE</text>
+  <text x="570" y="438" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#0f172a">Dear <tspan font-weight="600" fill="#2563eb">Aarav Mehta</tspan>, extend warranty for</text>
+  <text x="570" y="456" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#0f172a">your <tspan font-weight="600" fill="#2563eb">Smart LED TV 55"</tspan> today! Avail our</text>
+  <text x="570" y="474" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#0f172a">exclusive <tspan font-weight="600" fill="#2563eb">Festive 15% Off</tspan>. Call 1800-ELECTRO.</text>
+  <text x="570" y="496" font-family="system-ui, -apple-system, sans-serif" font-size="9" fill="#64748b">Delivered • Today 10:15 AM</text>
+
+  <!-- Validation Status Box -->
+  <rect x="555" y="520" width="340" height="48" rx="6" fill="#f0fdf4" stroke="#86efac"/>
+  <text x="570" y="540" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#15803d">✓ Placeholder Validation Passed</text>
+  <text x="570" y="556" font-family="system-ui, -apple-system, sans-serif" font-size="10" fill="#16a34a">All placeholders are known and verified. Length within 160 limit.</text>
+</svg>

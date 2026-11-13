@@ -2,6 +2,7 @@ import React from 'react';
 import { Orders, NewOrder, OrderDetails } from './pages/PurchaseOrders';
 import SuppliersPage from './pages/SuppliersPage';
 import SupplierDetailPage from './pages/SupplierDetailPage';
+import RequestsPage from './pages/RequestsPage';
 
 /**
  * ERP-2 Purchasing and Suppliers module registration.
@@ -33,6 +34,11 @@ export default {
     },
     { path: 'orders', label: 'Purchase orders', element: <Orders /> },
     { path: 'orders/new', element: <NewOrder /> },
-    { path: 'orders/:id', element: <OrderDetails /> }
+    { path: 'orders/:id', element: <OrderDetails /> },
+    {
+      path: 'requests',
+      label: 'Purchase requests',
+      element: <RequestsPage />
+    }
   ]
 };

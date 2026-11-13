@@ -1,0 +1,57 @@
+[
+  {
+    "id": "CMP-0001",
+    "name": "Diwali Festive Sale",
+    "objective": "Drive festive season revenue with exclusive retail discounts",
+    "channel": "email",
+    "status": "sent",
+    "segment_id": "SEG-0001",
+    "template_id": "TPL-0002",
+    "scheduled_at": "2026-10-25T10:00:00.000Z",
+    "created_at": "2026-10-15T10:00:00.000Z"
+  },
+  {
+    "id": "CMP-0002",
+    "name": "Smart LED TV Launch",
+    "objective": "Introduce new 4K UHD smart televisions to corporate accounts",
+    "channel": "whatsapp",
+    "status": "scheduled",
+    "segment_id": "SEG-0002",
+    "template_id": "TPL-0001",
+    "scheduled_at": "2026-11-20T11:00:00.000Z",
+    "created_at": "2026-11-01T09:00:00.000Z"
+  },
+  {
+    "id": "CMP-0003",
+    "name": "Warranty Care Reminder",
+    "objective": "Post-purchase warranty extension offer with AMC plans",
+    "channel": "sms",
+    "status": "draft",
+    "segment_id": "SEG-0003",
+    "template_id": "TPL-0003",
+    "scheduled_at": "2026-12-01T10:00:00.000Z",
+    "created_at": "2026-11-05T14:30:00.000Z"
+  },
+  {
+    "id": "CMP-0004",
+    "name": "Corporate Fleet Upgrade",
+    "objective": "B2B commercial display promotions for Delhi NCR clients",
+    "channel": "email",
+    "status": "sent",
+    "segment_id": "SEG-0004",
+    "template_id": "TPL-0002",
+    "scheduled_at": "2026-10-30T09:30:00.000Z",
+    "created_at": "2026-10-20T11:00:00.000Z"
+  },
+  {
+    "id": "CMP-0005",
+    "name": "Post-Purchase CSAT Survey",
+    "objective": "Solicit product feedback and NPS ratings from recent buyers",
+    "channel": "whatsapp",
+    "status": "draft",
+    "segment_id": "SEG-0001",
+    "template_id": "TPL-0004",
+    "scheduled_at": "2026-12-10T12:00:00.000Z",
+    "created_at": "2026-11-10T16:00:00.000Z"
+  }
+]

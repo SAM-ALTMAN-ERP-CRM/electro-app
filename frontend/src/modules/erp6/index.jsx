@@ -1,25 +1,25 @@
 import React from 'react';
+import EmployeesPage from './pages/EmployeesPage';
+import DepartmentsPage from './pages/DepartmentsPage';
+import AttendancePage from './pages/AttendancePage';
+import LeavesPage from './pages/LeavesPage';
+import CommissionsPage from './pages/CommissionsPage';
+import LeaderboardPage from './pages/LeaderboardPage';
+import PayrollPage from './pages/PayrollPage';
+import SalarySlipPage from './pages/SalarySlipPage';
 
-function Placeholder() {
-  return (
-    <div style={{ padding: '2rem', maxWidth: '800px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
-        <h2>HR</h2>
-        <span className="badge badge-blue">ERP6</span>
-      </div>
-      <p style={{ color: '#64748b', fontSize: '1rem', lineHeight: '1.6' }}>
-        Module registered. Pages built by Team ERP6 will automatically appear here once their pull requests merge.
-      </p>
-      <div style={{ marginTop: '1.5rem', padding: '1.25rem', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-        <h4 style={{ marginBottom: '0.5rem', color: '#0f172a' }}>Backend Service Integration:</h4>
-        <p style={{ fontSize: '0.875rem', color: '#64748b' }}>
-          Status Check: <code>/svc/erp6/api/health</code>
-        </p>
-      </div>
-    </div>
-  );
-}
-
+/**
+ * ERP-6 HR & Workforce Module Registration
+ * [ERP6-R3] UI Consistency & Route Registry
+ *
+ * Rules:
+ * - `id`: 'erp6' matches the team slug used in api() calls and the Vite proxy.
+ * - `title`: 'HR' displays in the global sidebar group header.
+ * - `roles`: ['admin', 'hr'] restricts sidebar visibility to authorized personnel.
+ * - Paths are relative to `/erp6/`.
+ * - No custom client router, no custom navbar: rendered within the shared App shell.
+ * - Print styles hide `.sidebar`, `.top-bar`, `.no-print`, and action buttons.
+ */
 export default {
   id: 'erp6',
   title: 'HR',
@@ -27,8 +27,47 @@ export default {
   routes: [
     {
       path: '',
-      label: 'Coming soon',
-      element: <Placeholder />
+      label: 'Employees',
+      element: <EmployeesPage />
+    },
+    {
+      path: 'employees',
+      element: <EmployeesPage />
+    },
+    {
+      path: 'departments',
+      label: 'Departments',
+      element: <DepartmentsPage />
+    },
+    {
+      path: 'attendance',
+      label: 'Attendance',
+      element: <AttendancePage />
+    },
+    {
+      path: 'leaves',
+      label: 'Leaves',
+      element: <LeavesPage />
+    },
+    {
+      path: 'payroll',
+      label: 'Payroll',
+      element: <PayrollPage />
+    },
+    {
+      path: 'payroll/:id',
+      element: <SalarySlipPage />
+    },
+    {
+      path: 'commissions',
+      label: 'Commissions',
+      element: <CommissionsPage />
+    },
+    {
+      path: 'leaderboard',
+      label: 'Leaderboard',
+      element: <LeaderboardPage />
     }
   ]
 };
+

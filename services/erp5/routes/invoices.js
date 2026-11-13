@@ -109,6 +109,38 @@ router.get('/invoices', async (req, res, next) => {
 });
 
 /**
+ * GET /api/invoices/paid
+ * Returns { invoice_id, sales_rep_id, total, paid_on } for paid invoices
+ * (ERP-6 consumes this for commission).
+ */
+router.get('/invoices/paid', async (req, res, next) => {
+  try {
+    const sql = `
+      SELECT i.id AS invoice_id,
+             i.sales_rep_id,
+             i.total,
+             COALESCE(
+               (SELECT MAX(p.paid_on) FROM payments p WHERE p.invoice_id = i.id),
+               i.invoice_date
+             ) AS paid_on
+      FROM invoices i
+      WHERE i.status = 'paid'
+      ORDER BY i.id ASC
+    `;
+    const result = await pool.query(sql);
+    const rows = result.rows.map((r) => ({
+      invoice_id: r.invoice_id,
+      sales_rep_id: r.sales_rep_id,
+      total: Number(r.total),
+      paid_on: r.paid_on
+    }));
+    return res.json({ data: rows });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
  * GET /api/invoices/:id
  * Fetches single invoice along with line items and amount in words
  */

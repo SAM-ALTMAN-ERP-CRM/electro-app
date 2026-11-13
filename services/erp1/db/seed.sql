@@ -40,6 +40,9 @@ ON CONFLICT (id) DO UPDATE SET
   reorder_level = EXCLUDED.reorder_level,
   active = EXCLUDED.active;
 
+-- Ensure sequence generates next available SKU (starts after SKU-0015)
+SELECT setval('product_id_seq', 16, false);
+
 -- 3. Insert Stock (following demo rules: SKU-0003 total 3, SKU-0102 total 4, others 25 to 120)
 INSERT INTO stock (sku, warehouse_id, quantity) VALUES
   -- SKU-0001 (Total: 75)

@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="600" viewBox="0 0 960 600" role="img" aria-labelledby="title desc">
+  <title id="title">CRM-2 RMAs Directory Wireframe</title>
+  <desc id="desc">Product return authorisations list, approval statuses, and request RMA button</desc>
+  <rect width="960" height="600" fill="#f8fafc"/>
+  <rect x="20" y="20" width="920" height="560" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5"/>
+
+  <!-- Page Header -->
+  <text x="50" y="65" font-family="system-ui, -apple-system, sans-serif" font-size="24" font-weight="700" fill="#0f172a">Product Returns (RMA)</text>
+  <rect x="330" y="47" width="70" height="24" rx="12" fill="#dbeafe"/>
+  <text x="345" y="63" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="600" fill="#1d4ed8">CRM-2</text>
+  <text x="50" y="95" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#64748b">Return merchandise authorisations, warranty validation, and warehouse return dispatch</text>
+  <rect x="785" y="45" width="125" height="34" rx="6" fill="#2563eb"/>
+  <text x="803" y="67" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="600" fill="#ffffff">+ Request RMA</text>
+  <line x1="50" y1="115" x2="910" y2="115" stroke="#e2e8f0" stroke-width="1"/>
+
+  <!-- Filter Controls -->
+  <rect x="50" y="130" width="300" height="36" rx="6" fill="#ffffff" stroke="#cbd5e1"/>
+  <text x="65" y="153" font-family="system-ui, -apple-system, sans-serif" font-size="13" fill="#94a3b8">🔍 Filter by ticket or RMA ID...</text>
+  <rect x="365" y="130" width="160" height="36" rx="6" fill="#ffffff" stroke="#cbd5e1"/>
+  <text x="380" y="153" font-family="system-ui, -apple-system, sans-serif" font-size="13" fill="#334155">Status: All Statuses ▼</text>
+
+  <!-- Table Card -->
+  <rect x="50" y="185" width="860" height="280" rx="6" fill="#ffffff" stroke="#e2e8f0"/>
+  <rect x="50" y="185" width="860" height="35" rx="6" fill="#f8fafc"/>
+  <text x="70" y="207" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#64748b">RMA ID</text>
+  <text x="170" y="207" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#64748b">TICKET</text>
+  <text x="270" y="207" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#64748b">SERIAL NUMBER</text>
+  <text x="440" y="207" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#64748b">REASON</text>
+  <text x="620" y="207" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#64748b">STATUS</text>
+  <text x="740" y="207" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#64748b">DATE</text>
+  <text x="830" y="207" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#64748b">ACTION</text>
+  <line x1="50" y1="220" x2="910" y2="220" stroke="#e2e8f0"/>
+
+  <!-- Row 1 -->
+  <text x="70" y="250" font-family="monospace" font-size="13" font-weight="600" fill="#0f172a">RMA-0001</text>
+  <text x="170" y="250" font-family="monospace" font-size="13" fill="#2563eb">TKT-0001</text>
+  <text x="270" y="250" font-family="monospace" font-size="13" fill="#0f172a">TV55-2611-0001</text>
+  <text x="440" y="250" font-family="system-ui, -apple-system, sans-serif" font-size="13" fill="#334155">Defective display panel</text>
+  <rect x="620" y="236" width="75" height="20" rx="10" fill="#dcfce7"/>
+  <text x="630" y="250" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#15803d">approved</text>
+  <text x="740" y="250" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#64748b">2026-11-10</text>
+  <text x="830" y="250" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="500" fill="#2563eb">Review &gt;</text>
+  <line x1="50" y1="268" x2="910" y2="268" stroke="#f1f5f9"/>
+
+  <!-- Row 2 -->
+  <text x="70" y="300" font-family="monospace" font-size="13" font-weight="600" fill="#0f172a">RMA-0002</text>
+  <text x="170" y="300" font-family="monospace" font-size="13" fill="#2563eb">TKT-0004</text>
+  <text x="270" y="300" font-family="monospace" font-size="13" fill="#0f172a">TV55-2611-0004</text>
+  <text x="440" y="300" font-family="system-ui, -apple-system, sans-serif" font-size="13" fill="#334155">Dead pixels on delivery</text>
+  <rect x="620" y="286" width="75" height="20" rx="10" fill="#dbeafe"/>
+  <text x="630" y="300" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#1d4ed8">requested</text>
+  <text x="740" y="300" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#64748b">2026-11-11</text>
+  <text x="830" y="300" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="500" fill="#2563eb">Review &gt;</text>
+</svg>

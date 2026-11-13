@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="600" viewBox="0 0 960 600" role="img" aria-labelledby="title desc">
+  <title id="title">CRM-2 Service Centres Wireframe</title>
+  <desc id="desc">Repair centre locations, capacity limits, active status toggles, and add centre form</desc>
+  <rect width="960" height="600" fill="#f8fafc"/>
+  <rect x="20" y="20" width="920" height="560" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5"/>
+
+  <!-- Page Header -->
+  <text x="50" y="65" font-family="system-ui, -apple-system, sans-serif" font-size="24" font-weight="700" fill="#0f172a">Service Centres</text>
+  <rect x="240" y="47" width="70" height="24" rx="12" fill="#dbeafe"/>
+  <text x="255" y="63" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="600" fill="#1d4ed8">CRM-2</text>
+  <text x="50" y="95" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#64748b">Manage authorized regional service centres, repair throughput capacity, and active status</text>
+  <line x1="50" y1="115" x2="910" y2="115" stroke="#e2e8f0" stroke-width="1"/>
+
+  <!-- Top Form: Add New Centre -->
+  <rect x="50" y="130" width="860" height="95" rx="6" fill="#f8fafc" stroke="#cbd5e1"/>
+  <text x="70" y="153" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="600" fill="#0f172a">Add New Service Centre</text>
+  <rect x="70" y="165" width="220" height="34" rx="6" fill="#ffffff" stroke="#cbd5e1"/>
+  <text x="80" y="187" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#94a3b8">Centre Name (e.g. Pune Hub)</text>
+  <rect x="305" y="165" width="160" height="34" rx="6" fill="#ffffff" stroke="#cbd5e1"/>
+  <text x="315" y="187" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#94a3b8">City (e.g. Pune)</text>
+  <rect x="480" y="165" width="160" height="34" rx="6" fill="#ffffff" stroke="#cbd5e1"/>
+  <text x="490" y="187" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#94a3b8">Phone Number</text>
+  <rect x="655" y="165" width="100" height="34" rx="6" fill="#ffffff" stroke="#cbd5e1"/>
+  <text x="665" y="187" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#94a3b8">Capacity</text>
+  <rect x="770" y="165" width="120" height="34" rx="6" fill="#2563eb"/>
+  <text x="795" y="187" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="600" fill="#ffffff">+ Add Centre</text>
+
+  <!-- Table: Service Centres List -->
+  <rect x="50" y="245" width="860" height="290" rx="6" fill="#ffffff" stroke="#e2e8f0"/>
+  <rect x="50" y="245" width="860" height="35" rx="6" fill="#f8fafc"/>
+  <text x="70" y="267" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#64748b">CENTRE ID</text>
+  <text x="180" y="267" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#64748b">NAME</text>
+  <text x="440" y="267" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#64748b">CITY</text>
+  <text x="560" y="267" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#64748b">PHONE</text>
+  <text x="710" y="267" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#64748b">CAPACITY</text>
+  <text x="800" y="267" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#64748b">STATUS</text>
+  <line x1="50" y1="280" x2="910" y2="280" stroke="#e2e8f0"/>
+
+  <!-- Row 1 -->
+  <text x="70" y="310" font-family="monospace" font-size="13" font-weight="600" fill="#0f172a">SC-0001</text>
+  <text x="180" y="310" font-family="system-ui, -apple-system, sans-serif" font-size="13" fill="#0f172a">Mumbai Central Electronics Care</text>
+  <text x="440" y="310" font-family="system-ui, -apple-system, sans-serif" font-size="13" fill="#475569">Mumbai</text>
+  <text x="560" y="310" font-family="system-ui, -apple-system, sans-serif" font-size="13" fill="#475569">+91 22 2490 1100</text>
+  <text x="710" y="310" font-family="system-ui, -apple-system, sans-serif" font-size="13" fill="#0f172a">50 units</text>
+  <rect x="800" y="296" width="60" height="20" rx="10" fill="#dcfce7"/>
+  <text x="810" y="310" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#15803d">Active</text>
+  <line x1="50" y1="328" x2="910" y2="328" stroke="#f1f5f9"/>
+
+  <!-- Row 2 -->
+  <text x="70" y="360" font-family="monospace" font-size="13" font-weight="600" fill="#0f172a">SC-0002</text>
+  <text x="180" y="360" font-family="system-ui, -apple-system, sans-serif" font-size="13" fill="#0f172a">Pune Deccan Repair Hub</text>
+  <text x="440" y="360" font-family="system-ui, -apple-system, sans-serif" font-size="13" fill="#475569">Pune</text>
+  <text x="560" y="360" font-family="system-ui, -apple-system, sans-serif" font-size="13" fill="#475569">+91 20 2553 2200</text>
+  <text x="710" y="360" font-family="system-ui, -apple-system, sans-serif" font-size="13" fill="#0f172a">30 units</text>
+  <rect x="800" y="346" width="60" height="20" rx="10" fill="#dcfce7"/>
+  <text x="810" y="360" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#15803d">Active</text>
+  <line x1="50" y1="378" x2="910" y2="378" stroke="#f1f5f9"/>
+
+  <!-- Row 3 -->
+  <text x="70" y="410" font-family="monospace" font-size="13" font-weight="600" fill="#0f172a">SC-0003</text>
+  <text x="180" y="410" font-family="system-ui, -apple-system, sans-serif" font-size="13" fill="#0f172a">Delhi Connaught Service Plaza</text>
+  <text x="440" y="410" font-family="system-ui, -apple-system, sans-serif" font-size="13" fill="#475569">Delhi</text>
+  <text x="560" y="410" font-family="system-ui, -apple-system, sans-serif" font-size="13" fill="#475569">+91 11 2334 3300</text>
+  <text x="710" y="410" font-family="system-ui, -apple-system, sans-serif" font-size="13" fill="#0f172a">45 units</text>
+  <rect x="800" y="396" width="60" height="20" rx="10" fill="#dcfce7"/>
+  <text x="810" y="410" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#15803d">Active</text>
+</svg>
