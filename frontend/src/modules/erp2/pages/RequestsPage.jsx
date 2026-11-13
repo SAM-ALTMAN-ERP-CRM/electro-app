@@ -18,6 +18,14 @@ export default function RequestsPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
+  const [suppliers, setSuppliers] = useState([]);
+  const [conversion, setConversion] = useState({});
+
+  useEffect(() => {
+    api('erp2', '/api/suppliers')
+      .then(data => setSuppliers(Array.isArray(data) ? data.filter(supplier => supplier.active !== false) : []))
+      .catch(() => setError('Could not load suppliers. Please refresh the page.'));
+  }, []);
 
   // Ignore old responses when the status filter changes quickly.
   useEffect(() => {
@@ -80,6 +88,29 @@ export default function RequestsPage() {
     }
   };
 
+  const convert = async id => {
+    const values = conversion[id] || {};
+    const cost = Number(values.unit_cost);
+    if (!values.supplier_id || !Number.isFinite(cost) || cost <= 0 || Math.abs(cost * 100 - Math.round(cost * 100)) >= 1e-7) {
+      setError('Select a supplier and enter a valid unit cost.');
+      return;
+    }
+    setBusy(true);
+    setError('');
+    setMessage('');
+    try {
+      const order = await api('erp2', `/api/purchase-requests/${encodeURIComponent(id)}/convert`, {
+        method: 'POST', body: { supplier_id: values.supplier_id, unit_cost: cost }
+      });
+      setMessage(`Purchase order ${order.id} created.`);
+      await refresh();
+    } catch (err) {
+      setError(err.message || 'Could not create the purchase order.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
     <div style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
       <h2>Purchase requests</h2>
@@ -119,7 +150,15 @@ export default function RequestsPage() {
                 <td>{request.requested_by}</td><td>{request.reason}</td>
                 <td><span style={{ background: colors[0], color: colors[1], padding: '0.2rem 0.5rem', borderRadius: '1rem' }}>{request.status}</span></td>
                 <td>{request.created_at ? String(request.created_at).slice(0, 10) : '—'}</td>
-                <td>{request.status === 'pending' && <><button type="button" disabled={busy} onClick={() => decide(request.id, 'approved')}>Approve</button>{' '}<button type="button" disabled={busy} onClick={() => decide(request.id, 'rejected')}>Reject</button></>}</td>
+                <td>{request.status === 'pending' && <><button type="button" disabled={busy} onClick={() => decide(request.id, 'approved')}>Approve</button>{' '}<button type="button" disabled={busy} onClick={() => decide(request.id, 'rejected')}>Reject</button></>}
+                  {request.status === 'approved' && <div>
+                    <label>Supplier <select value={conversion[request.id]?.supplier_id || ''} onChange={e => setConversion({ ...conversion, [request.id]: { ...conversion[request.id], supplier_id: e.target.value } })}>
+                      <option value="">Select supplier</option>{suppliers.map(supplier => <option key={supplier.id} value={supplier.id}>{supplier.name}</option>)}
+                    </select></label>{' '}
+                    <label>Unit cost (₹) <input type="number" min="0.01" step="0.01" value={conversion[request.id]?.unit_cost || ''} onChange={e => setConversion({ ...conversion, [request.id]: { ...conversion[request.id], unit_cost: e.target.value } })} /></label>{' '}
+                    <button type="button" disabled={busy} onClick={() => convert(request.id)}>Create PO</button>
+                  </div>}
+                </td>
               </tr>;
             })}</tbody>
           </table>
