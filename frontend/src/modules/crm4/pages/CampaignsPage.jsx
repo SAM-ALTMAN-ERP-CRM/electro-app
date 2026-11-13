@@ -213,9 +213,12 @@ export default function CampaignsPage() {
         const result = await api('crm4', `/api/campaigns/${campaign.id}/send`, {
           method: 'POST'
         });
-        if (result && result.count) count = result.count;
-      } catch {
-        // Simulated execution
+        if (result && result.count !== undefined) count = result.count;
+      } catch (sendErr) {
+        if (sendErr && (sendErr.message.includes('409') || sendErr.message.includes('already been sent'))) {
+          throw sendErr;
+        }
+        // Simulated execution fallback
       }
 
       setCampaigns(prev =>
@@ -457,7 +460,7 @@ export default function CampaignsPage() {
                       </button>
                     ) : (
                       <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#15803d' }}>
-                        ✓ Sent ({c.message_count || 8})
+                        ✓ Sent to {c.message_count || 8} customers
                       </span>
                     )}
                     <button

@@ -229,4 +229,103 @@ describe('CRM-4 Campaigns Routes & API Tests ([CRM4-A1])', () => {
     });
     assert.equal(verifyRes.status, 404);
   });
+
+  // ==========================================
+  // [CRM4-A3] Send Simulation & Messaging Tests
+  // ==========================================
+
+  it('POST /campaigns/:id/send simulates broadcast dispatch and creates messages ([CRM4-A3])', async () => {
+    // Send campaign CMP-0002 (Smart LED TV Launch)
+    const sendRes = await dispatch(campaignsRouter, {
+      method: 'POST',
+      url: '/campaigns/CMP-0002/send'
+    });
+
+    assert.equal(sendRes.status, 200);
+    assert.ok(sendRes.body.data);
+    assert.equal(sendRes.body.data.campaign_id, 'CMP-0002');
+    assert.equal(sendRes.body.data.status, 'sent');
+    assert.equal(sendRes.body.data.count, 3);
+    assert.equal(sendRes.body.data.messages.length, 3);
+
+    // Verify campaign status updated to sent
+    const checkRes = await dispatch(campaignsRouter, {
+      method: 'GET',
+      url: '/campaigns/CMP-0002'
+    });
+    assert.equal(checkRes.status, 200);
+    assert.equal(checkRes.body.data.status, 'sent');
+    assert.equal(checkRes.body.data.message_count, 3);
+  });
+
+  it('POST /campaigns/:id/send blocks second send with 409 Conflict ([CRM4-A3])', async () => {
+    // CMP-0002 is now sent, second send must return 409
+    const secondSendRes = await dispatch(campaignsRouter, {
+      method: 'POST',
+      url: '/campaigns/CMP-0002/send'
+    });
+    assert.equal(secondSendRes.status, 409);
+    assert.ok(secondSendRes.body.error);
+    assert.ok(secondSendRes.body.error.includes('already been sent'));
+
+    // CMP-0001 was already sent in initial seed data
+    const seedSentRes = await dispatch(campaignsRouter, {
+      method: 'POST',
+      url: '/campaigns/CMP-0001/send'
+    });
+    assert.equal(seedSentRes.status, 409);
+    assert.ok(seedSentRes.body.error.includes('already been sent'));
+  });
+
+  it('POST /campaigns/:id/send returns 404 for non-existent campaign', async () => {
+    const res = await dispatch(campaignsRouter, {
+      method: 'POST',
+      url: '/campaigns/CMP-9999/send'
+    });
+    assert.equal(res.status, 404);
+  });
+
+  it('GET /campaigns/:id/messages returns simulated messages sent for campaign', async () => {
+    const res = await dispatch(campaignsRouter, {
+      method: 'GET',
+      url: '/campaigns/CMP-0001/messages'
+    });
+    assert.equal(res.status, 200);
+    assert.ok(Array.isArray(res.body.data));
+    assert.equal(res.body.data.length, 8);
+
+    const firstMsg = res.body.data[0];
+    assert.equal(firstMsg.campaign_id, 'CMP-0001');
+    assert.equal(firstMsg.status, 'sent');
+    assert.equal(firstMsg.customer_id, 'CUST-0001');
+  });
+
+  it('POST /campaigns/:id/send returns 502 Bad Gateway when USE_MOCKS=false and CRM-3 is offline', async () => {
+    // Create new campaign
+    const createRes = await dispatch(campaignsRouter, {
+      method: 'POST',
+      url: '/campaigns',
+      body: {
+        name: 'Unreachable Test Promo',
+        channel: 'sms',
+        status: 'draft',
+        segment_id: 'SEG-9999',
+        template_id: 'TPL-0001'
+      }
+    });
+    const testId = createRes.body.data.id;
+
+    process.env.USE_MOCKS = 'false';
+    try {
+      const res = await dispatch(campaignsRouter, {
+        method: 'POST',
+        url: `/campaigns/${testId}/send`
+      });
+      assert.equal(res.status, 502);
+      assert.ok(res.body.error.includes('502 Bad Gateway'));
+    } finally {
+      process.env.USE_MOCKS = 'true';
+    }
+  });
+
 });
