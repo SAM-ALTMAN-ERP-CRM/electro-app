@@ -1,0 +1,111 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 600" width="960" height="600" font-family="system-ui, -apple-system, sans-serif">
+  <!-- Background Canvas -->
+  <rect width="960" height="600" fill="#f8fafc"/>
+
+  <!-- Left Sidebar (Width 190) -->
+  <rect x="0" y="0" width="190" height="600" fill="#0f172a"/>
+  <text x="20" y="34" fill="#ffffff" font-size="15" font-weight="700">⚡ Electro App</text>
+  <text x="20" y="52" fill="#94a3b8" font-size="11">ERP-6 HR &amp; Workforce</text>
+
+  <!-- Navigation Items -->
+  <text x="24" y="90" fill="#cbd5e1" font-size="12">Employees</text>
+  <text x="24" y="122" fill="#cbd5e1" font-size="12">Departments</text>
+  <text x="24" y="152" fill="#cbd5e1" font-size="12">Attendance</text>
+  <text x="24" y="182" fill="#cbd5e1" font-size="12">Leaves</text>
+  <rect x="12" y="194" width="166" height="30" rx="6" fill="#334155"/>
+  <text x="24" y="214" fill="#38bdf8" font-size="12" font-weight="600">Payroll</text>
+  <text x="24" y="242" fill="#cbd5e1" font-size="12">Commissions</text>
+  <text x="24" y="272" fill="#cbd5e1" font-size="12">Leaderboard</text>
+
+  <text x="20" y="575" fill="#64748b" font-size="10">Print hides .sidebar &amp; .top-bar</text>
+
+  <!-- Top Bar -->
+  <rect x="190" y="0" width="770" height="48" fill="#ffffff" stroke="#e2e8f0"/>
+  <text x="214" y="29" fill="#0f172a" font-size="13" font-weight="600">/erp6/payroll — Monthly Payroll Management</text>
+  <rect x="850" y="12" width="90" height="24" rx="12" fill="#dcfce7"/>
+  <text x="866" y="28" fill="#15803d" font-size="11" font-weight="600">Dev · Admin</text>
+
+  <!-- Page Header -->
+  <text x="214" y="78" fill="#0f172a" font-size="20" font-weight="700">Monthly Payroll</text>
+  <rect x="365" y="62" width="70" height="20" rx="10" fill="#dbeafe"/>
+  <text x="379" y="76" fill="#1d4ed8" font-size="10" font-weight="600">ERP-6 HR</text>
+  <text x="214" y="96" fill="#64748b" font-size="12">Calculate statutory salaries, view slips, disburse pay, and audit ledger entries.</text>
+
+  <!-- Month Picker & Generate Button -->
+  <rect x="670" y="62" width="130" height="34" rx="6" fill="#ffffff" stroke="#cbd5e1"/>
+  <text x="682" y="83" fill="#0f172a" font-size="12">Month: 2026-11</text>
+  <rect x="810" y="62" width="130" height="34" rx="6" fill="#2563eb"/>
+  <text x="825" y="83" fill="#ffffff" font-size="12" font-weight="600">⚡ Generate Payroll</text>
+
+  <!-- 409 Conflict Safeguard Banner -->
+  <rect x="214" y="108" width="726" height="42" rx="6" fill="#fffbeb" stroke="#fef3c7"/>
+  <rect x="214" y="108" width="4" height="42" fill="#f59e0b"/>
+  <text x="230" y="126" fill="#92400e" font-size="11" font-weight="700">⚠️ Payroll Already Generated for 2026-11 (HTTP 409 Conflict Safeguard)</text>
+  <text x="230" y="141" fill="#b45309" font-size="10">Slips already exist. Click Force Regenerate to recalculate statutory deductions &amp; re-post ERP-5 ledger.</text>
+  <rect x="820" y="114" width="110" height="30" rx="4" fill="#d97706"/>
+  <text x="830" y="133" fill="#ffffff" font-size="11" font-weight="600">Force Regenerate</text>
+
+  <!-- 4 KPI Summary Cards -->
+  <rect x="214" y="160" width="170" height="66" rx="8" fill="#ffffff" stroke="#e2e8f0"/>
+  <text x="226" y="178" fill="#64748b" font-size="10" font-weight="500">Total Gross Cost</text>
+  <text x="226" y="200" fill="#0f172a" font-size="16" font-weight="700">₹7,35,000.00</text>
+  <text x="226" y="216" fill="#9ca3af" font-size="9">Base + HRA + Allowances</text>
+
+  <rect x="398" y="160" width="170" height="66" rx="8" fill="#ffffff" stroke="#e2e8f0"/>
+  <text x="410" y="178" fill="#64748b" font-size="10" font-weight="500">Net Disbursed</text>
+  <text x="410" y="200" fill="#15803d" font-size="16" font-weight="700">₹6,52,100.00</text>
+  <text x="410" y="216" fill="#9ca3af" font-size="9">Take-home net salary</text>
+
+  <rect x="582" y="160" width="170" height="66" rx="8" fill="#ffffff" stroke="#e2e8f0"/>
+  <text x="594" y="178" fill="#64748b" font-size="10" font-weight="500">Total Deductions</text>
+  <text x="594" y="200" fill="#dc2626" font-size="16" font-weight="700">₹82,900.00</text>
+  <text x="594" y="216" fill="#9ca3af" font-size="9">12% PF + Absenteeism</text>
+
+  <rect x="766" y="160" width="174" height="66" rx="8" fill="#ffffff" stroke="#e2e8f0"/>
+  <text x="778" y="178" fill="#64748b" font-size="10" font-weight="500">Total Slips</text>
+  <text x="778" y="200" fill="#4f46e5" font-size="16" font-weight="700">12 Slips (2 Paid)</text>
+  <text x="778" y="216" fill="#9ca3af" font-size="9">Posted: ERP-5 /api/ledger/auto</text>
+
+  <!-- Slips Table Container Card -->
+  <rect x="214" y="236" width="726" height="325" rx="8" fill="#ffffff" stroke="#e2e8f0"/>
+
+  <!-- Table Header -->
+  <rect x="214" y="236" width="726" height="34" rx="8" fill="#f8fafc"/>
+  <text x="228" y="257" fill="#64748b" font-size="10" font-weight="600">SLIP ID</text>
+  <text x="300" y="257" fill="#64748b" font-size="10" font-weight="600">EMPLOYEE</text>
+  <text x="430" y="257" fill="#64748b" font-size="10" font-weight="600">DEPT</text>
+  <text x="530" y="257" fill="#64748b" font-size="10" font-weight="600" text-anchor="end">BASIC</text>
+  <text x="615" y="257" fill="#64748b" font-size="10" font-weight="600" text-anchor="end">GROSS</text>
+  <text x="700" y="257" fill="#64748b" font-size="10" font-weight="600" text-anchor="end">DEDUCTIONS</text>
+  <text x="785" y="257" fill="#64748b" font-size="10" font-weight="600" text-anchor="end">NET PAY</text>
+  <text x="825" y="257" fill="#64748b" font-size="10" font-weight="600">STATUS</text>
+  <text x="895" y="257" fill="#64748b" font-size="10" font-weight="600" text-anchor="middle">ACTIONS</text>
+  <line x1="214" y1="270" x2="940" y2="270" stroke="#e2e8f0"/>
+
+  <!-- Row 1: SLIP-0001 (PAID) -->
+  <text x="228" y="293" fill="#0f172a" font-family="monospace" font-size="11" font-weight="600">SLIP-0001</text>
+  <text x="300" y="293" fill="#0f172a" font-size="11" font-weight="600">Aarav Sharma</text>
+  <text x="430" y="293" fill="#475569" font-size="11">Sales</text>
+  <text x="530" y="293" fill="#475569" font-size="11" text-anchor="end">₹45,000.00</text>
+  <text x="615" y="293" fill="#0f172a" font-size="11" font-weight="600" text-anchor="end">₹75,500.00</text>
+  <text x="700" y="293" fill="#dc2626" font-size="11" text-anchor="end">₹6,900.00</text>
+  <text x="785" y="293" fill="#15803d" font-size="11" font-weight="700" text-anchor="end">₹68,600.00</text>
+  <rect x="805" y="282" width="48" height="16" rx="8" fill="#dcfce7"/>
+  <text x="817" y="294" fill="#15803d" font-size="9" font-weight="700">PAID</text>
+  <text x="880" y="293" fill="#2563eb" font-size="10">Print</text>
+  <line x1="214" y1="310" x2="940" y2="310" stroke="#f1f5f9"/>
+
+  <!-- Row 2: SLIP-0002 (GENERATED) -->
+  <text x="228" y="333" fill="#0f172a" font-family="monospace" font-size="11" font-weight="600">SLIP-0002</text>
+  <text x="300" y="333" fill="#0f172a" font-size="11" font-weight="600">Priya Nair</text>
+  <text x="430" y="333" fill="#475569" font-size="11">Sales</text>
+  <text x="530" y="333" fill="#475569" font-size="11" text-anchor="end">₹40,000.00</text>
+  <text x="615" y="333" fill="#0f172a" font-size="11" font-weight="600" text-anchor="end">₹66,200.00</text>
+  <text x="700" y="333" fill="#dc2626" font-size="11" text-anchor="end">₹4,800.00</text>
+  <text x="785" y="333" fill="#15803d" font-size="11" font-weight="700" text-anchor="end">₹61,400.00</text>
+  <rect x="805" y="322" width="58" height="16" rx="8" fill="#fef3c7"/>
+  <text x="811" y="334" fill="#b45309" font-size="9" font-weight="700">GENERATED</text>
+  <text x="880" y="333" fill="#2563eb" font-size="10">Print</text>
+  <text x="906" y="333" fill="#15803d" font-size="10" font-weight="600">Pay</text>
+  <line x1="214" y1="350" x2="940" y2="350" stroke="#f1f5f9"/>
+</svg>

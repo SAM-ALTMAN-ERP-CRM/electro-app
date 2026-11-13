@@ -1,34 +1,35 @@
 import React from 'react';
-
-function Placeholder() {
-  return (
-    <div style={{ padding: '2rem', maxWidth: '800px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
-        <h2>Support</h2>
-        <span className="badge badge-blue">CRM2</span>
-      </div>
-      <p style={{ color: '#64748b', fontSize: '1rem', lineHeight: '1.6' }}>
-        Module registered. Pages built by Team CRM2 will automatically appear here once their pull requests merge.
-      </p>
-      <div style={{ marginTop: '1.5rem', padding: '1.25rem', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-        <h4 style={{ marginBottom: '0.5rem', color: '#0f172a' }}>Backend Service Integration:</h4>
-        <p style={{ fontSize: '0.875rem', color: '#64748b' }}>
-          Status Check: <code>/svc/crm2/api/health</code>
-        </p>
-      </div>
-    </div>
-  );
-}
+// [CRM2-A2] ticket screens
+import TicketsPage from './pages/TicketsPage';
+import TicketDetailPage from './pages/TicketDetailPage';
+// [CRM2-D2] service centres and assign screens
+import CentresPage from './pages/CentresPage';
+import AssignPage from './pages/AssignPage';
+// [CRM2-B2] warranty screen
+import WarrantyPage from './pages/WarrantyPage';
+// [CRM2-C2] RMA screens
+import RmasPage from './pages/RmasPage';
+import RmaDetailPage from './pages/RmaDetailPage';
+// [CRM2-D3] support reports
+import ReportsPage from './pages/ReportsPage';
 
 export default {
   id: 'crm2',
   title: 'Support',
   roles: ['admin', 'support'],
   routes: [
-    {
-      path: '',
-      label: 'Coming soon',
-      element: <Placeholder />
-    }
+    // [CRM2-A2] ticket screens
+    { path: 'tickets', label: 'Tickets', element: <TicketsPage /> },
+    { path: 'tickets/:id', element: <TicketDetailPage /> }, // no label: detail page stays out of the sidebar
+    // [CRM2-D2] service centres and assign screens
+    { path: 'centres', label: 'Service Centres', element: <CentresPage /> },
+    { path: 'assign', label: 'Assign Tickets', element: <AssignPage /> },
+    // [CRM2-B2] warranty screen
+    { path: 'warranty', label: 'Warranty', element: <WarrantyPage /> },
+    // [CRM2-C2] RMA screens
+    { path: 'rmas', label: 'Returns (RMA)', element: <RmasPage /> },
+    { path: 'rmas/:id', element: <RmaDetailPage /> },
+    // [CRM2-D3] support reports
+    { path: 'reports', label: 'Reports', element: <ReportsPage /> }
   ]
 };

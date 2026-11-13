@@ -1,0 +1,26 @@
+[
+  {
+    "id": "MOV-0001",
+    "sku": "SKU-0001",
+    "warehouse_id": "WH-01",
+    "delta": 35,
+    "reason": "Initial inventory seed",
+    "created_at": "2026-11-01T10:00:00.000Z"
+  },
+  {
+    "id": "MOV-0002",
+    "sku": "SKU-0002",
+    "warehouse_id": "WH-02",
+    "delta": 20,
+    "reason": "Initial inventory seed",
+    "created_at": "2026-11-01T10:15:00.000Z"
+  },
+  {
+    "id": "MOV-0003",
+    "sku": "SKU-0003",
+    "warehouse_id": "WH-01",
+    "delta": 2,
+    "reason": "Initial inventory seed",
+    "created_at": "2026-11-01T10:30:00.000Z"
+  }
+]

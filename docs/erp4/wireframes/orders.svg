@@ -1,0 +1,158 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 650" width="100%" height="100%">
+  <defs>
+    <style>
+      .bg { fill: #f8fafc; }
+      .sidebar { fill: #0f172a; }
+      .card { fill: #ffffff; stroke: #e2e8f0; stroke-width: 1; rx: 6px; }
+      .header-card { fill: #ffffff; stroke: #cbd5e1; stroke-width: 1; rx: 6px; }
+      .title { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-weight: 700; font-size: 18px; fill: #0f172a; }
+      .subtitle { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 12px; fill: #64748b; }
+      .side-title { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-weight: 700; font-size: 14px; fill: #f8fafc; }
+      .side-item { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 12px; fill: #94a3b8; }
+      .side-active { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-weight: 600; font-size: 12px; fill: #ffffff; }
+      .side-badge { fill: #334155; rx: 4px; }
+      .th { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-weight: 700; font-size: 11px; fill: #475569; text-transform: uppercase; }
+      .td { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 12px; fill: #1e293b; }
+      .td-id { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-weight: 700; font-size: 12px; fill: #0f172a; }
+      .td-mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; fill: #334155; }
+      .btn-primary { fill: #2563eb; rx: 5px; }
+      .btn-primary-text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-weight: 600; font-size: 12px; fill: #ffffff; }
+      .badge-blue { fill: #dbeafe; rx: 4px; }
+      .badge-blue-text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-weight: 600; font-size: 10px; fill: #1e40af; }
+      .badge-green { fill: #dcfce7; rx: 4px; }
+      .badge-green-text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-weight: 600; font-size: 10px; fill: #15803d; }
+      .badge-amber { fill: #fef3c7; rx: 4px; }
+      .badge-amber-text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-weight: 600; font-size: 10px; fill: #b45309; }
+      .input-box { fill: #ffffff; stroke: #cbd5e1; stroke-width: 1; rx: 5px; }
+    </style>
+  </defs>
+
+  <!-- Background Canvas -->
+  <rect width="1000" height="650" class="bg" />
+
+  <!-- Global Sidebar Shell -->
+  <rect x="0" y="0" width="220" height="650" class="sidebar" />
+  <text x="20" y="35" class="side-title">⚡ ELECTRO APP</text>
+  <text x="20" y="55" class="subtitle" style="fill: #64748b;">CRM + ERP Integrated Suite</text>
+
+  <!-- Module Group: ERP-4 -->
+  <text x="20" y="100" class="subtitle" style="fill: #94a3b8; font-weight: 700;">ERP-4 ORDERS &amp; DISPATCH</text>
+  <rect x="15" y="115" width="190" height="32" class="side-badge" style="fill: #1e293b;" />
+  <circle cx="28" cy="131" r="3" fill="#2563eb" />
+  <text x="38" y="135" class="side-active">Sales Orders</text>
+  <text x="38" y="165" class="side-item">Courier Dispatch</text>
+  <text x="38" y="195" class="side-item">Return Receipts</text>
+
+  <!-- Other Module Placeholders -->
+  <text x="20" y="240" class="subtitle" style="fill: #64748b;">OTHER MODULES</text>
+  <text x="20" y="265" class="side-item">CRM-1 Sales Pipeline</text>
+  <text x="20" y="290" class="side-item">CRM-2 Support &amp; RMA</text>
+  <text x="20" y="315" class="side-item">ERP-1 Inventory &amp; Stock</text>
+  <text x="20" y="340" class="side-item">ERP-5 Invoices &amp; Ledger</text>
+
+  <!-- Global Top Bar Shell -->
+  <rect x="220" y="0" width="780" height="45" fill="#ffffff" stroke="#e2e8f0" stroke-width="1" />
+  <text x="240" y="28" class="subtitle">Active Workspace: <tspan font-weight="600" fill="#0f172a">ERP-4 Orders &amp; Dispatch</tspan></text>
+  <rect x="880" y="12" width="100" height="22" class="badge-blue" />
+  <text x="900" y="27" class="badge-blue-text">Role: admin</text>
+
+  <!-- Main Content Area -->
+  <g transform="translate(240, 65)">
+    <!-- Header with Action Button -->
+    <text x="0" y="22" class="title">Sales Orders Directory</text>
+    <rect x="210" y="7" width="100" height="20" class="badge-blue" />
+    <text x="220" y="21" class="badge-blue-text">ERP-4 Orders</text>
+    <text x="0" y="42" class="subtitle">Convert accepted CRM-1 quotations, reserve warehouse inventory, and fulfill customer orders.</text>
+
+    <rect x="610" y="5" width="130" height="34" class="btn-primary" />
+    <text x="625" y="27" class="btn-primary-text">+ Create New Order</text>
+
+    <!-- Search & Filter Bar -->
+    <g transform="translate(0, 60)">
+      <rect x="0" y="0" width="740" height="42" class="header-card" />
+      <rect x="12" y="7" width="260" height="28" class="input-box" />
+      <text x="24" y="25" class="subtitle">🔍 Search Order ID, Customer, Quote...</text>
+
+      <rect x="285" y="7" width="140" height="28" class="input-box" />
+      <text x="295" y="25" class="subtitle">All Statuses ▼</text>
+
+      <rect x="435" y="7" width="140" height="28" class="input-box" />
+      <text x="445" y="25" class="subtitle">All Sales Reps ▼</text>
+    </g>
+
+    <!-- Sales Orders Table -->
+    <g transform="translate(0, 120)">
+      <rect x="0" y="0" width="740" height="430" class="card" />
+
+      <!-- Table Header -->
+      <rect x="1" y="1" width="738" height="34" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1" rx="6" />
+      <text x="20" y="22" class="th">ORDER ID</text>
+      <text x="110" y="22" class="th">CUSTOMER</text>
+      <text x="280" y="22" class="th">QUOTE REF</text>
+      <text x="380" y="22" class="th">AMOUNT (₹)</text>
+      <text x="490" y="22" class="th">STATUS</text>
+      <text x="590" y="22" class="th">DATE</text>
+      <text x="680" y="22" class="th">ACTION</text>
+
+      <!-- Row 1 -->
+      <line x1="0" y1="75" x2="740" y2="75" stroke="#f1f5f9" />
+      <text x="20" y="60" class="td-id">SO-0001</text>
+      <text x="110" y="55" class="td" font-weight="600">Aarav Mehta</text>
+      <text x="110" y="68" class="subtitle">CUST-0001</text>
+      <text x="280" y="60" class="td-mono">QUO-0001</text>
+      <text x="380" y="60" class="td" font-weight="600">₹50,728.20</text>
+      <rect x="490" y="47" width="70" height="18" class="badge-green" />
+      <text x="502" y="60" class="badge-green-text">delivered</text>
+      <text x="590" y="60" class="subtitle">2026-10-01</text>
+      <text x="685" y="60" class="td" font-weight="600" fill="#2563eb">View →</text>
+
+      <!-- Row 2 -->
+      <line x1="0" y1="115" x2="740" y2="115" stroke="#f1f5f9" />
+      <text x="20" y="100" class="td-id">SO-0002</text>
+      <text x="110" y="95" class="td" font-weight="600">Sunrise Electronics Pvt Ltd</text>
+      <text x="110" y="108" class="subtitle">CUST-0002 · 27AABCS1234F1Z5</text>
+      <text x="280" y="100" class="td-mono">QUO-0002</text>
+      <text x="380" y="100" class="td" font-weight="600">₹50,728.20</text>
+      <rect x="490" y="87" width="70" height="18" class="badge-green" />
+      <text x="502" y="100" class="badge-green-text">delivered</text>
+      <text x="590" y="100" class="subtitle">2026-10-05</text>
+      <text x="685" y="100" class="td" font-weight="600" fill="#2563eb">View →</text>
+
+      <!-- Row 3 -->
+      <line x1="0" y1="155" x2="740" y2="155" stroke="#f1f5f9" />
+      <text x="20" y="140" class="td-id">SO-0003</text>
+      <text x="110" y="135" class="td" font-weight="600">Priya Nair</text>
+      <text x="110" y="148" class="subtitle">CUST-0003</text>
+      <text x="280" y="140" class="td-mono">QUO-0003</text>
+      <text x="380" y="140" class="td" font-weight="600">₹50,728.20</text>
+      <rect x="490" y="127" width="70" height="18" class="badge-amber" />
+      <text x="500" y="140" class="badge-amber-text">dispatched</text>
+      <text x="590" y="140" class="subtitle">2026-10-08</text>
+      <text x="685" y="140" class="td" font-weight="600" fill="#2563eb">View →</text>
+
+      <!-- Row 4 -->
+      <line x1="0" y1="195" x2="740" y2="195" stroke="#f1f5f9" />
+      <text x="20" y="180" class="td-id">SO-0004</text>
+      <text x="110" y="175" class="td" font-weight="600">TechWorld Retail Hub</text>
+      <text x="110" y="188" class="subtitle">CUST-0004 · 27AAACT1234F1Z1</text>
+      <text x="280" y="180" class="td-mono">QUO-0004</text>
+      <text x="380" y="180" class="td" font-weight="600">₹50,728.20</text>
+      <rect x="490" y="167" width="70" height="18" class="badge-amber" />
+      <text x="500" y="180" class="badge-amber-text">dispatched</text>
+      <text x="590" y="180" class="subtitle">2026-10-10</text>
+      <text x="685" y="180" class="td" font-weight="600" fill="#2563eb">View →</text>
+
+      <!-- Row 5 -->
+      <line x1="0" y1="235" x2="740" y2="235" stroke="#f1f5f9" />
+      <text x="20" y="220" class="td-id">SO-0006</text>
+      <text x="110" y="215" class="td" font-weight="600">Global Electronics Pvt Ltd</text>
+      <text x="110" y="228" class="subtitle">CUST-0006 · 2 items</text>
+      <text x="280" y="220" class="td-mono">QUO-0006</text>
+      <text x="380" y="220" class="td" font-weight="600">₹88,488.20</text>
+      <rect x="490" y="207" width="70" height="18" class="badge-green" />
+      <text x="500" y="220" class="badge-green-text">confirmed</text>
+      <text x="590" y="220" class="subtitle">2026-11-12</text>
+      <text x="685" y="220" class="td" font-weight="600" fill="#2563eb">View →</text>
+    </g>
+  </g>
+</svg>

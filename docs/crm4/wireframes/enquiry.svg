@@ -1,0 +1,91 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="620" viewBox="0 0 960 620" role="img" aria-labelledby="title desc">
+  <title id="title">CRM-4 Web &amp; Dealer Enquiry Capture Wireframe</title>
+  <desc id="desc">Wireframe layout for /crm4/enquiry (Lead Generation Form &amp; Recent Enquiries Log)</desc>
+  <rect width="960" height="620" fill="#f8fafc"/>
+  <rect x="20" y="16" width="920" height="588" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5"/>
+
+  <!-- Top bar / Page Header -->
+  <text x="50" y="55" font-family="system-ui, -apple-system, sans-serif" font-size="22" font-weight="700" fill="#0f172a">Web &amp; Dealer Enquiry Capture</text>
+  <rect x="420" y="38" width="70" height="24" rx="12" fill="#dbeafe"/>
+  <text x="435" y="54" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="600" fill="#1d4ed8">CRM-4</text>
+  <text x="50" y="80" font-family="system-ui, -apple-system, sans-serif" font-size="13" fill="#64748b">Capture prospect interest from dealers, website &amp; walk-ins — automatically generates a sales lead in CRM-1</text>
+  <line x1="50" y1="96" x2="910" y2="96" stroke="#e2e8f0" stroke-width="1"/>
+
+  <!-- Success Notification Preview Banner -->
+  <rect x="50" y="108" width="860" height="42" rx="6" fill="#dcfce7" stroke="#86efac"/>
+  <text x="70" y="133" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="600" fill="#15803d">✓ Success: Enquiry ENQ-0001 saved! Sales Lead LEAD-0001 generated in CRM-1 for Sales Rep EMP-0001.</text>
+
+  <!-- Left: Main Intake Form Card -->
+  <rect x="50" y="162" width="460" height="425" rx="6" fill="#f8fafc" stroke="#e2e8f0"/>
+  <text x="70" y="190" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="700" fill="#0f172a">New Prospect Enquiry Form</text>
+  <text x="70" y="208" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#64748b">All submitted enquiries push real-time leads to CRM-1 Sales Pipeline</text>
+
+  <text x="70" y="235" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#475569">Full Name *</text>
+  <rect x="70" y="243" width="420" height="30" rx="4" fill="#ffffff" stroke="#cbd5e1"/>
+  <text x="80" y="263" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#0f172a">Rajiv Verma</text>
+
+  <text x="70" y="295" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#475569">Phone Number (10 digits) *</text>
+  <rect x="70" y="303" width="200" height="30" rx="4" fill="#ffffff" stroke="#cbd5e1"/>
+  <text x="80" y="323" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#0f172a">9820066666</text>
+
+  <text x="290" y="295" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#475569">Inquiry Source *</text>
+  <rect x="290" y="303" width="200" height="30" rx="4" fill="#ffffff" stroke="#cbd5e1"/>
+  <text x="300" y="323" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#0f172a">Web Portal ▼</text>
+
+  <text x="70" y="355" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#475569">Email Address *</text>
+  <rect x="70" y="363" width="420" height="30" rx="4" fill="#ffffff" stroke="#cbd5e1"/>
+  <text x="80" y="383" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#0f172a">rajiv.verma@example.com</text>
+
+  <text x="70" y="415" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#475569">Product Interest (ERP-1 Catalog) *</text>
+  <rect x="70" y="423" width="420" height="30" rx="4" fill="#ffffff" stroke="#cbd5e1"/>
+  <text x="80" y="443" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#0f172a">SKU-0001 - Smart LED TV 55" 4K UHD ▼</text>
+
+  <text x="70" y="475" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#475569">Requirements / Customer Remarks</text>
+  <rect x="70" y="483" width="420" height="45" rx="4" fill="#ffffff" stroke="#cbd5e1"/>
+  <text x="80" y="502" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#64748b">Interested in festive bundle offer with wall mount and extended warranty</text>
+
+  <rect x="70" y="542" width="220" height="34" rx="4" fill="#2563eb"/>
+  <text x="86" y="563" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="600" fill="#ffffff">Submit Enquiry &amp; Create Lead</text>
+  <text x="305" y="563" font-family="system-ui, -apple-system, sans-serif" font-size="10" fill="#64748b">Auto-routed to EMP-0001</text>
+
+  <!-- Right: Recent Enquiries Feed -->
+  <rect x="530" y="162" width="380" height="425" rx="6" fill="#ffffff" stroke="#e2e8f0"/>
+  <rect x="530" y="162" width="380" height="36" rx="6" fill="#f8fafc"/>
+  <text x="545" y="185" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="700" fill="#0f172a">Recent Enquiries &amp; Generated Leads</text>
+  <line x1="530" y1="198" x2="910" y2="198" stroke="#e2e8f0"/>
+
+  <!-- Row 1 -->
+  <text x="545" y="222" font-family="monospace" font-size="11" font-weight="600" fill="#0f172a">ENQ-0001</text>
+  <text x="620" y="222" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#0f172a">Rajiv Verma</text>
+  <rect x="830" y="210" width="45" height="16" rx="8" fill="#dbeafe"/>
+  <text x="842" y="222" font-family="system-ui, -apple-system, sans-serif" font-size="9" font-weight="600" fill="#1d4ed8">web</text>
+  <text x="545" y="240" font-family="system-ui, -apple-system, sans-serif" font-size="10" fill="#475569">Product: Smart LED TV 55" (SKU-0001)</text>
+  <text x="545" y="256" font-family="system-ui, -apple-system, sans-serif" font-size="10" font-weight="600" fill="#15803d">→ Linked Lead: LEAD-0001 (EMP-0001)</text>
+  <line x1="545" y1="268" x2="895" y2="268" stroke="#f1f5f9"/>
+
+  <!-- Row 2 -->
+  <text x="545" y="292" font-family="monospace" font-size="11" font-weight="600" fill="#0f172a">ENQ-0002</text>
+  <text x="620" y="292" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#0f172a">Apex Electronics</text>
+  <rect x="830" y="280" width="50" height="16" rx="8" fill="#fef3c7"/>
+  <text x="838" y="292" font-family="system-ui, -apple-system, sans-serif" font-size="9" font-weight="600" fill="#b45309">dealer</text>
+  <text x="545" y="310" font-family="system-ui, -apple-system, sans-serif" font-size="10" fill="#475569">Product: Refrigerator 350L (SKU-0002)</text>
+  <text x="545" y="326" font-family="system-ui, -apple-system, sans-serif" font-size="10" font-weight="600" fill="#15803d">→ Linked Lead: LEAD-0002 (EMP-0001)</text>
+  <line x1="545" y1="338" x2="895" y2="338" stroke="#f1f5f9"/>
+
+  <!-- Row 3 -->
+  <text x="545" y="362" font-family="monospace" font-size="11" font-weight="600" fill="#0f172a">ENQ-0003</text>
+  <text x="620" y="362" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#0f172a">Priya Nair</text>
+  <rect x="830" y="350" width="55" height="16" rx="8" fill="#dcfce7"/>
+  <text x="838" y="362" font-family="system-ui, -apple-system, sans-serif" font-size="9" font-weight="600" fill="#15803d">walk-in</text>
+  <text x="545" y="380" font-family="system-ui, -apple-system, sans-serif" font-size="10" fill="#475569">Product: Microwave Oven (SKU-0004)</text>
+  <text x="545" y="396" font-family="system-ui, -apple-system, sans-serif" font-size="10" font-weight="600" fill="#15803d">→ Linked Lead: LEAD-0003 (EMP-0001)</text>
+  <line x1="545" y1="408" x2="895" y2="408" stroke="#f1f5f9"/>
+
+  <!-- Cross-team Architecture Note -->
+  <rect x="545" y="440" width="350" height="120" rx="4" fill="#f8fafc" stroke="#e2e8f0"/>
+  <text x="560" y="462" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="700" fill="#0f172a">End-to-End Workflow Link:</text>
+  <text x="560" y="482" font-family="system-ui, -apple-system, sans-serif" font-size="10" fill="#475569">• Step 1 of Order-to-Cash (ERP5-C5 E2E)</text>
+  <text x="560" y="500" font-family="system-ui, -apple-system, sans-serif" font-size="10" fill="#475569">• Products retrieved via api('erp1', '/api/products')</text>
+  <text x="560" y="518" font-family="system-ui, -apple-system, sans-serif" font-size="10" fill="#475569">• Leads created via callService('crm1', '/api/leads')</text>
+  <text x="560" y="536" font-family="system-ui, -apple-system, sans-serif" font-size="10" fill="#b91c1c">• If CRM-1 fails when USE_MOCKS=false: 502 Bad Gateway</text>
+</svg>

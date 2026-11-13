@@ -1,0 +1,26 @@
+[
+  {
+    "id": "CUST-0001",
+    "name": "Aarav Mehta",
+    "type": "retail",
+    "email": "aarav.mehta@example.com",
+    "phone": "9820112345",
+    "city": "Mumbai"
+  },
+  {
+    "id": "CUST-0002",
+    "name": "Sunrise Electronics Pvt Ltd",
+    "type": "corporate",
+    "email": "purchase@sunrise.com",
+    "phone": "9820223456",
+    "city": "Delhi"
+  },
+  {
+    "id": "CUST-0003",
+    "name": "Priya Nair",
+    "type": "retail",
+    "email": "priya.nair@example.com",
+    "phone": "9847134567",
+    "city": "Bangalore"
+  }
+]

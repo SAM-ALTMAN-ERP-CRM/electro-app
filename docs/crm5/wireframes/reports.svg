@@ -1,0 +1,91 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 600" width="960" height="600" font-family="system-ui, -apple-system, sans-serif">
+  <!-- App Shell Canvas -->
+  <rect width="960" height="600" fill="#f8fafc"/>
+  <!-- Sidebar -->
+  <rect x="0" y="0" width="190" height="600" fill="#0f172a"/>
+  <text x="20" y="34" fill="#ffffff" font-size="15" font-weight="700">ElectroApp</text>
+  <text x="20" y="54" fill="#94a3b8" font-size="11">CRM-5 Portal &amp; Analytics</text>
+  <text x="24" y="95" fill="#cbd5e1" font-size="12">Dashboard</text>
+  <text x="24" y="130" fill="#cbd5e1" font-size="12">Customer Portal</text>
+  <rect x="12" y="144" width="166" height="32" rx="6" fill="#2563eb"/>
+  <text x="24" y="165" fill="#ffffff" font-size="12" font-weight="600">Reports</text>
+  <text x="24" y="196" fill="#cbd5e1" font-size="12">Forecast</text>
+  <text x="20" y="576" fill="#64748b" font-size="10">Hidden via @media print</text>
+
+  <!-- Top Bar -->
+  <rect x="190" y="0" width="770" height="48" fill="#ffffff" stroke="#e2e8f0"/>
+  <text x="214" y="29" fill="#0f172a" font-size="13" font-weight="600">/crm5/reports — Role-Based Analytics &amp; Export</text>
+
+  <!-- User Identity Banner + Admin Role Preview -->
+  <rect x="214" y="64" width="722" height="54" rx="8" fill="#ffffff" stroke="#e2e8f0"/>
+  <text x="230" y="88" fill="#0f172a" font-size="13" font-weight="600">Signed in as EMP-0001 (admin)</text>
+  <text x="230" y="106" fill="#64748b" font-size="11">Scoped @media print hides sidebar, top bar, and action controls</text>
+  <text x="640" y="94" fill="#475569" font-size="11">Role Preview:</text>
+  <rect x="720" y="76" width="196" height="28" rx="6" fill="#f8fafc" stroke="#cbd5e1"/>
+  <text x="732" y="94" fill="#0f172a" font-size="11">admin (All Reports) v</text>
+
+  <!-- Authorized Report Catalog Grid -->
+  <text x="214" y="144" fill="#0f172a" font-size="15" font-weight="700">Authorized Report Catalog</text>
+  <rect x="214" y="156" width="230" height="92" rx="8" fill="#ffffff" stroke="#2563eb" stroke-width="1.5"/>
+  <text x="230" y="180" fill="#0f172a" font-size="12" font-weight="600">Sales Pipeline Summary</text>
+  <text x="230" y="198" fill="#64748b" font-size="10">Roles: admin, sales</text>
+  <rect x="230" y="212" width="90" height="24" rx="4" fill="#2563eb"/>
+  <text x="246" y="228" fill="#ffffff" font-size="10" font-weight="600">Run Report</text>
+
+  <rect x="460" y="156" width="230" height="92" rx="8" fill="#ffffff" stroke="#e2e8f0"/>
+  <text x="476" y="180" fill="#0f172a" font-size="12" font-weight="600">Support SLA Backlog</text>
+  <text x="476" y="198" fill="#64748b" font-size="10">Roles: admin, support</text>
+  <rect x="476" y="212" width="90" height="24" rx="4" fill="#f1f5f9" stroke="#cbd5e1"/>
+  <text x="492" y="228" fill="#0f172a" font-size="10" font-weight="600">Run Report</text>
+
+  <rect x="706" y="156" width="230" height="92" rx="8" fill="#ffffff" stroke="#e2e8f0"/>
+  <text x="722" y="180" fill="#0f172a" font-size="12" font-weight="600">AR Aging &amp; GST</text>
+  <text x="722" y="198" fill="#64748b" font-size="10">Roles: admin, finance</text>
+  <rect x="722" y="212" width="90" height="24" rx="4" fill="#f1f5f9" stroke="#cbd5e1"/>
+  <text x="738" y="228" fill="#0f172a" font-size="10" font-weight="600">Run Report</text>
+
+  <!-- Active Report Results Card + Action Buttons -->
+  <rect x="214" y="266" width="722" height="314" rx="8" fill="#ffffff" stroke="#e2e8f0"/>
+  <text x="230" y="294" fill="#0f172a" font-size="14" font-weight="700">Results: Sales Pipeline Summary</text>
+  <rect x="526" y="276" width="110" height="26" rx="4" fill="#2563eb"/>
+  <text x="538" y="293" fill="#ffffff" font-size="10" font-weight="600">Download CSV</text>
+  <rect x="646" y="276" width="84" height="26" rx="4" fill="#0f172a"/>
+  <text x="668" y="293" fill="#ffffff" font-size="10" font-weight="600">Print</text>
+  <rect x="740" y="276" width="84" height="26" rx="4" fill="#f1f5f9" stroke="#cbd5e1"/>
+  <text x="760" y="293" fill="#0f172a" font-size="10" font-weight="600">Re-run</text>
+  <rect x="834" y="276" width="84" height="26" rx="4" fill="#fee2e2"/>
+  <text x="860" y="293" fill="#b91c1c" font-size="10" font-weight="600">Close</text>
+
+  <!-- Results Table -->
+  <rect x="230" y="316" width="690" height="26" fill="#f1f5f9"/>
+  <text x="242" y="333" fill="#475569" font-size="11" font-weight="600">Opportunity</text>
+  <text x="360" y="333" fill="#475569" font-size="11" font-weight="600">Customer</text>
+  <text x="480" y="333" fill="#475569" font-size="11" font-weight="600">Rep</text>
+  <text x="580" y="333" fill="#475569" font-size="11" font-weight="600">Stage</text>
+  <text x="700" y="333" fill="#475569" font-size="11" font-weight="600">Expected Close</text>
+  <text x="830" y="333" fill="#475569" font-size="11" font-weight="600">Value</text>
+
+  <text x="242" y="364" fill="#0f172a" font-size="11">OPP-0001</text>
+  <text x="360" y="364" fill="#0f172a" font-size="11">CUST-0001</text>
+  <text x="480" y="364" fill="#0f172a" font-size="11">EMP-0001</text>
+  <rect x="578" y="351" width="74" height="18" rx="9" fill="#dbeafe"/>
+  <text x="590" y="364" fill="#1d4ed8" font-size="10">Proposal</text>
+  <text x="700" y="364" fill="#0f172a" font-size="11">2026-11-28</text>
+  <text x="830" y="364" fill="#0f172a" font-size="11">₹48,000.00</text>
+
+  <text x="242" y="394" fill="#0f172a" font-size="11">OPP-0002</text>
+  <text x="360" y="394" fill="#0f172a" font-size="11">CUST-0002</text>
+  <text x="480" y="394" fill="#0f172a" font-size="11">EMP-0002</text>
+  <rect x="578" y="381" width="84" height="18" rx="9" fill="#dcfce7"/>
+  <text x="590" y="394" fill="#166534" font-size="10">Closed Won</text>
+  <text x="700" y="394" fill="#0f172a" font-size="11">2026-11-12</text>
+  <text x="830" y="394" fill="#0f172a" font-size="11">₹52,000.00</text>
+
+  <text x="242" y="424" fill="#0f172a" font-size="11">OPP-0003</text>
+  <text x="360" y="424" fill="#0f172a" font-size="11">CUST-0003</text>
+  <text x="480" y="424" fill="#0f172a" font-size="11">EMP-0003</text>
+  <rect x="578" y="411" width="80" height="18" rx="9" fill="#fef3c7"/>
+  <text x="588" y="424" fill="#92400e" font-size="10">Negotiation</text>
+  <text x="700" y="424" fill="#0f172a" font-size="11">2026-12-04</text>
+  <text x="830" y="424" fill="#0f172a" font-size="11">₹34,500.00</text>
+</svg>

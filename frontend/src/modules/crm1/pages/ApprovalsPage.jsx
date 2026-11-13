@@ -66,10 +66,7 @@ export default function ApprovalsPage() {
     setError('');
     setActionMsg('');
     try {
-      await api('crm1', `/api/quotes/${quoteId}/approve`, { method: 'PATCH' }).catch(() => {
-        // Fallback local update
-        console.warn(`[crm1] /approve API not reachable, simulating approve for ${quoteId}`);
-      });
+      await api('crm1', `/api/quotes/${quoteId}/approve`, { method: 'PATCH' });
       setQuotes(prev => prev.filter(q => q.id !== quoteId));
       setActionMsg(`Quote ${quoteId} has been successfully approved.`);
     } catch (err) {
@@ -96,8 +93,6 @@ export default function ApprovalsPage() {
       await api('crm1', `/api/quotes/${quoteId}/reject`, {
         method: 'PATCH',
         body: { reason: rejectionReason.trim() }
-      }).catch(() => {
-        console.warn(`[crm1] /reject API not reachable, simulating reject for ${quoteId}`);
       });
       setQuotes(prev => prev.filter(q => q.id !== quoteId));
       setActionMsg(`Quote ${quoteId} was rejected with reason: "${rejectionReason.trim()}".`);
