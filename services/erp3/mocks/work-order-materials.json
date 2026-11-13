@@ -1,0 +1,28 @@
+[
+  { "id": "WOM-0001", "wo_id": "WO-0001", "component_sku": "SKU-0101", "component_name": "Display Panel", "required_qty": 50, "issued_qty": 0 },
+  { "id": "WOM-0002", "wo_id": "WO-0001", "component_sku": "SKU-0102", "component_name": "Main Board", "required_qty": 50, "issued_qty": 0 },
+  { "id": "WOM-0003", "wo_id": "WO-0001", "component_sku": "SKU-0103", "component_name": "Power Supply Unit", "required_qty": 50, "issued_qty": 0 },
+  { "id": "WOM-0004", "wo_id": "WO-0001", "component_sku": "SKU-0104", "component_name": "Remote Control", "required_qty": 50, "issued_qty": 0 },
+  { "id": "WOM-0005", "wo_id": "WO-0001", "component_sku": "SKU-0105", "component_name": "Packaging Box", "required_qty": 50, "issued_qty": 0 },
+  { "id": "WOM-0006", "wo_id": "WO-0002", "component_sku": "SKU-0101", "component_name": "Display Panel", "required_qty": 25, "issued_qty": 25 },
+  { "id": "WOM-0007", "wo_id": "WO-0002", "component_sku": "SKU-0102", "component_name": "Main Board", "required_qty": 25, "issued_qty": 25 },
+  { "id": "WOM-0008", "wo_id": "WO-0002", "component_sku": "SKU-0103", "component_name": "Power Supply Unit", "required_qty": 25, "issued_qty": 25 },
+  { "id": "WOM-0009", "wo_id": "WO-0002", "component_sku": "SKU-0104", "component_name": "Remote Control", "required_qty": 25, "issued_qty": 25 },
+  { "id": "WOM-0010", "wo_id": "WO-0002", "component_sku": "SKU-0105", "component_name": "Packaging Box", "required_qty": 25, "issued_qty": 25 },
+  { "id": "WOM-0011", "wo_id": "WO-0003", "component_sku": "SKU-0101", "component_name": "OLED Display Panel", "required_qty": 30, "issued_qty": 30 },
+  { "id": "WOM-0012", "wo_id": "WO-0003", "component_sku": "SKU-0102", "component_name": "Main Board", "required_qty": 30, "issued_qty": 30 },
+  { "id": "WOM-0013", "wo_id": "WO-0003", "component_sku": "SKU-0103", "component_name": "Power Supply Unit", "required_qty": 30, "issued_qty": 30 },
+  { "id": "WOM-0014", "wo_id": "WO-0003", "component_sku": "SKU-0104", "component_name": "Remote Control", "required_qty": 30, "issued_qty": 30 },
+  { "id": "WOM-0015", "wo_id": "WO-0003", "component_sku": "SKU-0105", "component_name": "Packaging Box", "required_qty": 30, "issued_qty": 30 },
+  { "id": "WOM-0016", "wo_id": "WO-0004", "component_sku": "SKU-0101", "component_name": "Display Panel", "required_qty": 10, "issued_qty": 0 },
+  { "id": "WOM-0017", "wo_id": "WO-0004", "component_sku": "SKU-0102", "component_name": "Main Board", "required_qty": 10, "issued_qty": 0 },
+  { "id": "WOM-0018", "wo_id": "WO-0004", "component_sku": "SKU-0103", "component_name": "Power Supply Unit", "required_qty": 10, "issued_qty": 0 },
+  { "id": "WOM-0019", "wo_id": "WO-0004", "component_sku": "SKU-0104", "component_name": "Remote Control", "required_qty": 10, "issued_qty": 0 },
+  { "id": "WOM-0020", "wo_id": "WO-0004", "component_sku": "SKU-0105", "component_name": "Packaging Box", "required_qty": 10, "issued_qty": 0 },
+  { "id": "WOM-0021", "wo_id": "WO-0005", "component_sku": "SKU-0101", "component_name": "OLED Display Panel", "required_qty": 15, "issued_qty": 0 },
+  { "id": "WOM-0022", "wo_id": "WO-0005", "component_sku": "SKU-0102", "component_name": "Main Board", "required_qty": 15, "issued_qty": 0 },
+  { "id": "WOM-0023", "wo_id": "WO-0005", "component_sku": "SKU-0103", "component_name": "Power Supply Unit", "required_qty": 15, "issued_qty": 0 },
+  { "id": "WOM-0024", "wo_id": "WO-0005", "component_sku": "SKU-0104", "component_name": "Remote Control", "required_qty": 15, "issued_qty": 0 },
+  { "id": "WOM-0025", "wo_id": "WO-0005", "component_sku": "SKU-0105", "component_name": "Packaging Box", "required_qty": 15, "issued_qty": 0 }
+]
+

@@ -26,3 +26,51 @@ CREATE TABLE IF NOT EXISTS quote_items (
   quantity INT NOT NULL CHECK (quantity > 0),
   unit_price NUMERIC(12, 2) NOT NULL
 );
+
+-- Build Issue: [CRM1-D1] Dealers table and API
+CREATE SEQUENCE IF NOT EXISTS dealer_seq START 1;
+
+CREATE TABLE IF NOT EXISTS dealers (
+  id VARCHAR(20) PRIMARY KEY DEFAULT ('DLR-' || LPAD(nextval('dealer_seq')::TEXT, 4, '0')),
+  name VARCHAR(150) NOT NULL,
+  contact_person VARCHAR(100),
+  phone VARCHAR(20),
+  email VARCHAR(100),
+  city VARCHAR(50) NOT NULL,
+  tier VARCHAR(20) NOT NULL CHECK (tier IN ('gold', 'silver', 'bronze')),
+  credit_limit NUMERIC(12, 2) NOT NULL DEFAULT 100000.00,
+  status VARCHAR(20) NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'inactive')),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Sales rep IDs come from ERP-6, so they are stored without a cross-database foreign key.
+CREATE SEQUENCE IF NOT EXISTS leads_seq START 1;
+
+CREATE TABLE IF NOT EXISTS leads (
+  id VARCHAR(20) PRIMARY KEY DEFAULT ('LEAD-' || LPAD(nextval('leads_seq')::TEXT, 4, '0')),
+  name VARCHAR(100) NOT NULL,
+  phone VARCHAR(20),
+  email VARCHAR(100),
+  source VARCHAR(20) NOT NULL CHECK (source IN ('dealer', 'web', 'walk-in')),
+  product_interest VARCHAR(100),
+  status VARCHAR(20) NOT NULL DEFAULT 'new' CHECK (status IN ('new', 'contacted', 'qualified', 'lost')),
+  score INT NOT NULL DEFAULT 0,
+  sales_rep_id VARCHAR(20),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Build Issue: [CRM1-B1] Opportunities table and API
+CREATE SEQUENCE IF NOT EXISTS opp_seq START 1;
+
+CREATE TABLE IF NOT EXISTS opportunities (
+  id VARCHAR(20) PRIMARY KEY DEFAULT ('OPP-' || LPAD(nextval('opp_seq')::TEXT, 4, '0')),
+  lead_id VARCHAR(20) REFERENCES leads(id) ON DELETE SET NULL,
+  customer_id VARCHAR(20),
+  title VARCHAR(150) NOT NULL,
+  expected_value NUMERIC(12, 2) NOT NULL DEFAULT 0.00,
+  stage VARCHAR(20) NOT NULL DEFAULT 'prospect'
+    CHECK (stage IN ('prospect', 'proposal', 'negotiation', 'won', 'lost')),
+  expected_close_date DATE,
+  sales_rep_id VARCHAR(20),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);

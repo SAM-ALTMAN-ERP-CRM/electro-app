@@ -1,0 +1,92 @@
+[
+  {
+    "id": "INT-0001",
+    "customer_id": "CUST-0001",
+    "type": "order",
+    "summary": "Order SO-0001 placed for 55-inch 4K Smart TV (SKU-0001)",
+    "source_team": "ERP-4",
+    "created_by": "EMP-0001",
+    "created_at": "2026-11-06T09:00:00.000Z"
+  },
+  {
+    "id": "INT-0002",
+    "customer_id": "CUST-0001",
+    "type": "call",
+    "summary": "Outbound sales call confirming delivery address and installation schedule",
+    "source_team": "CRM-1",
+    "created_by": "EMP-0001",
+    "created_at": "2026-11-05T05:45:00.000Z"
+  },
+  {
+    "id": "INT-0003",
+    "customer_id": "CUST-0001",
+    "type": "ticket",
+    "summary": "Customer enquired about extended warranty options for Smart TV",
+    "source_team": "CRM-2",
+    "created_by": "EMP-0005",
+    "created_at": "2026-11-04T11:15:00.000Z"
+  },
+  {
+    "id": "INT-0004",
+    "customer_id": "CUST-0001",
+    "type": "email",
+    "summary": "Product catalog and festival discount brochure sent via email",
+    "source_team": "CRM-4",
+    "created_by": "EMP-0002",
+    "created_at": "2026-11-02T03:30:00.000Z"
+  },
+  {
+    "id": "INT-0005",
+    "customer_id": "CUST-0002",
+    "type": "meeting",
+    "summary": "Quarterly corporate procurement review and bulk discount agreement",
+    "source_team": "CRM-1",
+    "created_by": "EMP-0003",
+    "created_at": "2026-11-06T10:30:00.000Z"
+  },
+  {
+    "id": "INT-0006",
+    "customer_id": "CUST-0002",
+    "type": "order",
+    "summary": "Purchase order SO-0002 received for 20x 43-inch Full HD TV (SKU-0002)",
+    "source_team": "ERP-4",
+    "created_by": "EMP-0003",
+    "created_at": "2026-11-05T04:50:00.000Z"
+  },
+  {
+    "id": "INT-0007",
+    "customer_id": "CUST-0002",
+    "type": "call",
+    "summary": "Credit terms and GST invoice 27AABCS1234F1Z5 reconciliation call with finance",
+    "source_team": "ERP-5",
+    "created_by": "EMP-0004",
+    "created_at": "2026-11-03T09:40:00.000Z"
+  },
+  {
+    "id": "INT-0008",
+    "customer_id": "CUST-0003",
+    "type": "ticket",
+    "summary": "Installation ticket raised for 65-inch OLED TV (SKU-0003) at Kochi residence",
+    "source_team": "CRM-2",
+    "created_by": "EMP-0006",
+    "created_at": "2026-11-06T06:30:00.000Z"
+  },
+  {
+    "id": "INT-0009",
+    "customer_id": "CUST-0003",
+    "type": "call",
+    "summary": "Feedback call post service engineer visit: customer satisfied with setup",
+    "source_team": "CRM-2",
+    "created_by": "EMP-0006",
+    "created_at": "2026-11-05T09:00:00.000Z"
+  },
+  {
+    "id": "INT-0010",
+    "customer_id": "CUST-0003",
+    "type": "email",
+    "summary": "Welcome onboarding email and digital invoice copy delivered",
+    "source_team": "CRM-3",
+    "created_by": "EMP-0012",
+    "created_at": "2026-11-01T04:30:00.000Z"
+  }
+]

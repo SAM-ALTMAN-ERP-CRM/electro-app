@@ -1,0 +1,20 @@
+[
+  {
+    "invoice_id": "INV-0001",
+    "sales_rep_id": "EMP-0001",
+    "total": 50000.00,
+    "paid_on": "2026-11-03"
+  },
+  {
+    "invoice_id": "INV-0002",
+    "sales_rep_id": "EMP-0002",
+    "total": 120000.00,
+    "paid_on": "2026-11-05"
+  },
+  {
+    "invoice_id": "INV-0003",
+    "sales_rep_id": "EMP-0003",
+    "total": 85000.00,
+    "paid_on": "2026-11-10"
+  }
+]

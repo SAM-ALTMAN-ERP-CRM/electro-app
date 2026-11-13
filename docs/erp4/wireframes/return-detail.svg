@@ -1,0 +1,105 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 650" width="100%" height="100%">
+  <defs>
+    <style>
+      .bg { fill: #f8fafc; }
+      .sidebar { fill: #0f172a; }
+      .card { fill: #ffffff; stroke: #e2e8f0; stroke-width: 1; rx: 6px; }
+      .title { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-weight: 700; font-size: 18px; fill: #0f172a; }
+      .subtitle { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 12px; fill: #64748b; }
+      .side-title { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-weight: 700; font-size: 14px; fill: #f8fafc; }
+      .side-item { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 12px; fill: #94a3b8; }
+      .side-active { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-weight: 600; font-size: 12px; fill: #ffffff; }
+      .th { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-weight: 700; font-size: 11px; fill: #475569; text-transform: uppercase; }
+      .td { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 12px; fill: #1e293b; }
+      .td-mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; fill: #334155; }
+      .btn-primary { fill: #2563eb; rx: 5px; }
+      .btn-primary-text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-weight: 600; font-size: 12px; fill: #ffffff; }
+      .btn-success { fill: #16a34a; rx: 5px; }
+      .btn-danger { fill: #dc2626; rx: 5px; }
+      .btn-outline { fill: #ffffff; stroke: #cbd5e1; stroke-width: 1; rx: 5px; }
+      .badge-amber { fill: #fef3c7; rx: 4px; }
+      .badge-amber-text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-weight: 600; font-size: 10px; fill: #b45309; }
+      .badge-blue { fill: #dbeafe; rx: 4px; }
+      .badge-blue-text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-weight: 600; font-size: 10px; fill: #1e40af; }
+      .badge-green { fill: #dcfce7; rx: 4px; }
+      .badge-green-text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-weight: 600; font-size: 10px; fill: #15803d; }
+    </style>
+  </defs>
+
+  <rect width="1000" height="650" class="bg" />
+
+  <!-- Global Sidebar Shell -->
+  <rect x="0" y="0" width="220" height="650" class="sidebar" />
+  <text x="20" y="35" class="side-title">⚡ ELECTRO APP</text>
+  <text x="20" y="55" class="subtitle" style="fill: #64748b;">CRM + ERP Integrated Suite</text>
+  <text x="20" y="100" class="subtitle" style="fill: #94a3b8; font-weight: 700;">ERP-4 ORDERS &amp; DISPATCH</text>
+  <text x="38" y="135" class="side-item">Sales Orders</text>
+  <text x="38" y="165" class="side-item">Courier Dispatch</text>
+  <rect x="15" y="175" width="190" height="32" fill="#1e293b" rx="4" />
+  <circle cx="28" cy="191" r="3" fill="#2563eb" />
+  <text x="38" y="195" class="side-active">Return Receipts</text>
+
+  <!-- Global Top Bar Shell -->
+  <rect x="220" y="0" width="780" height="45" fill="#ffffff" stroke="#e2e8f0" stroke-width="1" />
+  <text x="240" y="28" class="subtitle">Return Detail: <tspan font-weight="600" fill="#0f172a">RET-0001 (Hardware Inspection)</tspan></text>
+  <rect x="880" y="12" width="100" height="22" class="badge-blue" />
+  <text x="900" y="27" class="badge-blue-text">Role: warehouse</text>
+
+  <!-- Main Content Area -->
+  <g transform="translate(240, 60)">
+    <!-- Back Navigation -->
+    <text x="0" y="15" class="subtitle" fill="#2563eb" font-weight="600">← Back to Returns</text>
+
+    <!-- Header & Action Ribbon -->
+    <text x="0" y="48" class="title">Return Receipt RET-0001</text>
+    <rect x="225" y="34" width="75" height="18" class="badge-amber" />
+    <text x="238" y="47" class="badge-amber-text">requested</text>
+
+    <!-- Quick Action: Mark Received -->
+    <rect x="560" y="28" width="180" height="30" class="btn-primary" />
+    <text x="580" y="48" class="btn-primary-text">Mark Received at WH</text>
+
+    <!-- Information Cards Grid -->
+    <g transform="translate(0, 75)">
+      <!-- Card 1: Consignment Info -->
+      <rect x="0" y="0" width="360" height="110" class="card" />
+      <text x="15" y="25" class="th">CONSIGNMENT IDENTIFICATION</text>
+      <text x="15" y="50" class="td">Return ID: <tspan class="td-mono" font-weight="700">RET-0001</tspan></text>
+      <text x="15" y="70" class="td">Order Reference: <tspan class="td-mono" font-weight="700" fill="#2563eb">SO-0001</tspan></text>
+      <text x="15" y="90" class="td">Serial Number: <tspan class="td-mono" font-weight="600">TV55-2611-0001</tspan></text>
+
+      <!-- Card 2: RMA & Resolution -->
+      <rect x="380" y="0" width="360" height="110" class="card" />
+      <text x="395" y="25" class="th">RMA &amp; RESOLUTION DIRECTIVE</text>
+      <text x="395" y="50" class="td">Customer: Aarav Mehta (<tspan class="td-mono">CUST-0001</tspan>)</text>
+      <text x="395" y="70" class="td">Linked CRM-2 RMA: <tspan class="td-mono" font-weight="700">RMA-0001</tspan></text>
+      <text x="395" y="90" class="td">Designated Outcome: <tspan font-weight="700" fill="#15803d">Credit Note</tspan></text>
+    </g>
+
+    <!-- Defect Description Box -->
+    <g transform="translate(0, 205)">
+      <rect x="0" y="0" width="740" height="85" class="card" />
+      <text x="15" y="25" class="th">CUSTOMER DEFECT REPORT &amp; REASON</text>
+      <text x="15" y="50" class="td" font-weight="600" fill="#0f172a">"Customer noted display panel flickering on HDMI 2 port during extended usage."</text>
+      <text x="15" y="70" class="subtitle">Transit notes: Packaging intact, returned with power adapter and IR remote.</text>
+    </g>
+
+    <!-- Warehouse Disposition Action Card -->
+    <g transform="translate(0, 310)">
+      <rect x="0" y="0" width="740" height="120" class="card" />
+      <text x="15" y="25" class="th">WAREHOUSE DISPOSITION &amp; RESTOCKING CONTROLS</text>
+      <text x="15" y="48" class="subtitle">Once inspected and confirmed at warehouse, select disposition:</text>
+
+      <!-- Restock Button -->
+      <rect x="15" y="65" width="220" height="36" class="btn-success" />
+      <text x="35" y="88" class="btn-primary-text">✓ Restock to Inventory (WH-01)</text>
+
+      <!-- Scrap Button -->
+      <rect x="250" y="65" width="180" height="36" class="btn-danger" />
+      <text x="275" y="88" class="btn-primary-text">✕ Scrap Damaged Unit</text>
+
+      <!-- Audit note -->
+      <text x="450" y="88" class="subtitle" font-style="italic">Triggers ERP-1 stock delta &amp; ERP-5 credit notes</text>
+    </g>
+  </g>
+</svg>

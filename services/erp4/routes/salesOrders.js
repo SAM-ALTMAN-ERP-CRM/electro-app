@@ -5,6 +5,7 @@ const path = require('path');
 const { requireAuth } = require('../../_shared/auth');
 const { makePool } = require('../../_shared/db');
 const { callService } = require('../../_shared/callService');
+const store = require('../store');
 
 // Connect to ERP-4 PostgreSQL database
 const pool = makePool('erp4_db');
@@ -13,17 +14,9 @@ const pool = makePool('erp4_db');
 router.use(requireAuth);
 
 // In-memory fallback cache so the API functions in offline/dev environments
-let inMemoryOrders = [];
-try {
-  const mockPath = path.resolve(__dirname, '../mocks/sales-orders.json');
-  if (fs.existsSync(mockPath)) {
-    inMemoryOrders = JSON.parse(fs.readFileSync(mockPath, 'utf-8'));
-  }
-} catch (err) {
-  console.warn('[erp4] Could not load mock sales orders:', err.message);
-}
+const inMemoryOrders = store.inMemoryOrders;
 
-let orderCounter = 6;
+let orderCounter = inMemoryOrders.length + 1;
 
 /**
  * Execute query safely; returns null if PostgreSQL database is offline.

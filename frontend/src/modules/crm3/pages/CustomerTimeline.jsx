@@ -127,6 +127,8 @@ export default function CustomerTimeline({ defaultCustomerId = 'CUST-0001' }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
 
   // "Add Note" form state
   const [noteSummary, setNoteSummary] = useState('');
@@ -162,7 +164,12 @@ export default function CustomerTimeline({ defaultCustomerId = 'CUST-0001' }) {
 
     // 2. Fetch interactions for this customer
     try {
-      const url = `/api/customers/${customerId}/interactions${typeFilter ? `?type=${typeFilter}` : ''}`;
+      const params = new URLSearchParams();
+      if (typeFilter) params.set('type', typeFilter);
+      if (fromDate) params.set('from', fromDate);
+      if (toDate) params.set('to', toDate);
+      const query = params.toString();
+      const url = `/api/customers/${customerId}/interactions${query ? `?${query}` : ''}`;
       const data = await api('crm3', url);
 
       let items = Array.isArray(data) ? data : [];
@@ -177,12 +184,20 @@ export default function CustomerTimeline({ defaultCustomerId = 'CUST-0001' }) {
       if (typeFilter) {
         seedItems = seedItems.filter(item => item.type === typeFilter);
       }
+      if (fromDate) {
+        const fromBound = new Date(`${fromDate}T00:00:00.000Z`);
+        seedItems = seedItems.filter(item => new Date(item.created_at) >= fromBound);
+      }
+      if (toDate) {
+        const toBound = new Date(`${toDate}T23:59:59.999Z`);
+        seedItems = seedItems.filter(item => new Date(item.created_at) <= toBound);
+      }
       seedItems.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
       setInteractions(seedItems);
     } finally {
       setLoading(false);
     }
-  }, [customerId, typeFilter]);
+  }, [customerId, typeFilter, fromDate, toDate]);
 
   useEffect(() => {
     loadTimelineData();
@@ -208,8 +223,8 @@ export default function CustomerTimeline({ defaultCustomerId = 'CUST-0001' }) {
       customer_id: customerId,
       type: noteType,
       summary: trimmedSummary,
-      source_team: 'crm3',
-      created_by: 'admin@demo.com',
+      source_team: 'CRM-3',
+      created_by: 'EMP-0001',
       created_at: new Date().toISOString()
     };
 
@@ -228,15 +243,15 @@ export default function CustomerTimeline({ defaultCustomerId = 'CUST-0001' }) {
           customer_id: customerId,
           type: noteType,
           summary: trimmedSummary,
-          source_team: 'crm3',
-          created_by: 'admin@demo.com'
+          source_team: 'CRM-3',
+          created_by: 'EMP-0001'
         }
       });
 
-      // Update temporary ID with backend persisted ID if returned
+      // Replace optimistic placeholder fields with backend persisted record
       if (saved && saved.id) {
         setInteractions(prev =>
-          prev.map(item => (item.id === tempId ? { ...item, id: saved.id, created_at: saved.created_at || item.created_at } : item))
+          prev.map(item => (item.id === tempId ? { ...item, ...saved } : item))
         );
       }
     } catch (err) {
@@ -528,13 +543,15 @@ export default function CustomerTimeline({ defaultCustomerId = 'CUST-0001' }) {
           </span>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <label style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 500 }}>
-            Filter by Type:
-          </label>
-          <select
-            value={typeFilter}
-            onChange={(e) => setTypeFilter(e.target.value)}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <label htmlFor="timeline-type-filter" style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 500 }}>
+              Filter by Type:
+            </label>
+            <select
+              id="timeline-type-filter"
+              value={typeFilter}
+              onChange={(e) => setTypeFilter(e.target.value)}
             style={{
               padding: '0.35rem 0.65rem',
               borderRadius: '6px',
@@ -551,8 +568,71 @@ export default function CustomerTimeline({ defaultCustomerId = 'CUST-0001' }) {
             <option value="email">Emails (✉️)</option>
             <option value="meeting">Meetings (👥)</option>
             <option value="ticket">Tickets (🎫)</option>
-            <option value="order">Orders (📦)</option>
-          </select>
+              <option value="order">Orders (📦)</option>
+            </select>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            <label htmlFor="timeline-from-date" style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 500 }}>
+              From:
+            </label>
+            <input
+              id="timeline-from-date"
+              type="date"
+              value={fromDate}
+              onChange={(e) => setFromDate(e.target.value)}
+              style={{
+                padding: '0.35rem 0.5rem',
+                borderRadius: '6px',
+                border: '1px solid #cbd5e1',
+                fontSize: '0.85rem',
+                color: '#0f172a',
+                background: '#fff'
+              }}
+            />
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            <label htmlFor="timeline-to-date" style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 500 }}>
+              To:
+            </label>
+            <input
+              id="timeline-to-date"
+              type="date"
+              value={toDate}
+              onChange={(e) => setToDate(e.target.value)}
+              style={{
+                padding: '0.35rem 0.5rem',
+                borderRadius: '6px',
+                border: '1px solid #cbd5e1',
+                fontSize: '0.85rem',
+                color: '#0f172a',
+                background: '#fff'
+              }}
+            />
+          </div>
+
+          {(typeFilter || fromDate || toDate) && (
+            <button
+              type="button"
+              onClick={() => {
+                setTypeFilter('');
+                setFromDate('');
+                setToDate('');
+              }}
+              style={{
+                padding: '0.35rem 0.65rem',
+                borderRadius: '6px',
+                border: '1px solid #cbd5e1',
+                background: '#f8fafc',
+                color: '#475569',
+                fontSize: '0.8rem',
+                cursor: 'pointer'
+              }}
+            >
+              Clear
+            </button>
+          )}
         </div>
       </div>
 
