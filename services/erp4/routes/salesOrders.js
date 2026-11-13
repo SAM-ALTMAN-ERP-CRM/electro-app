@@ -15,7 +15,7 @@ router.use(requireAuth);
 // In-memory fallback cache so the API functions in offline/dev environments
 const inMemoryOrders = store.inMemoryOrders;
 
-let orderCounter = 6;
+let orderCounter = inMemoryOrders.length + 1;
 
 /**
  * Execute query safely; returns null if PostgreSQL database is offline.

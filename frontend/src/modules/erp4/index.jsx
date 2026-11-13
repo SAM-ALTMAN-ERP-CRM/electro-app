@@ -1,6 +1,8 @@
 import React from 'react';
 import OrdersListPage from './pages/OrdersListPage';
 import OrderDetailPage from './pages/OrderDetailPage';
+import DispatchPage from './pages/DispatchPage';
+import DispatchNotePage from './pages/DispatchNotePage';
 
 export default {
   id: 'erp4',
@@ -19,6 +21,15 @@ export default {
     {
       path: 'orders/:id',
       element: <OrderDetailPage />
+    },
+    {
+      path: 'dispatch',
+      label: 'Dispatch',
+      element: <DispatchPage />
+    },
+    {
+      path: 'dispatch/:id/note',
+      element: <DispatchNotePage />
     }
   ]
 };
