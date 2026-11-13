@@ -1,0 +1,26 @@
+[
+  {
+    "id": "INT-0001",
+    "customer_id": "CUST-0001",
+    "type": "order",
+    "summary": "Order SO-0001 dispatched",
+    "source_team": "ERP-4",
+    "created_at": "2026-10-02T10:00:00.000Z"
+  },
+  {
+    "id": "INT-0002",
+    "customer_id": "CUST-0001",
+    "type": "order",
+    "summary": "Order SO-0001 delivered",
+    "source_team": "ERP-4",
+    "created_at": "2026-10-04T14:30:00.000Z"
+  },
+  {
+    "id": "INT-0003",
+    "customer_id": "CUST-0002",
+    "type": "order",
+    "summary": "Order SO-0002 dispatched",
+    "source_team": "ERP-4",
+    "created_at": "2026-10-05T12:00:00.000Z"
+  }
+]

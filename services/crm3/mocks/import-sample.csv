@@ -1,0 +1,11 @@
+name,type,email,phone,gstin,billing_address,shipping_address,city
+Rohit Sharma,retail,rohit.sharma@example.com,9820199001,,102 Marine Lines,102 Marine Lines,Mumbai
+Alpha Tech Solutions,corporate,procure@alphatech.com,9820199002,27AAACA1234A1Z1,Tech Park Building 4,Tech Park Building 4,Pune
+Invalid Phone Customer,retail,badphone@example.com,12345,,12 Park Street,12 Park Street,Kolkata
+Devi Enterprises,dealer,orders@devienterprises.com,9820199004,29AABCD5678B1Z2,MG Road Suite 3,MG Road Suite 3,Bengaluru
+Anita Roy,retail,anita.roy@example.com,9820199005,,45 Lake View,45 Lake View,Hyderabad
+Corporate Missing GSTIN,corporate,missinggstin@corp.com,9820199006,,Tower B Cyber Hub,Tower B Cyber Hub,Gurugram
+Vikramaditya Rao,retail,vikram.rao@example.com,9820199007,,77 Anna Salai,77 Anna Salai,Chennai
+Apex Retailers,dealer,contact@apexretail.com,9820199008,33AABCA9012C1Z3,Industrial Area Phase 2,Industrial Area Phase 2,Coimbatore
+Meera Sen,retail,meera.sen@example.com,9820199009,,18 Salt Lake Sector 1,18 Salt Lake Sector 1,Kolkata
+Blue Horizon Ltd,corporate,admin@bluehorizon.com,9820199010,07AABCB3456D1Z4,Barakhamba Road Connaught Place,Barakhamba Road Connaught Place,New Delhi

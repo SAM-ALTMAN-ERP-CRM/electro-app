@@ -1,0 +1,57 @@
+[
+  {
+    "id": "QC-0001",
+    "wo_id": "WO-0001",
+    "inspector": "EMP-0005",
+    "checked_qty": 50,
+    "passed_qty": 50,
+    "failed_qty": 0,
+    "defect_reason": null,
+    "result": "pass",
+    "checked_at": "2026-11-02T10:30:00.000Z"
+  },
+  {
+    "id": "QC-0002",
+    "wo_id": "WO-0002",
+    "inspector": "EMP-0006",
+    "checked_qty": 25,
+    "passed_qty": 15,
+    "failed_qty": 10,
+    "defect_reason": "dead pixel",
+    "result": "fail",
+    "checked_at": "2026-11-03T14:15:00.000Z"
+  },
+  {
+    "id": "QC-0003",
+    "wo_id": "WO-0003",
+    "inspector": "EMP-0005",
+    "checked_qty": 30,
+    "passed_qty": 27,
+    "failed_qty": 3,
+    "defect_reason": "scratch",
+    "result": "rework",
+    "checked_at": "2026-10-25T11:00:00.000Z"
+  },
+  {
+    "id": "QC-0004",
+    "wo_id": "WO-0004",
+    "inspector": "EMP-0007",
+    "checked_qty": 10,
+    "passed_qty": 10,
+    "failed_qty": 0,
+    "defect_reason": null,
+    "result": "pass",
+    "checked_at": "2026-10-24T09:45:00.000Z"
+  },
+  {
+    "id": "QC-0005",
+    "wo_id": "WO-0005",
+    "inspector": "EMP-0006",
+    "checked_qty": 15,
+    "passed_qty": 13,
+    "failed_qty": 2,
+    "defect_reason": "wrong label",
+    "result": "rework",
+    "checked_at": "2026-11-08T16:20:00.000Z"
+  }
+]

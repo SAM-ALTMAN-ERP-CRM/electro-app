@@ -17,7 +17,7 @@ router.use(requireAuth);
 const inMemoryReservations = store.inMemoryReservations;
 const inMemoryOrders = store.inMemoryOrders;
 
-let resCounter = 6;
+let resCounter = 8;
 
 /**
  * Execute query safely; returns null if PostgreSQL database is offline.

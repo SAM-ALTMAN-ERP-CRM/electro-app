@@ -1,0 +1,344 @@
+{
+  "info": {
+    "name": "Team ERP-1 (Inventory & Warehouses) API",
+    "_postman_id": "erp1-inventory-api-v1",
+    "description": "Postman Collection for Team ERP-1 (Inventory & Warehouses) covering Products Master, Multi-Warehouse Stock, Transfers, Serials, Low-Stock Alerts, and ERP-2 Reorder Integration.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5201/api",
+      "type": "string"
+    },
+    {
+      "key": "authToken",
+      "value": "demo_jwt_token",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health Check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/health",
+          "host": ["{{baseUrl}}"],
+          "path": ["health"]
+        }
+      }
+    },
+    {
+      "name": "Products",
+      "item": [
+        {
+          "name": "List Products",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{authToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/products?category=TV",
+              "host": ["{{baseUrl}}"],
+              "path": ["products"],
+              "query": [
+                { "key": "category", "value": "TV" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Product Price with Tax",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{authToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/products/SKU-0001/price",
+              "host": ["{{baseUrl}}"],
+              "path": ["products", "SKU-0001", "price"]
+            }
+          }
+        },
+        {
+          "name": "Update Reorder Level",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{authToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reorder_level\": 15\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/products/SKU-0001/reorder-level",
+              "host": ["{{baseUrl}}"],
+              "path": ["products", "SKU-0001", "reorder-level"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Stock & Transfers",
+      "item": [
+        {
+          "name": "Get Stock by SKU",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{authToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/stock?sku=SKU-0001",
+              "host": ["{{baseUrl}}"],
+              "path": ["stock"],
+              "query": [
+                { "key": "sku", "value": "SKU-0001" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Check Stock Availability",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{authToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/stock/check?sku=SKU-0001&qty=50",
+              "host": ["{{baseUrl}}"],
+              "path": ["stock", "check"],
+              "query": [
+                { "key": "sku", "value": "SKU-0001" },
+                { "key": "qty", "value": "50" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Adjust Stock",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{authToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sku\": \"SKU-0001\",\n  \"warehouse_id\": \"WH-01\",\n  \"delta\": 10,\n  \"reason\": \"Cycle count\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/stock/adjust",
+              "host": ["{{baseUrl}}"],
+              "path": ["stock", "adjust"]
+            }
+          }
+        },
+        {
+          "name": "Transfer Stock",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{authToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sku\": \"SKU-0001\",\n  \"from_wh\": \"WH-01\",\n  \"to_wh\": \"WH-02\",\n  \"qty\": 5\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/transfers",
+              "host": ["{{baseUrl}}"],
+              "path": ["transfers"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Serials & Batches",
+      "item": [
+        {
+          "name": "Bulk Generate Serials",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{authToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sku\": \"SKU-0001\",\n  \"batch_no\": \"BATCH-2611-02\",\n  \"count\": 5,\n  \"prefix\": \"TV55-2611-\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/serials/bulk",
+              "host": ["{{baseUrl}}"],
+              "path": ["serials", "bulk"]
+            }
+          }
+        },
+        {
+          "name": "List Serials",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{authToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/serials?sku=SKU-0001&status=in_stock",
+              "host": ["{{baseUrl}}"],
+              "path": ["serials"],
+              "query": [
+                { "key": "sku", "value": "SKU-0001" },
+                { "key": "status", "value": "in_stock" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Allocate Serials",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{authToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sku\": \"SKU-0001\",\n  \"qty\": 2\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/serials/allocate",
+              "host": ["{{baseUrl}}"],
+              "path": ["serials", "allocate"]
+            }
+          }
+        },
+        {
+          "name": "Update Serial Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{authToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"sold\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/serials/TV55-2611-0006/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["serials", "TV55-2611-0006", "status"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Alerts & Reorder",
+      "item": [
+        {
+          "name": "Get Low Stock Items",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{authToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/alerts/low-stock",
+              "host": ["{{baseUrl}}"],
+              "path": ["alerts", "low-stock"]
+            }
+          }
+        },
+        {
+          "name": "Run Stock Scan",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{authToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/alerts/scan",
+              "host": ["{{baseUrl}}"],
+              "path": ["alerts", "scan"]
+            }
+          }
+        },
+        {
+          "name": "List Open Alerts",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{authToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/alerts?acknowledged=false",
+              "host": ["{{baseUrl}}"],
+              "path": ["alerts"],
+              "query": [
+                { "key": "acknowledged", "value": "false" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Acknowledge Alert",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{authToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/alerts/ALT-0001/ack",
+              "host": ["{{baseUrl}}"],
+              "path": ["alerts", "ALT-0001", "ack"]
+            }
+          }
+        },
+        {
+          "name": "Get Inventory Summary KPI",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{authToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/inventory/summary",
+              "host": ["{{baseUrl}}"],
+              "path": ["inventory", "summary"]
+            }
+          }
+        },
+        {
+          "name": "Create ERP-2 Purchase Request",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{authToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sku\": \"SKU-0003\",\n  \"product_name\": \"65-inch OLED TV\",\n  \"quantity\": 17,\n  \"reason\": \"Automated low stock replenishment\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/alerts/purchase-request",
+              "host": ["{{baseUrl}}"],
+              "path": ["alerts", "purchase-request"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
