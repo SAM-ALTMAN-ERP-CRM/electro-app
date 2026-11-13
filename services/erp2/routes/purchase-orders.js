@@ -1,6 +1,7 @@
 const express = require('express');
 const { requireAuth } = require('../../_shared/auth');
 const { makePool } = require('../../_shared/db');
+const { createPurchaseOrder } = require('../order-creation');
 
 const router = express.Router();
 const pool = makePool('erp2');
@@ -54,16 +55,9 @@ router.post('/purchase-orders', async (req, res, next) => {
     client = await pool.connect();
     // Save the order and its items together, or save nothing.
     await client.query('BEGIN');
-    const order = await client.query('INSERT INTO purchase_orders (supplier_id, expected_date) VALUES ($1, $2) RETURNING id', [supplier_id.trim(), expected_date || null]);
-    const id = order.rows[0].id;
-    for (const item of items) {
-      await client.query('INSERT INTO po_items (po_id, sku, product_name, quantity, unit_cost) VALUES ($1, $2, $3, $4, $5)', [id, item.sku.trim(), item.product_name.trim(), item.quantity, item.unit_cost]);
-    }
-    const result = await client.query(`UPDATE purchase_orders SET total_amount = (SELECT sum(quantity * unit_cost) FROM po_items WHERE po_id = $1)
-      WHERE id = $1 RETURNING id, supplier_id, status, to_char(expected_date, 'YYYY-MM-DD') AS expected_date, total_amount, sent_at, created_at`, [id]);
-    const savedItems = await client.query('SELECT * FROM po_items WHERE po_id = $1 ORDER BY id', [id]);
+    const order = await createPurchaseOrder(client, supplier_id.trim(), expected_date, items);
     await client.query('COMMIT');
-    res.status(201).json({ data: { ...result.rows[0], items: savedItems.rows } });
+    res.status(201).json({ data: order });
   } catch (err) {
     if (client) await client.query('ROLLBACK');
     if (err.code === '22003') return res.status(400).json({ error: 'Order total is too large' });
