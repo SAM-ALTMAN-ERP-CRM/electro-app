@@ -1,0 +1,144 @@
+{
+  "reports": [
+    {
+      "id": "sales-by-rep",
+      "title": "Sales by Representative",
+      "description": "Total inquiries assigned, deals won, and closed contract revenue per sales representative.",
+      "category": "Sales & Revenue",
+      "allowed_roles": ["admin", "sales"],
+      "columns": [
+        { "key": "rep_id", "label": "Representative ID" },
+        { "key": "rep_name", "label": "Representative Name" },
+        { "key": "assigned_leads", "label": "Assigned Leads" },
+        { "key": "won_deals", "label": "Deals Won" },
+        { "key": "total_revenue", "label": "Total Won Revenue", "format": "currency" }
+      ],
+      "rows": [
+        { "rep_id": "EMP-0001", "rep_name": "Aarav Sharma", "assigned_leads": 5, "won_deals": 2, "total_revenue": 96980.00 },
+        { "rep_id": "EMP-0002", "rep_name": "Priya Patel", "assigned_leads": 4, "won_deals": 1, "total_revenue": 85990.00 },
+        { "rep_id": "EMP-0003", "rep_name": "Rohan Mehta", "assigned_leads": 3, "won_deals": 1, "total_revenue": 78980.00 },
+        { "rep_id": "EMP-0004", "rep_name": "Neha Gupta", "assigned_leads": 2, "won_deals": 0, "total_revenue": 0.00 }
+      ]
+    },
+    {
+      "id": "conversion-rate",
+      "title": "Lead to Opportunity Conversion Rate",
+      "description": "Funnel conversion efficiency from captured inquiries into qualified opportunities by source channel.",
+      "category": "Sales & Pipeline",
+      "allowed_roles": ["admin", "sales"],
+      "columns": [
+        { "key": "source", "label": "Lead Source Channel" },
+        { "key": "total_leads", "label": "Inquiries" },
+        { "key": "converted_opportunities", "label": "Converted Opportunities" },
+        { "key": "conversion_rate", "label": "Conversion Rate %", "format": "percent" },
+        { "key": "avg_deal_value", "label": "Avg Deal Value", "format": "currency" }
+      ],
+      "rows": [
+        { "source": "Dealer Partner Network", "total_leads": 6, "converted_opportunities": 4, "conversion_rate": 66.7, "avg_deal_value": 68500.00 },
+        { "source": "Web & Direct Portal", "total_leads": 4, "converted_opportunities": 2, "conversion_rate": 50.0, "avg_deal_value": 42000.00 },
+        { "source": "Walk-in & Retail", "total_leads": 2, "converted_opportunities": 1, "conversion_rate": 50.0, "avg_deal_value": 55000.00 }
+      ]
+    },
+    {
+      "id": "tickets-by-priority",
+      "title": "Support Tickets by Priority",
+      "description": "Active customer support and warranty tickets categorized by urgency level and resolution status.",
+      "category": "Customer Support",
+      "allowed_roles": ["admin", "support"],
+      "columns": [
+        { "key": "ticket_id", "label": "Ticket ID" },
+        { "key": "customer_id", "label": "Customer ID" },
+        { "key": "subject", "label": "Issue Subject" },
+        { "key": "priority", "label": "Priority", "format": "badge" },
+        { "key": "status", "label": "Status", "format": "badge" },
+        { "key": "assigned_engineer", "label": "Service Engineer" }
+      ],
+      "rows": [
+        { "ticket_id": "TKT-0001", "customer_id": "CUST-0001", "subject": "Display panel flickering on OLED 65", "priority": "high", "status": "open", "assigned_engineer": "EMP-0005" },
+        { "ticket_id": "TKT-0002", "customer_id": "CUST-0003", "subject": "Audio sync delay via HDMI eARC", "priority": "medium", "status": "in-progress", "assigned_engineer": "EMP-0006" },
+        { "ticket_id": "TKT-0003", "customer_id": "CUST-0004", "subject": "In-warranty speaker replacement", "priority": "urgent", "status": "open", "assigned_engineer": "EMP-0005" },
+        { "ticket_id": "TKT-0004", "customer_id": "CUST-0002", "subject": "Remote control Bluetooth pairing", "priority": "low", "status": "resolved", "assigned_engineer": "EMP-0007" }
+      ]
+    },
+    {
+      "id": "sla-breaches",
+      "title": "SLA Breaches & High Priority Incidents",
+      "description": "Service requests and tickets requiring escalation beyond standard 24h resolution SLA windows.",
+      "category": "Customer Support",
+      "allowed_roles": ["admin", "support"],
+      "columns": [
+        { "key": "ticket_id", "label": "Ticket ID" },
+        { "key": "customer_id", "label": "Customer ID" },
+        { "key": "priority", "label": "Priority", "format": "badge" },
+        { "key": "response_time_hrs", "label": "Resolution Time (hrs)" },
+        { "key": "sla_status", "label": "SLA Compliance", "format": "badge" },
+        { "key": "breach_reason", "label": "Investigation / Action Note" }
+      ],
+      "rows": [
+        { "ticket_id": "TKT-0003", "customer_id": "CUST-0004", "priority": "urgent", "response_time_hrs": 36, "sla_status": "breached", "breach_reason": "Waiting for motherboard component dispatch from WH-01" },
+        { "ticket_id": "TKT-0001", "customer_id": "CUST-0001", "priority": "high", "response_time_hrs": 28, "sla_status": "breached", "breach_reason": "Customer requested technician visit on next working day" },
+        { "ticket_id": "TKT-0005", "customer_id": "CUST-0005", "priority": "high", "response_time_hrs": 18, "sla_status": "compliant", "breach_reason": "Resolved within target SLA window" }
+      ]
+    },
+    {
+      "id": "won-revenue-by-month",
+      "title": "Won Revenue by Month",
+      "description": "Monthly closed deals breakdown, taxable turnover in INR, and 18% GST collections.",
+      "category": "Finance & Accounting",
+      "allowed_roles": ["admin", "finance"],
+      "columns": [
+        { "key": "month", "label": "Billing Month" },
+        { "key": "deals_won", "label": "Closed Deals" },
+        { "key": "taxable_value", "label": "Taxable Value", "format": "currency" },
+        { "key": "gst_amount", "label": "18% GST Collection", "format": "currency" },
+        { "key": "gross_revenue", "label": "Gross Invoiced Revenue", "format": "currency" }
+      ],
+      "rows": [
+        { "month": "2026-08", "deals_won": 3, "taxable_value": 120000.00, "gst_amount": 21600.00, "gross_revenue": 141600.00 },
+        { "month": "2026-09", "deals_won": 4, "taxable_value": 180000.00, "gst_amount": 32400.00, "gross_revenue": 212400.00 },
+        { "month": "2026-10", "deals_won": 5, "taxable_value": 210000.00, "gst_amount": 37800.00, "gross_revenue": 247800.00 },
+        { "month": "2026-11", "deals_won": 4, "taxable_value": 209970.00, "gst_amount": 37794.60, "gross_revenue": 247764.60 }
+      ]
+    },
+    {
+      "id": "rep-performance",
+      "title": "Representative Performance & Quota Attainment",
+      "description": "Quarterly sales rep targets, closed revenue contributions, and attainment performance bands.",
+      "category": "HR & Workforce",
+      "allowed_roles": ["admin", "hr"],
+      "columns": [
+        { "key": "rep_id", "label": "Employee ID" },
+        { "key": "rep_name", "label": "Sales Representative" },
+        { "key": "target_quota", "label": "Quarterly Quota", "format": "currency" },
+        { "key": "achieved_value", "label": "Achieved Revenue", "format": "currency" },
+        { "key": "attainment_pct", "label": "Attainment %", "format": "percent" },
+        { "key": "status", "label": "Performance Band", "format": "badge" }
+      ],
+      "rows": [
+        { "rep_id": "EMP-0001", "rep_name": "Aarav Sharma", "target_quota": 250000.00, "achieved_value": 260000.00, "attainment_pct": 104.0, "status": "exceeding" },
+        { "rep_id": "EMP-0002", "rep_name": "Priya Patel", "target_quota": 250000.00, "achieved_value": 245000.00, "attainment_pct": 98.0, "status": "on-track" },
+        { "rep_id": "EMP-0003", "rep_name": "Rohan Mehta", "target_quota": 200000.00, "achieved_value": 190000.00, "attainment_pct": 95.0, "status": "on-track" },
+        { "rep_id": "EMP-0004", "rep_name": "Neha Gupta", "target_quota": 200000.00, "achieved_value": 130000.00, "attainment_pct": 65.0, "status": "needs-review" }
+      ]
+    },
+    {
+      "id": "warehouse-fulfillment",
+      "title": "Warehouse Dispatch & Fulfillment",
+      "description": "Inventory throughput, fulfillment rate, and pending shipments across regional warehouses.",
+      "category": "Warehouse & Logistics",
+      "allowed_roles": ["admin", "warehouse"],
+      "columns": [
+        { "key": "warehouse_id", "label": "Warehouse ID" },
+        { "key": "location", "label": "Facility Location" },
+        { "key": "orders_fulfilled", "label": "Orders Dispatched" },
+        { "key": "pending_dispatches", "label": "Pending Orders" },
+        { "key": "avg_dispatch_days", "label": "Avg Fulfillment Time (Days)" }
+      ],
+      "rows": [
+        { "warehouse_id": "WH-01", "location": "Mumbai Central Electronics Hub", "orders_fulfilled": 28, "pending_dispatches": 3, "avg_dispatch_days": 1.2 },
+        { "warehouse_id": "WH-02", "location": "Bhiwandi Western Depo", "orders_fulfilled": 19, "pending_dispatches": 2, "avg_dispatch_days": 1.5 },
+        { "warehouse_id": "WH-03", "location": "Delhi NCR Distribution Center", "orders_fulfilled": 14, "pending_dispatches": 1, "avg_dispatch_days": 1.8 }
+      ]
+    }
+  ]
+}

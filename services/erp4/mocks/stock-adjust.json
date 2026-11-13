@@ -1,0 +1,23 @@
+[
+  {
+    "sku": "SKU-0001",
+    "warehouse_id": "WH-01",
+    "delta": -1,
+    "current_stock": 24,
+    "reason": "DSP-0001"
+  },
+  {
+    "sku": "SKU-0002",
+    "warehouse_id": "WH-01",
+    "delta": -2,
+    "current_stock": 18,
+    "reason": "DSP-0002"
+  },
+  {
+    "sku": "SKU-0003",
+    "warehouse_id": "WH-01",
+    "delta": -1,
+    "current_stock": 14,
+    "reason": "DSP-0003"
+  }
+]

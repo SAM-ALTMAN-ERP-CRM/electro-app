@@ -17,7 +17,7 @@ router.use(requireAuth);
 const inMemoryReservations = store.inMemoryReservations;
 const inMemoryOrders = store.inMemoryOrders;
 
-let resCounter = 6;
+let resCounter = 8;
 
 /**
  * Execute query safely; returns null if PostgreSQL database is offline.
@@ -176,28 +176,26 @@ router.post('/sales-orders/:id/reserve', async (req, res, next) => {
   try {
     const { id } = req.params;
 
-    // 1. Retrieve order and line items
+    // 1. Fetch sales order and its items
     let items = [];
     const dbOrder = await safeQuery('SELECT * FROM sales_orders WHERE id = $1', [id]);
-
     if (dbOrder && dbOrder.rows.length > 0) {
-      const itemsRes = await safeQuery('SELECT * FROM so_items WHERE so_id = $1 ORDER BY id ASC', [id]);
+      const itemsRes = await safeQuery('SELECT * FROM so_items WHERE so_id = $1', [id]);
       items = itemsRes ? itemsRes.rows : [];
     } else {
       // In-memory fallback
       const mockOrders = loadMockOrders();
-      const foundOrder = mockOrders.find(o => o.id === id);
-      if (!foundOrder) {
-        return res.status(404).json({ error: `Sales order ${id} not found` });
+      const match = mockOrders.find(o => o.id === id);
+      if (match) {
+        items = match.items || [];
       }
-      items = foundOrder.items || [];
     }
 
     if (!items || items.length === 0) {
-      return res.status(400).json({ error: `Sales order ${id} has no line items to reserve` });
+      return res.status(404).json({ error: `Sales order ${id} not found or contains no line items` });
     }
 
-    // 2. Perform stock check for each item
+    // 2. Check stock availability for each line item and trigger shortage work order if needed
     const evaluatedItems = [];
     for (const item of items) {
       const qty = parseInt(item.quantity, 10) || 1;
@@ -218,7 +216,7 @@ router.post('/sales-orders/:id/reserve', async (req, res, next) => {
       });
     }
 
-    // 3. Upsert reservations in database or in-memory
+    // 3. Save evaluated items into reservations table (or in-memory cache)
     const savedRows = [];
     let client = null;
     try {

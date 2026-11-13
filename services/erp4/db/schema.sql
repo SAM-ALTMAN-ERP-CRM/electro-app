@@ -64,13 +64,12 @@ CREATE TABLE IF NOT EXISTS dispatch_serials (
   serial_number VARCHAR(50) NOT NULL
 );
 
--- Sequence for Return IDs (RET-0001, RET-0002, ...)
-CREATE SEQUENCE IF NOT EXISTS ret_id_seq START WITH 1;
+-- Table: returns (Customer return receipts & RMA processing)
+CREATE SEQUENCE IF NOT EXISTS ret_id_seq START WITH 5 INCREMENT BY 1;
 
--- Table: returns (Reverse logistics and RMA records)
 CREATE TABLE IF NOT EXISTS returns (
-  id VARCHAR(20) PRIMARY KEY DEFAULT ('RET-' || LPAD(nextval('ret_id_seq')::TEXT, 4, '0')),
-  so_id VARCHAR(20) NOT NULL REFERENCES sales_orders(id) ON DELETE CASCADE,
+  id VARCHAR(20) PRIMARY KEY DEFAULT ('RET-' || LPAD(NEXTVAL('ret_id_seq')::TEXT, 4, '0')),
+  so_id VARCHAR(20) NOT NULL REFERENCES sales_orders(id),
   serial_number VARCHAR(50) NOT NULL,
   reason TEXT NOT NULL,
   rma_id VARCHAR(50) UNIQUE,
@@ -92,5 +91,7 @@ CREATE INDEX IF NOT EXISTS idx_dispatches_status ON dispatches(status);
 CREATE INDEX IF NOT EXISTS idx_dispatch_serials_dispatch_id ON dispatch_serials(dispatch_id);
 CREATE INDEX IF NOT EXISTS idx_dispatch_serials_serial ON dispatch_serials(serial_number);
 CREATE INDEX IF NOT EXISTS idx_returns_so_id ON returns(so_id);
-CREATE INDEX IF NOT EXISTS idx_returns_rma_id ON returns(rma_id);
 CREATE INDEX IF NOT EXISTS idx_returns_serial ON returns(serial_number);
+CREATE INDEX IF NOT EXISTS idx_returns_rma_id ON returns(rma_id);
+CREATE INDEX IF NOT EXISTS idx_returns_status ON returns(status);
+

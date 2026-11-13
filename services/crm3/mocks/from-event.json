@@ -1,0 +1,11 @@
+{
+  "data": {
+    "id": "INT-9001",
+    "customer_id": "CUST-0001",
+    "type": "order",
+    "summary": "Order SO-0001 dispatched via BlueDart (AWB BD123456)",
+    "source_team": "ERP-4",
+    "created_by": "ERP-4",
+    "created_at": "2026-11-06T09:00:00.000Z"
+  }
+}

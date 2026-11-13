@@ -1,0 +1,82 @@
+[
+  {
+    "id": "MEM-0001",
+    "audience_id": "AUD-0001",
+    "customer_id": "CUST-0001",
+    "name": "Aarav Mehta",
+    "email": "aarav.mehta@example.com",
+    "phone": "9820112345",
+    "opted_out": false,
+    "created_at": "2026-10-15T10:05:00.000Z"
+  },
+  {
+    "id": "MEM-0002",
+    "audience_id": "AUD-0001",
+    "customer_id": "CUST-0002",
+    "name": "Sunrise Electronics Pvt Ltd",
+    "email": "purchase@sunrise.com",
+    "phone": "9820223456",
+    "opted_out": false,
+    "created_at": "2026-10-15T10:05:00.000Z"
+  },
+  {
+    "id": "MEM-0003",
+    "audience_id": "AUD-0001",
+    "customer_id": "CUST-0003",
+    "name": "Priya Nair",
+    "email": "priya.nair@example.com",
+    "phone": "9847134567",
+    "opted_out": true,
+    "created_at": "2026-10-15T10:05:00.000Z"
+  },
+  {
+    "id": "MEM-0004",
+    "audience_id": "AUD-0001",
+    "customer_id": "CUST-0004",
+    "name": "BrightHome Retail LLP",
+    "email": "contact@brighthome.com",
+    "phone": "9850145678",
+    "opted_out": false,
+    "created_at": "2026-10-15T10:05:00.000Z"
+  },
+  {
+    "id": "MEM-0005",
+    "audience_id": "AUD-0001",
+    "customer_id": "CUST-0005",
+    "name": "Kiran Patel",
+    "email": "kiran.patel@example.com",
+    "phone": "9879156789",
+    "opted_out": false,
+    "created_at": "2026-10-15T10:05:00.000Z"
+  },
+  {
+    "id": "MEM-0006",
+    "audience_id": "AUD-0001",
+    "customer_id": "CUST-0006",
+    "name": "Metro Offices Ltd",
+    "email": "admin@metrooffices.com",
+    "phone": "9811167890",
+    "opted_out": false,
+    "created_at": "2026-10-15T10:05:00.000Z"
+  },
+  {
+    "id": "MEM-0007",
+    "audience_id": "AUD-0001",
+    "customer_id": "CUST-0007",
+    "name": "Sneha Iyer",
+    "email": "sneha.iyer@example.com",
+    "phone": "9840178901",
+    "opted_out": false,
+    "created_at": "2026-10-15T10:05:00.000Z"
+  },
+  {
+    "id": "MEM-0008",
+    "audience_id": "AUD-0001",
+    "customer_id": "CUST-0008",
+    "name": "Gadget Hub",
+    "email": "sales@gadgethub.com",
+    "phone": "9845189012",
+    "opted_out": false,
+    "created_at": "2026-10-15T10:05:00.000Z"
+  }
+]

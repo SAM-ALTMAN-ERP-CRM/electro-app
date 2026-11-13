@@ -1,0 +1,22 @@
+[
+  {
+    "id": "DEP-01",
+    "name": "Sales"
+  },
+  {
+    "id": "DEP-02",
+    "name": "Support"
+  },
+  {
+    "id": "DEP-03",
+    "name": "HR"
+  },
+  {
+    "id": "DEP-04",
+    "name": "Warehouse and Production"
+  },
+  {
+    "id": "DEP-05",
+    "name": "Finance"
+  }
+]

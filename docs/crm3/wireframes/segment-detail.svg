@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="600" viewBox="0 0 960 600" role="img" aria-labelledby="title desc">
+  <title id="title">CRM-3 Segment Detail &amp; Cohort Wireframe</title>
+  <desc id="desc">Wireframe layout for /crm3/segments/:id (Cohort View &amp; Excel CSV Export)</desc>
+  <rect width="960" height="600" fill="#f8fafc"/>
+  <rect x="20" y="20" width="920" height="560" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5"/>
+
+  <!-- Back Link & Header -->
+  <text x="50" y="55" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="500" fill="#2563eb">&lt; Back to Segments</text>
+  <text x="50" y="90" font-family="system-ui, -apple-system, sans-serif" font-size="22" font-weight="700" fill="#0f172a">Corporate in Mumbai</text>
+  <text x="50" y="115" font-family="system-ui, -apple-system, sans-serif" font-size="13" fill="#64748b">Segment ID: <tspan font-family="monospace" font-weight="600" fill="#0f172a">SEG-0001</tspan> · Created: 01 Nov 2026</text>
+
+  <!-- Criteria Badges -->
+  <rect x="50" y="130" width="125" height="24" rx="12" fill="#dcfce7"/>
+  <text x="62" y="146" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#15803d">Type: corporate</text>
+
+  <rect x="185" y="130" width="95" height="24" rx="12" fill="#dbeafe"/>
+  <text x="197" y="146" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#1d4ed8">City: Mumbai</text>
+
+  <!-- Download CSV Button -->
+  <rect x="690" y="80" width="220" height="38" rx="6" fill="#16a34a"/>
+  <text x="715" y="104" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="600" fill="#ffffff">📥 Download CSV (Excel)</text>
+  <line x1="50" y1="170" x2="910" y2="170" stroke="#e2e8f0"/>
+
+  <!-- KPI Match Count Card -->
+  <rect x="50" y="185" width="220" height="75" rx="6" fill="#f8fafc" stroke="#e2e8f0"/>
+  <text x="70" y="210" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="600" fill="#64748b">MATCHING CUSTOMERS</text>
+  <text x="70" y="245" font-family="system-ui, -apple-system, sans-serif" font-size="28" font-weight="700" fill="#0f172a">1</text>
+  <text x="95" y="245" font-family="system-ui, -apple-system, sans-serif" font-size="13" fill="#64748b">active account</text>
+
+  <!-- Customer Cohort Table -->
+  <text x="50" y="295" font-family="system-ui, -apple-system, sans-serif" font-size="15" font-weight="700" fill="#0f172a">Matching Customer Cohort Directory</text>
+  <rect x="50" y="310" width="860" height="135" rx="6" fill="#ffffff" stroke="#e2e8f0"/>
+  <rect x="50" y="310" width="860" height="35" rx="6" fill="#f8fafc"/>
+  <text x="70" y="332" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#64748b">CUSTOMER ID</text>
+  <text x="200" y="332" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#64748b">CUSTOMER NAME</text>
+  <text x="430" y="332" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#64748b">TYPE</text>
+  <text x="530" y="332" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#64748b">CITY</text>
+  <text x="640" y="332" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#64748b">PHONE</text>
+  <text x="790" y="332" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#64748b">ACTION</text>
+  <line x1="50" y1="345" x2="910" y2="345" stroke="#e2e8f0"/>
+
+  <text x="70" y="380" font-family="monospace" font-size="13" font-weight="600" fill="#0f172a">CUST-0002</text>
+  <text x="200" y="380" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="600" fill="#0f172a">Sunrise Electronics Pvt Ltd</text>
+  <rect x="430" y="366" width="75" height="20" rx="10" fill="#dcfce7"/>
+  <text x="440" y="380" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#15803d">corporate</text>
+  <text x="530" y="380" font-family="system-ui, -apple-system, sans-serif" font-size="13" fill="#334155">Mumbai</text>
+  <text x="640" y="380" font-family="system-ui, -apple-system, sans-serif" font-size="13" fill="#334155">9820022222</text>
+  <text x="790" y="380" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="600" fill="#2563eb">View Profile &gt;</text>
+  <line x1="50" y1="400" x2="910" y2="400" stroke="#f1f5f9"/>
+
+  <!-- Format Note -->
+  <rect x="50" y="470" width="860" height="75" rx="6" fill="#f8fafc" stroke="#e2e8f0"/>
+  <text x="70" y="498" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="700" fill="#0f172a">Excel-Compatible CSV Export</text>
+  <text x="70" y="522" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#64748b">CSV includes UTF-8 Byte Order Mark (\uFEFF) and RFC 4180 escaping for instant rendering without character distortion in MS Excel.</text>
+</svg>

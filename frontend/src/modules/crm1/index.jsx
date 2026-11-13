@@ -1,12 +1,20 @@
 import React from 'react';
+import LeadsPage from './pages/LeadsPage';
+import PipelinePage from './pages/PipelinePage';
 import QuotesListPage from './pages/QuotesListPage';
 import QuoteBuilderPage from './pages/QuoteBuilderPage';
+import DealersPage from './pages/DealersPage';
+import DealerDetailPage from './pages/DealerDetailPage';
+import ApprovalsPage from './pages/ApprovalsPage';
 
 /**
  * CRM-1 Sales Pipeline module registration.
- * Registered routes for Issue [CRM1-C2]:
- *   - /crm1/quotes: Quotations List page
- *   - /crm1/quotes/new: Quote Builder screen
+ *
+ * Rules:
+ * - Module accessible to roles: admin, sales
+ * - All standard routes accessible to: admin, sales
+ * - Manager approvals route restricted to: admin
+ * - No internal BrowserRouter or navbar: handled by shared shell
  */
 export default {
   id: 'crm1',
@@ -18,14 +26,45 @@ export default {
       element: <QuotesListPage />
     },
     {
+      path: 'leads',
+      label: 'Leads',
+      element: <LeadsPage />,
+      roles: ['admin', 'sales']
+    },
+    {
+      path: 'pipeline',
+      label: 'Pipeline',
+      element: <PipelinePage />,
+      roles: ['admin', 'sales']
+    },
+    {
       path: 'quotes',
       label: 'Quotes',
-      element: <QuotesListPage />
+      element: <QuotesListPage />,
+      roles: ['admin', 'sales']
     },
     {
       path: 'quotes/new',
       label: 'New Quote',
-      element: <QuoteBuilderPage />
+      element: <QuoteBuilderPage />,
+      roles: ['admin', 'sales']
+    },
+    {
+      path: 'dealers',
+      label: 'Dealers',
+      element: <DealersPage />,
+      roles: ['admin', 'sales']
+    },
+    {
+      path: 'dealers/:id',
+      element: <DealerDetailPage />,
+      roles: ['admin', 'sales']
+    },
+    {
+      path: 'approvals',
+      label: 'Approvals',
+      element: <ApprovalsPage />,
+      roles: ['admin']
     }
   ]
 };
