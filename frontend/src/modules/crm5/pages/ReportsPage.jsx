@@ -1,147 +1,70 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { api } from '../../../api';
 
-// Fallback reports dataset adhering strictly to Section 5 shared IDs
+// Fallback reports dataset adhering strictly to Section 5 shared IDs [CRM5-D1]
 // Used when backend service is offline
 const FALLBACK_REPORTS = [
   {
-    id: 'sales-by-rep',
-    title: 'Sales by Representative',
-    description: 'Total inquiries assigned, deals won, and closed contract revenue per sales representative.',
-    category: 'Sales & Revenue',
-    allowed_roles: ['admin', 'sales'],
+    id: 'RPT-0001',
+    name: 'Leads by Source',
+    title: 'Leads by Source',
+    source: 'CRM-1',
+    category: 'CRM-1 (Sales)',
+    allowed_roles: ['sales', 'admin'],
+    description: 'Lead generation and pipeline conversion categorized by acquisition channel from CRM-1.',
     columns: [
-      { key: 'rep_id', label: 'Representative ID' },
-      { key: 'rep_name', label: 'Representative Name' },
-      { key: 'assigned_leads', label: 'Assigned Leads' },
-      { key: 'won_deals', label: 'Deals Won' },
-      { key: 'total_revenue', label: 'Total Won Revenue', format: 'currency' }
+      { key: 'source', label: 'Lead Source' },
+      { key: 'lead_count', label: 'Total Inquiries' },
+      { key: 'converted_count', label: 'Converted Deals' },
+      { key: 'assigned_rep', label: 'Sales Representative' },
+      { key: 'total_pipeline_inr', label: 'Total Pipeline', format: 'currency' }
     ],
     rows: [
-      { rep_id: 'EMP-0001', rep_name: 'Aarav Sharma', assigned_leads: 5, won_deals: 2, total_revenue: 96980.00 },
-      { rep_id: 'EMP-0002', rep_name: 'Priya Patel', assigned_leads: 4, won_deals: 1, total_revenue: 85990.00 },
-      { rep_id: 'EMP-0003', rep_name: 'Rohan Mehta', assigned_leads: 3, won_deals: 1, total_revenue: 78980.00 },
-      { rep_id: 'EMP-0004', rep_name: 'Neha Gupta', assigned_leads: 2, won_deals: 0, total_revenue: 0.00 }
+      { source: 'Website Direct', lead_count: 8, converted_count: 5, assigned_rep: 'EMP-0001', total_pipeline_inr: 245000.00 },
+      { source: 'Dealer Partner Referral', lead_count: 6, converted_count: 4, assigned_rep: 'EMP-0002', total_pipeline_inr: 185000.00 },
+      { source: 'Electronics Trade Expo', lead_count: 4, converted_count: 2, assigned_rep: 'EMP-0003', total_pipeline_inr: 115000.00 }
     ]
   },
   {
-    id: 'conversion-rate',
-    title: 'Lead to Opportunity Conversion Rate',
-    description: 'Funnel conversion efficiency from captured inquiries into qualified opportunities by source channel.',
-    category: 'Sales & Pipeline',
-    allowed_roles: ['admin', 'sales'],
+    id: 'RPT-0002',
+    name: 'Tickets by Status',
+    title: 'Tickets by Status',
+    source: 'CRM-2',
+    category: 'CRM-2 (Support)',
+    allowed_roles: ['support', 'admin'],
+    description: 'Active customer support tickets grouped by resolution status and assigned engineers from CRM-2.',
     columns: [
-      { key: 'source', label: 'Lead Source Channel' },
-      { key: 'total_leads', label: 'Inquiries' },
-      { key: 'converted_opportunities', label: 'Converted Deals' },
-      { key: 'conversion_rate', label: 'Conversion Rate %', format: 'percent' },
-      { key: 'avg_deal_value', label: 'Avg Deal Value', format: 'currency' }
+      { key: 'status', label: 'Ticket Status', format: 'badge' },
+      { key: 'ticket_count', label: 'Total Tickets' },
+      { key: 'high_priority_count', label: 'High Priority Tickets' },
+      { key: 'assigned_engineer', label: 'Assigned Engineer' },
+      { key: 'avg_resolution_hrs', label: 'Avg Resolution (Hrs)' }
     ],
     rows: [
-      { source: 'Dealer Partner Network', total_leads: 6, converted_opportunities: 4, conversion_rate: 66.7, avg_deal_value: 68500.00 },
-      { source: 'Web & Direct Portal', total_leads: 4, converted_opportunities: 2, conversion_rate: 50.0, avg_deal_value: 42000.00 },
-      { source: 'Walk-in & Retail', total_leads: 2, converted_opportunities: 1, conversion_rate: 50.0, avg_deal_value: 55000.00 }
+      { status: 'open', ticket_count: 5, high_priority_count: 2, assigned_engineer: 'EMP-0005', avg_resolution_hrs: 14.50 },
+      { status: 'in-progress', ticket_count: 4, high_priority_count: 1, assigned_engineer: 'EMP-0006', avg_resolution_hrs: 22.00 },
+      { status: 'resolved', ticket_count: 12, high_priority_count: 0, assigned_engineer: 'EMP-0007', avg_resolution_hrs: 18.20 }
     ]
   },
   {
-    id: 'tickets-by-priority',
-    title: 'Support Tickets by Priority',
-    description: 'Active customer support and warranty tickets categorized by urgency level and resolution status.',
-    category: 'Customer Support',
-    allowed_roles: ['admin', 'support'],
+    id: 'RPT-0003',
+    name: 'Customers by Type',
+    title: 'Customers by Type',
+    source: 'CRM-3',
+    category: 'CRM-3 (Customers)',
+    allowed_roles: ['sales', 'support', 'admin'],
+    description: 'Customer segmentation breakdown by enterprise, retail, and individual accounts from CRM-3.',
     columns: [
-      { key: 'ticket_id', label: 'Ticket ID' },
-      { key: 'customer_id', label: 'Customer ID' },
-      { key: 'subject', label: 'Issue Subject' },
-      { key: 'priority', label: 'Priority', format: 'badge' },
-      { key: 'status', label: 'Status', format: 'badge' },
-      { key: 'assigned_engineer', label: 'Service Engineer' }
+      { key: 'customer_type', label: 'Customer Segment' },
+      { key: 'customer_count', label: 'Total Customers' },
+      { key: 'sample_customer_id', label: 'Customer Reference' },
+      { key: 'active_orders', label: 'Active Orders' },
+      { key: 'total_spend_inr', label: 'Total Spend', format: 'currency' }
     ],
     rows: [
-      { ticket_id: 'TKT-0001', customer_id: 'CUST-0001', subject: 'Display panel flickering on OLED 65', priority: 'high', status: 'open', assigned_engineer: 'EMP-0005' },
-      { ticket_id: 'TKT-0002', customer_id: 'CUST-0003', subject: 'Audio sync delay via HDMI eARC', priority: 'medium', status: 'in-progress', assigned_engineer: 'EMP-0006' },
-      { ticket_id: 'TKT-0003', customer_id: 'CUST-0004', subject: 'In-warranty speaker replacement', priority: 'urgent', status: 'open', assigned_engineer: 'EMP-0005' },
-      { ticket_id: 'TKT-0004', customer_id: 'CUST-0002', subject: 'Remote control Bluetooth pairing', priority: 'low', status: 'resolved', assigned_engineer: 'EMP-0007' }
-    ]
-  },
-  {
-    id: 'sla-breaches',
-    title: 'SLA Breaches & High Priority Incidents',
-    description: 'Service requests and tickets requiring escalation beyond standard 24h resolution SLA windows.',
-    category: 'Customer Support',
-    allowed_roles: ['admin', 'support'],
-    columns: [
-      { key: 'ticket_id', label: 'Ticket ID' },
-      { key: 'customer_id', label: 'Customer ID' },
-      { key: 'priority', label: 'Priority', format: 'badge' },
-      { key: 'response_time_hrs', label: 'Resolution Time (hrs)' },
-      { key: 'sla_status', label: 'SLA Compliance', format: 'badge' },
-      { key: 'breach_reason', label: 'Investigation / Action Note' }
-    ],
-    rows: [
-      { ticket_id: 'TKT-0003', customer_id: 'CUST-0004', priority: 'urgent', response_time_hrs: 36, sla_status: 'breached', breach_reason: 'Waiting for motherboard component dispatch from WH-01' },
-      { ticket_id: 'TKT-0001', customer_id: 'CUST-0001', priority: 'high', response_time_hrs: 28, sla_status: 'breached', breach_reason: 'Customer requested technician visit on next working day' },
-      { ticket_id: 'TKT-0005', customer_id: 'CUST-0005', priority: 'high', response_time_hrs: 18, sla_status: 'compliant', breach_reason: 'Resolved within target SLA window' }
-    ]
-  },
-  {
-    id: 'won-revenue-by-month',
-    title: 'Won Revenue by Month',
-    description: 'Monthly closed deals breakdown, taxable turnover in INR, and 18% GST collections.',
-    category: 'Finance & Accounting',
-    allowed_roles: ['admin', 'finance'],
-    columns: [
-      { key: 'month', label: 'Billing Month' },
-      { key: 'deals_won', label: 'Closed Deals' },
-      { key: 'taxable_value', label: 'Taxable Value', format: 'currency' },
-      { key: 'gst_amount', label: '18% GST Collection', format: 'currency' },
-      { key: 'gross_revenue', label: 'Gross Invoiced Revenue', format: 'currency' }
-    ],
-    rows: [
-      { month: '2026-08', deals_won: 3, taxable_value: 120000.00, gst_amount: 21600.00, gross_revenue: 141600.00 },
-      { month: '2026-09', deals_won: 4, taxable_value: 180000.00, gst_amount: 32400.00, gross_revenue: 212400.00 },
-      { month: '2026-10', deals_won: 5, taxable_value: 210000.00, gst_amount: 37800.00, gross_revenue: 247800.00 },
-      { month: '2026-11', deals_won: 4, taxable_value: 209970.00, gst_amount: 37794.60, gross_revenue: 247764.60 }
-    ]
-  },
-  {
-    id: 'rep-performance',
-    title: 'Representative Performance & Quota Attainment',
-    description: 'Quarterly sales rep targets, closed revenue contributions, and attainment performance bands.',
-    category: 'HR & Workforce',
-    allowed_roles: ['admin', 'hr'],
-    columns: [
-      { key: 'rep_id', label: 'Employee ID' },
-      { key: 'rep_name', label: 'Sales Representative' },
-      { key: 'target_quota', label: 'Quarterly Quota', format: 'currency' },
-      { key: 'achieved_value', label: 'Achieved Revenue', format: 'currency' },
-      { key: 'attainment_pct', label: 'Attainment %', format: 'percent' },
-      { key: 'status', label: 'Performance Band', format: 'badge' }
-    ],
-    rows: [
-      { rep_id: 'EMP-0001', rep_name: 'Aarav Sharma', target_quota: 250000.00, achieved_value: 260000.00, attainment_pct: 104.0, status: 'exceeding' },
-      { rep_id: 'EMP-0002', rep_name: 'Priya Patel', target_quota: 250000.00, achieved_value: 245000.00, attainment_pct: 98.0, status: 'on-track' },
-      { rep_id: 'EMP-0003', rep_name: 'Rohan Mehta', target_quota: 200000.00, achieved_value: 190000.00, attainment_pct: 95.0, status: 'on-track' },
-      { rep_id: 'EMP-0004', rep_name: 'Neha Gupta', target_quota: 200000.00, achieved_value: 130000.00, attainment_pct: 65.0, status: 'needs-review' }
-    ]
-  },
-  {
-    id: 'warehouse-fulfillment',
-    title: 'Warehouse Dispatch & Fulfillment',
-    description: 'Inventory throughput, fulfillment rate, and pending shipments across regional warehouses.',
-    category: 'Warehouse & Logistics',
-    allowed_roles: ['admin', 'warehouse'],
-    columns: [
-      { key: 'warehouse_id', label: 'Warehouse ID' },
-      { key: 'location', label: 'Facility Location' },
-      { key: 'orders_fulfilled', label: 'Orders Dispatched' },
-      { key: 'pending_dispatches', label: 'Pending Orders' },
-      { key: 'avg_dispatch_days', label: 'Avg Fulfillment Time (Days)' }
-    ],
-    rows: [
-      { warehouse_id: 'WH-01', location: 'Mumbai Central Electronics Hub', orders_fulfilled: 28, pending_dispatches: 3, avg_dispatch_days: 1.2 },
-      { warehouse_id: 'WH-02', location: 'Bhiwandi Western Depo', orders_fulfilled: 19, pending_dispatches: 2, avg_dispatch_days: 1.5 },
-      { warehouse_id: 'WH-03', location: 'Delhi NCR Distribution Center', orders_fulfilled: 14, pending_dispatches: 1, avg_dispatch_days: 1.8 }
+      { customer_type: 'Enterprise Corporate', customer_count: 3, sample_customer_id: 'CUST-0001', active_orders: 6, total_spend_inr: 485000.00 },
+      { customer_type: 'Retail Commercial', customer_count: 3, sample_customer_id: 'CUST-0002', active_orders: 4, total_spend_inr: 230000.00 },
+      { customer_type: 'Individual Consumer', customer_count: 2, sample_customer_id: 'CUST-0003', active_orders: 2, total_spend_inr: 95000.00 }
     ]
   }
 ];
@@ -173,8 +96,8 @@ export default function ReportsPage() {
   const [downloadingCsv, setDownloadingCsv] = useState(false);
   const [csvNotice, setCsvNotice] = useState('');
 
-  // Check if actual logged-in user is admin
-  const isAdmin = currentUser && currentUser.role === 'admin';
+  // Check if actual logged-in user is admin (Manager means admin)
+  const isAdmin = currentUser && (currentUser.role === 'admin' || currentUser.role === 'manager');
 
   // The effective role determining report visibility:
   // For admin: determined by preview dropdown (or 'admin' if 'all')
@@ -396,12 +319,9 @@ export default function ReportsPage() {
                 cursor: 'pointer'
               }}
             >
-              <option value="all">🌟 All Reports (Admin Full Access)</option>
-              <option value="sales">💼 Sales (sales-by-rep, conversion-rate)</option>
-              <option value="support">🛠️ Support (tickets-by-priority, sla-breaches)</option>
-              <option value="finance">💰 Finance (won-revenue-by-month)</option>
-              <option value="hr">👥 HR (rep-performance)</option>
-              <option value="warehouse">📦 Warehouse (warehouse-fulfillment)</option>
+              <option value="all">🌟 All Reports (Admin Full Access - 3 Reports)</option>
+              <option value="sales">💼 Sales (Leads by Source, Customers by Type)</option>
+              <option value="support">🛠️ Support (Tickets by Status, Customers by Type)</option>
             </select>
           </div>
         </div>
@@ -466,7 +386,7 @@ export default function ReportsPage() {
                   <div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
                       <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#2563eb', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                        {rep.category || 'General'}
+                        {rep.source || rep.category || 'General'}
                       </span>
                       <div style={{ display: 'flex', gap: '0.25rem', flexWrap: 'wrap' }}>
                         {(rep.allowed_roles || []).map(r => (
@@ -477,7 +397,7 @@ export default function ReportsPage() {
                       </div>
                     </div>
                     <h4 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#0f172a', marginBottom: '0.35rem' }}>
-                      {rep.title}
+                      {rep.name || rep.title}
                     </h4>
                     <p style={{ fontSize: '0.825rem', color: '#64748b', lineHeight: 1.5 }}>
                       {rep.description}
@@ -519,7 +439,7 @@ export default function ReportsPage() {
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
               <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#0f172a' }}>
-                {activeReportData ? activeReportData.title : 'Report Results'}
+                {activeReportData ? (activeReportData.name || activeReportData.title) : 'Report Results'}
               </h3>
               {activeReportData && (
                 <span className="badge badge-green">Ready</span>
