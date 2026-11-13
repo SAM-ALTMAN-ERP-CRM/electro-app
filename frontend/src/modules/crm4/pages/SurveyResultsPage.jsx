@@ -67,8 +67,34 @@ export default function SurveyResultsPage() {
     setError('');
     try {
       const res = await api('crm4', `/api/surveys/${surveyId}/results`);
-      if (res && res.total !== undefined) {
-        setResults(res);
+      const payload = res?.data || res;
+      if (payload && (payload.total !== undefined || payload.total_responses !== undefined)) {
+        const total = payload.total ?? payload.total_responses;
+        const promoters_count = payload.promoters_count ?? payload.promoters;
+        const passives_count = payload.passives_count ?? payload.passives;
+        const detractors_count = payload.detractors_count ?? payload.detractors;
+        const promoters_pct = payload.promoters_pct ?? (total > 0 ? parseFloat(((promoters_count / total) * 100).toFixed(1)) : 0);
+        const passives_pct = payload.passives_pct ?? (total > 0 ? parseFloat(((passives_count / total) * 100).toFixed(1)) : 0);
+        const detractors_pct = payload.detractors_pct ?? (total > 0 ? parseFloat(((detractors_count / total) * 100).toFixed(1)) : 0);
+        const comments = (payload.comments || payload.latest_comments || []).map(c => ({
+          customer_id: c.customer_id,
+          score: c.score,
+          tier: c.tier || (c.score >= 9 ? 'promoter' : c.score >= 7 ? 'passive' : 'detractor'),
+          comment: c.comment,
+          date: c.date || (c.created_at ? new Date(c.created_at).toISOString().split('T')[0] : '2026-10-15')
+        }));
+        setResults({
+          total,
+          average_score: payload.average_score,
+          promoters_count,
+          promoters_pct,
+          passives_count,
+          passives_pct,
+          detractors_count,
+          detractors_pct,
+          nps: payload.nps,
+          comments
+        });
       }
     } catch {
       // Graceful fallback to initial seed results
@@ -82,7 +108,8 @@ export default function SurveyResultsPage() {
 
     api('crm4', `/api/surveys/${surveyId}`)
       .then(res => {
-        if (res && res.title) setSurveyTitle(res.title);
+        const d = res?.data || res;
+        if (d && d.title) setSurveyTitle(d.title);
       })
       .catch(() => {});
   }, [fetchResults, surveyId]);
