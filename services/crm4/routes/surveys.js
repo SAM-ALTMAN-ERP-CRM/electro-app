@@ -332,8 +332,8 @@ router.post('/surveys/:id/responses', async (req, res) => {
     return res.status(400).json({ error: 'Customer ID (e.g. CUST-0001) is required' });
   }
 
-  const numScore = parseInt(score, 10);
-  if (isNaN(numScore) || numScore < 0 || numScore > 10) {
+  const numScore = Number(score);
+  if (score === undefined || score === null || score === '' || isNaN(numScore) || !Number.isInteger(numScore) || numScore < 0 || numScore > 10) {
     return res.status(400).json({ error: 'score must be an integer between 0 and 10' });
   }
 
