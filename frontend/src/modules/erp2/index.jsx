@@ -1,6 +1,7 @@
 import React from 'react';
 import SuppliersPage from './pages/SuppliersPage';
 import SupplierDetailPage from './pages/SupplierDetailPage';
+import GoodsReceiptsPage from './pages/GoodsReceiptsPage';
 
 /**
  * ERP-2 Purchasing and Suppliers module registration.
@@ -10,6 +11,7 @@ import SupplierDetailPage from './pages/SupplierDetailPage';
  * - Pages:
  *   - /suppliers: Suppliers table, search, add/edit form
  *   - /suppliers/:id: Detailed supplier profile and performance ratings
+ *   - /receipts: Goods receipts creation and receipt history
  * - No internal BrowserRouter or navbar: handled by shared shell
  */
 export default {
@@ -29,6 +31,12 @@ export default {
     {
       path: 'suppliers/:id',
       element: <SupplierDetailPage />
+    },
+    {
+      path: 'receipts',
+      label: 'Goods Receipts',
+      element: <GoodsReceiptsPage />
     }
   ]
 };
+

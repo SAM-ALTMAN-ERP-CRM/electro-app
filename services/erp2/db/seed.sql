@@ -63,6 +63,23 @@ INSERT INTO po_items (id, po_id, sku, product_name, quantity, unit_cost, receive
   ('POI-0005', 'PO-0004', 'SKU-0105', 'Packaging box', 10, 200.00, 0)
 ON CONFLICT (id) DO NOTHING;
 
+-- 3. Goods Receipts [ERP2-D1]
+INSERT INTO goods_receipts (id, po_id, received_by, received_on, notes) VALUES
+  ('GRN-0001', 'PO-0003', 'EMP-0005', '2026-11-05', 'First batch of power supplies arrived in good condition'),
+  ('GRN-0002', 'PO-0003', 'EMP-0005', '2026-11-09', 'Final delivery of remaining 4 units, PO complete'),
+  ('GRN-0003', 'PO-0002', 'EMP-0006', '2026-11-12', 'Partial delivery of 4 mainboards, awaiting remaining 6')
+ON CONFLICT (id) DO NOTHING;
+
+-- 4. Goods Receipt Items [ERP2-D1]
+INSERT INTO grn_items (id, grn_id, sku, received_qty) VALUES
+  ('GRNI-0001', 'GRN-0001', 'SKU-0103', 6),
+  ('GRNI-0002', 'GRN-0002', 'SKU-0103', 4),
+  ('GRNI-0003', 'GRN-0003', 'SKU-0102', 4)
+ON CONFLICT (id) DO NOTHING;
+
 -- Keep generated IDs above the seed IDs on repeated runs.
 SELECT setval('purchase_order_id_seq', GREATEST((SELECT last_value FROM purchase_order_id_seq), COALESCE((SELECT max(substring(id FROM '^PO-([0-9]+)$')::bigint) FROM purchase_orders), 1)));
 SELECT setval('po_item_id_seq', GREATEST((SELECT last_value FROM po_item_id_seq), COALESCE((SELECT max(substring(id FROM '^POI-([0-9]+)$')::bigint) FROM po_items), 1)));
+SELECT setval('goods_receipt_id_seq', GREATEST((SELECT last_value FROM goods_receipt_id_seq), COALESCE((SELECT max(substring(id FROM '^GRN-([0-9]+)$')::bigint) FROM goods_receipts), 1)));
+SELECT setval('grn_item_id_seq', GREATEST((SELECT last_value FROM grn_item_id_seq), COALESCE((SELECT max(substring(id FROM '^GRNI-([0-9]+)$')::bigint) FROM grn_items), 1)));
+
