@@ -55,7 +55,8 @@ INSERT INTO purchase_orders (id, supplier_id, status, expected_date, total_amoun
   ('PO-0001', 'SUP-0001', 'sent', '2026-11-20', 30000.00, '2026-11-01'),
   ('PO-0002', 'SUP-0002', 'partially_received', '2026-11-18', 20000.00, '2026-11-02'),
   ('PO-0003', 'SUP-0003', 'received', '2026-11-10', 15000.00, '2026-10-25'),
-  ('PO-0004', 'SUP-0004', 'draft', '2026-11-30', 5000.00, NULL)
+  ('PO-0004', 'SUP-0004', 'draft', '2026-11-30', 5000.00, NULL),
+  ('PO-0005', 'SUP-0005', 'sent', '2026-11-05', 12000.00, '2026-10-20')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO po_items (id, po_id, sku, product_name, quantity, unit_cost, received_qty) VALUES
@@ -63,7 +64,8 @@ INSERT INTO po_items (id, po_id, sku, product_name, quantity, unit_cost, receive
   ('POI-0002', 'PO-0002', 'SKU-0102', 'Mainboard', 10, 2000.00, 4),
   ('POI-0003', 'PO-0003', 'SKU-0103', 'Power supply', 10, 1500.00, 10),
   ('POI-0004', 'PO-0004', 'SKU-0104', 'Remote', 10, 300.00, 0),
-  ('POI-0005', 'PO-0004', 'SKU-0105', 'Packaging box', 10, 200.00, 0)
+  ('POI-0005', 'PO-0004', 'SKU-0105', 'Packaging box', 10, 200.00, 0),
+  ('POI-0006', 'PO-0005', 'SKU-0105', 'Packaging box', 40, 300.00, 0)
 ON CONFLICT (id) DO NOTHING;
 
 -- Keep generated IDs above the seed IDs on repeated runs.

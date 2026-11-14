@@ -280,4 +280,22 @@ describe('ERP-2 Goods Receipt Notes Integration Tests ([ERP2-D1])', () => {
     assert.equal(fetchRes.body.data.received_by, 'EMP-0007');
     assert.equal(fetchRes.body.data.items[0].received_qty, 15);
   });
+
+  it('Test 11: GET /receipts/pending lists sent and partially_received POs with late flags [ERP2-D3]', async () => {
+    const pendingRes = await dispatch(goodsReceiptsRouter, {
+      method: 'GET',
+      url: '/receipts/pending'
+    });
+
+    assert.equal(pendingRes.status, 200);
+    assert.ok(Array.isArray(pendingRes.body.data));
+    for (const po of pendingRes.body.data) {
+      assert.ok(['sent', 'partially_received'].includes(po.status));
+      assert.ok(typeof po.is_late === 'boolean');
+      assert.ok(Array.isArray(po.items));
+      for (const item of po.items) {
+        assert.ok(item.remaining_qty > 0);
+      }
+    }
+  });
 });
