@@ -16,6 +16,8 @@ DROP TABLE IF EXISTS purchase_requests CASCADE;
 DROP TABLE IF EXISTS suppliers CASCADE;
 DROP SEQUENCE IF EXISTS suppliers_seq;
 DROP SEQUENCE IF EXISTS supplier_ratings_seq;
+DROP SEQUENCE IF EXISTS goods_receipt_id_seq;
+DROP SEQUENCE IF EXISTS grn_item_id_seq;
 
 -- Sequence for Supplier IDs (SUP-0001, SUP-0002, ...)
 CREATE SEQUENCE suppliers_seq START WITH 1;
@@ -81,6 +83,36 @@ CREATE TABLE IF NOT EXISTS po_items (
   unit_cost numeric(12,2) NOT NULL CHECK (unit_cost > 0),
   received_qty integer NOT NULL DEFAULT 0 CHECK (received_qty >= 0 AND received_qty <= quantity)
 );
+
+-- Sequence for Goods Receipt IDs (GRN-0001, GRN-0002, ...) [ERP2-D1]
+CREATE SEQUENCE IF NOT EXISTS goods_receipt_id_seq START WITH 1;
+
+-- Sequence for GRN Item IDs (GRNI-0001, GRNI-0002, ...) [ERP2-D1]
+CREATE SEQUENCE IF NOT EXISTS grn_item_id_seq START WITH 1;
+
+-- 5. Goods Receipts Table [ERP2-D1]
+CREATE TABLE IF NOT EXISTS goods_receipts (
+  id text PRIMARY KEY DEFAULT ('GRN-' || lpad(nextval('goods_receipt_id_seq')::text, 4, '0')),
+  po_id text NOT NULL REFERENCES purchase_orders(id) ON DELETE RESTRICT,
+  received_by text NOT NULL,
+  received_on date NOT NULL DEFAULT CURRENT_DATE,
+  notes text,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+-- 6. GRN Items Table [ERP2-D1]
+CREATE TABLE IF NOT EXISTS grn_items (
+  id text PRIMARY KEY DEFAULT ('GRNI-' || lpad(nextval('grn_item_id_seq')::text, 4, '0')),
+  grn_id text NOT NULL REFERENCES goods_receipts(id) ON DELETE CASCADE,
+  sku text NOT NULL,
+  received_qty integer NOT NULL CHECK (received_qty > 0)
+);
+
+CREATE INDEX IF NOT EXISTS idx_goods_receipts_po ON goods_receipts(po_id);
+CREATE INDEX IF NOT EXISTS idx_goods_receipts_received_on ON goods_receipts(received_on);
+CREATE INDEX IF NOT EXISTS idx_grn_items_grn ON grn_items(grn_id);
+CREATE INDEX IF NOT EXISTS idx_grn_items_sku ON grn_items(sku);
+
 -- Database schema for ERP-2 Procurement & Suppliers (Port 5202, Database erp2_db)
 -- Build Issue: [ERP2-B1] Purchase requests API
 

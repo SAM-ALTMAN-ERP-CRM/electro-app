@@ -1,0 +1,56 @@
+[
+  {
+    "id": "GRN-0001",
+    "po_id": "PO-0003",
+    "received_by": "EMP-0005",
+    "received_on": "2026-11-05",
+    "notes": "First batch of power supplies arrived in good condition",
+    "po_status": "received",
+    "items": [
+      {
+        "id": "GRNI-0001",
+        "grn_id": "GRN-0001",
+        "sku": "SKU-0103",
+        "received_qty": 6,
+        "product_name": "Power supply",
+        "unit_cost": "1500.00"
+      }
+    ]
+  },
+  {
+    "id": "GRN-0002",
+    "po_id": "PO-0003",
+    "received_by": "EMP-0005",
+    "received_on": "2026-11-09",
+    "notes": "Final delivery of remaining 4 units, PO complete",
+    "po_status": "received",
+    "items": [
+      {
+        "id": "GRNI-0002",
+        "grn_id": "GRN-0002",
+        "sku": "SKU-0103",
+        "received_qty": 4,
+        "product_name": "Power supply",
+        "unit_cost": "1500.00"
+      }
+    ]
+  },
+  {
+    "id": "GRN-0003",
+    "po_id": "PO-0002",
+    "received_by": "EMP-0006",
+    "received_on": "2026-11-12",
+    "notes": "Partial delivery of 4 mainboards, awaiting remaining 6",
+    "po_status": "partially_received",
+    "items": [
+      {
+        "id": "GRNI-0003",
+        "grn_id": "GRN-0003",
+        "sku": "SKU-0102",
+        "received_qty": 4,
+        "product_name": "Mainboard",
+        "unit_cost": "2000.00"
+      }
+    ]
+  }
+]
