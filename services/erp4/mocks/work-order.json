@@ -1,0 +1,26 @@
+[
+  {
+    "id": "WO-0001",
+    "product_sku": "SKU-0003",
+    "quantity": 5,
+    "source": "shortage",
+    "status": "planned",
+    "created_at": "2026-10-10T14:30:00.000Z"
+  },
+  {
+    "id": "WO-0002",
+    "product_sku": "SKU-0001",
+    "quantity": 10,
+    "source": "shortage",
+    "status": "in_progress",
+    "created_at": "2026-10-12T09:15:00.000Z"
+  },
+  {
+    "id": "WO-0003",
+    "product_sku": "SKU-0004",
+    "quantity": 2,
+    "source": "shortage",
+    "status": "completed",
+    "created_at": "2026-10-15T11:00:00.000Z"
+  }
+]

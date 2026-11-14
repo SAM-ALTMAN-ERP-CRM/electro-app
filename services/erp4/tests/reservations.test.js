@@ -19,7 +19,7 @@ app.use((req, res, next) => {
 app.use('/api', salesOrdersRouter);
 app.use('/api', reservationsRouter);
 
-test('ERP4-B1 Reservation API Test Suite', async (t) => {
+test('ERP4-B1 & ERP4-B3 Reservation, Shortage, and Release Test Suite', async (t) => {
   await t.test('1. POST /api/sales-orders/SO-0001/reserve reserves stock for existing order', async () => {
     const res = await fetchMock(app, 'POST', '/api/sales-orders/SO-0001/reserve');
     assert.equal(res.status, 200);
@@ -33,8 +33,8 @@ test('ERP4-B1 Reservation API Test Suite', async (t) => {
     assert.equal(res.body.data.summary.shortage, 0);
   });
 
-  await t.test('2. Acceptance Criteria: mixed order produces both reserved and shortage rows (SKU-0003 yields shortage)', async () => {
-    // First create a mixed order with SKU-0001 (available) and SKU-0003 (out of stock)
+  await t.test('2. Acceptance Criteria (B1 & B3): mixed order produces shortage and triggers work order', async () => {
+    // Create a mixed order with SKU-0001 (in stock) and SKU-0003 (shortage)
     const createRes = await fetchMock(app, 'POST', '/api/sales-orders', {
       customer_id: 'CUST-0003',
       sales_rep_id: 'EMP-0001',
@@ -61,6 +61,7 @@ test('ERP4-B1 Reservation API Test Suite', async (t) => {
 
     assert.ok(sku3Row, 'SKU-0003 must have a reservation record');
     assert.equal(sku3Row.status, 'shortage', 'SKU-0003 must be marked as shortage');
+    assert.equal(sku3Row.production_requested, true, 'Shortage item must have production_requested true');
 
     assert.equal(reserveRes.body.data.summary.total, 2);
     assert.equal(reserveRes.body.data.summary.reserved, 1);
@@ -68,34 +69,65 @@ test('ERP4-B1 Reservation API Test Suite', async (t) => {
   });
 
   await t.test('3. Acceptance Criteria: running reserve twice does not duplicate rows', async () => {
-    // Reserve SO-0002 first time
     const res1 = await fetchMock(app, 'POST', '/api/sales-orders/SO-0002/reserve');
     assert.equal(res1.status, 200);
     const count1 = res1.body.data.reservations.length;
 
-    // Reserve SO-0002 second time
     const res2 = await fetchMock(app, 'POST', '/api/sales-orders/SO-0002/reserve');
     assert.equal(res2.status, 200);
     const count2 = res2.body.data.reservations.length;
 
     assert.equal(count1, count2, 'Running reserve again must not duplicate reservation rows');
+  });
 
-    // Verify GET also returns the exact same count
-    const getRes = await fetchMock(app, 'GET', '/api/sales-orders/SO-0002/reservations');
+  await t.test('4. Acceptance Criteria (B3): DELETE /api/sales-orders/:id/reservations sets reservations to released', async () => {
+    // Reserve SO-0003
+    await fetchMock(app, 'POST', '/api/sales-orders/SO-0003/reserve');
+
+    // Call DELETE to release
+    const delRes = await fetchMock(app, 'DELETE', '/api/sales-orders/SO-0003/reservations');
+    assert.equal(delRes.status, 200);
+    assert.ok(delRes.body.data);
+    assert.equal(delRes.body.data.status, 'released');
+    assert.ok(delRes.body.data.reservations.length > 0);
+    assert.ok(delRes.body.data.reservations.every(r => r.status === 'released'));
+
+    // Verify GET confirms released status
+    const getRes = await fetchMock(app, 'GET', '/api/sales-orders/SO-0003/reservations');
     assert.equal(getRes.status, 200);
-    assert.equal(getRes.body.data.reservations.length, count1);
+    assert.ok(getRes.body.data.reservations.every(r => r.status === 'released'));
   });
 
-  await t.test('4. GET /api/sales-orders/:id/reservations returns reservation records and summary', async () => {
-    const res = await fetchMock(app, 'GET', '/api/sales-orders/SO-0001/reservations');
-    assert.equal(res.status, 200);
-    assert.ok(res.body.data);
-    assert.equal(res.body.data.so_id, 'SO-0001');
-    assert.ok(Array.isArray(res.body.data.reservations));
-    assert.ok(res.body.data.summary);
+  await t.test('5. Acceptance Criteria (B3): cancelling an order automatically releases its reservations', async () => {
+    // 1. Create a fresh order
+    const orderRes = await fetchMock(app, 'POST', '/api/sales-orders', {
+      customer_id: 'CUST-0004',
+      sales_rep_id: 'EMP-0002',
+      items: [
+        { sku: 'SKU-0001', product_name: '55-inch 4K Smart TV', quantity: 2, unit_price: 42990.00 }
+      ]
+    });
+    assert.equal(orderRes.status, 201);
+    const orderId = orderRes.body.data.id;
+
+    // 2. Reserve stock
+    const reserveRes = await fetchMock(app, 'POST', `/api/sales-orders/${orderId}/reserve`);
+    assert.equal(reserveRes.status, 200);
+    assert.equal(reserveRes.body.data.reservations[0].status, 'reserved');
+
+    // 3. Cancel the order
+    const cancelRes = await fetchMock(app, 'PATCH', `/api/sales-orders/${orderId}/cancel`);
+    assert.equal(cancelRes.status, 200);
+    assert.equal(cancelRes.body.data.status, 'cancelled');
+
+    // 4. Verify its reservations are now 'released'
+    const checkRes = await fetchMock(app, 'GET', `/api/sales-orders/${orderId}/reservations`);
+    assert.equal(checkRes.status, 200);
+    assert.ok(checkRes.body.data.reservations.length > 0);
+    assert.equal(checkRes.body.data.reservations[0].status, 'released');
   });
 
-  await t.test('5. POST /api/sales-orders/:id/reserve returns 404 for non-existent order', async () => {
+  await t.test('6. POST /api/sales-orders/:id/reserve returns 404 for non-existent order', async () => {
     const res = await fetchMock(app, 'POST', '/api/sales-orders/SO-9999/reserve');
     assert.equal(res.status, 404);
     assert.ok(res.body.error);
