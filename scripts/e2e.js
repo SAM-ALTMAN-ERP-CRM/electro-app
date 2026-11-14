@@ -861,12 +861,14 @@ async function runE2E() {
     const returnsRes = await apiRequest('erp4', '/api/returns');
     let matchedReturn = null;
     if (returnsRes.ok && Array.isArray(returnsRes.data)) {
-      matchedReturn = returnsRes.data.find(r => r.serial_number === testSerial);
+      matchedReturn = returnsRes.data.find(r => r.rma_id === state.rmaId) ||
+                       returnsRes.data.find(r => r.serial_number === testSerial);
     }
     if (!matchedReturn) {
-      return { pass: false, message: `ERP-4 return record not found for serial ${testSerial}` };
+      return { pass: false, message: `ERP-4 return record not found for RMA ${state.rmaId} (serial ${testSerial})` };
     }
     state.retId = matchedReturn.id;
+    const returnSoId = matchedReturn.so_id;
 
     // 9g. Mark Return as 'restocked' in ERP-4 (triggers ERP-1 serial restock & ERP-5 credit note)
     const restockRes = await apiRequest('erp4', `/api/returns/${state.retId}/status`, {
@@ -884,19 +886,21 @@ async function runE2E() {
     }
 
     // 9i. Verify receiving team (ERP-5): Credit Note exists
+    // Match by the return created in this run (so_id of the order that this return was created against)
     const cnRes = await apiRequest('erp5', '/api/creditnotes');
     let creditNote = null;
     if (cnRes.ok && Array.isArray(cnRes.data)) {
-      creditNote = cnRes.data.find(c => c.serial_number === testSerial);
+      creditNote = cnRes.data.find(c => c.so_id === returnSoId && (c.return_id === state.retId || c.rma_id === state.rmaId)) ||
+                   cnRes.data.find(c => c.so_id === returnSoId);
     }
     if (!creditNote) {
-      return { pass: false, message: `ERP-5 credit note not found for serial ${testSerial}` };
+      return { pass: false, message: `ERP-5 credit note not found for order ${returnSoId} (return ${state.retId})` };
     }
     state.cnId = creditNote.id;
 
     return {
       pass: true,
-      message: `TKT ${state.tktId}, RMA ${state.rmaId} -> RET ${state.retId} (Restocked) -> ERP-1 Serial ${testSerial} (in_stock) & Credit Note ${state.cnId}`
+      message: `TKT ${state.tktId}, RMA ${state.rmaId} -> RET ${state.retId} (Order: ${returnSoId}, Restocked) -> ERP-1 Serial ${testSerial} (in_stock) & Credit Note ${state.cnId}`
     };
   });
 
