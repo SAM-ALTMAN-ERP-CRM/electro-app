@@ -1,0 +1,57 @@
+[
+  {
+    "id": "LV-0001",
+    "employee_id": "EMP-0001",
+    "employee_name": "Rohan Kulkarni",
+    "department_id": "DEP-01",
+    "from_date": "2026-11-20",
+    "to_date": "2026-11-21",
+    "type": "casual",
+    "status": "pending",
+    "reason": "Family function"
+  },
+  {
+    "id": "LV-0002",
+    "employee_id": "EMP-0002",
+    "employee_name": "Neha Sharma",
+    "department_id": "DEP-01",
+    "from_date": "2026-11-10",
+    "to_date": "2026-11-12",
+    "type": "casual",
+    "status": "approved",
+    "reason": "Personal travel"
+  },
+  {
+    "id": "LV-0003",
+    "employee_id": "EMP-0003",
+    "employee_name": "Vikram Singh",
+    "department_id": "DEP-01",
+    "from_date": "2026-11-03",
+    "to_date": "2026-11-03",
+    "type": "sick",
+    "status": "approved",
+    "reason": "Viral fever"
+  },
+  {
+    "id": "LV-0004",
+    "employee_id": "EMP-0004",
+    "employee_name": "Anjali Rao",
+    "department_id": "DEP-01",
+    "from_date": "2026-11-25",
+    "to_date": "2026-11-26",
+    "type": "earned",
+    "status": "rejected",
+    "reason": "Urgent client demos scheduled"
+  },
+  {
+    "id": "LV-0005",
+    "employee_id": "EMP-0002",
+    "employee_name": "Neha Sharma",
+    "department_id": "DEP-01",
+    "from_date": "2026-11-27",
+    "to_date": "2026-11-28",
+    "type": "sick",
+    "status": "pending",
+    "reason": "Medical checkup"
+  }
+]

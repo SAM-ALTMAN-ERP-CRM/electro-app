@@ -50,3 +50,76 @@ CREATE TABLE IF NOT EXISTS commissions (
 CREATE INDEX IF NOT EXISTS idx_commissions_sales_rep_id ON commissions(sales_rep_id);
 CREATE INDEX IF NOT EXISTS idx_commissions_month ON commissions(month);
 
+-- 4. Attendance table and sequence (Build Issue: [ERP6-B1])
+CREATE SEQUENCE IF NOT EXISTS attendance_seq START 1;
+
+CREATE TABLE IF NOT EXISTS attendance (
+  id VARCHAR(20) PRIMARY KEY DEFAULT ('ATT-' || LPAD(nextval('attendance_seq')::TEXT, 4, '0')),
+  employee_id VARCHAR(20) NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
+  date DATE NOT NULL,
+  status VARCHAR(20) NOT NULL CHECK (status IN ('present', 'absent', 'half_day', 'leave')),
+  check_in VARCHAR(20),
+  check_out VARCHAR(20),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CONSTRAINT uq_attendance_employee_date UNIQUE (employee_id, date)
+);
+
+CREATE INDEX IF NOT EXISTS idx_attendance_employee_id ON attendance(employee_id);
+CREATE INDEX IF NOT EXISTS idx_attendance_date ON attendance(date);
+CREATE INDEX IF NOT EXISTS idx_attendance_status ON attendance(status);
+
+-- 5. Leave Requests table and sequence (Build Issue: [ERP6-B1])
+CREATE SEQUENCE IF NOT EXISTS leave_request_seq START 1;
+
+CREATE TABLE IF NOT EXISTS leave_requests (
+  id VARCHAR(20) PRIMARY KEY DEFAULT ('LV-' || LPAD(nextval('leave_request_seq')::TEXT, 4, '0')),
+  employee_id VARCHAR(20) NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
+  from_date DATE NOT NULL,
+  to_date DATE NOT NULL,
+  type VARCHAR(20) NOT NULL CHECK (type IN ('casual', 'sick', 'earned')),
+  status VARCHAR(20) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
+  reason TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_leave_requests_employee_id ON leave_requests(employee_id);
+CREATE INDEX IF NOT EXISTS idx_leave_requests_status ON leave_requests(status);
+CREATE INDEX IF NOT EXISTS idx_leave_requests_from_date ON leave_requests(from_date);
+CREATE INDEX IF NOT EXISTS idx_leave_requests_to_date ON leave_requests(to_date);
+
+-- 6. Salary Slips table and sequence (Build Issues: [ERP6-C1] & [ERP6-C3])
+CREATE SEQUENCE IF NOT EXISTS salary_slip_seq START 1;
+
+CREATE TABLE IF NOT EXISTS salary_slips (
+  id VARCHAR(30) PRIMARY KEY DEFAULT ('SLIP-' || LPAD(nextval('salary_slip_seq')::TEXT, 4, '0')),
+  employee_id VARCHAR(20) NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
+  month VARCHAR(7) NOT NULL, -- YYYY-MM
+  base_salary NUMERIC(12, 2) NOT NULL DEFAULT 0.00,
+  hra NUMERIC(12, 2) NOT NULL DEFAULT 0.00,
+  allowances NUMERIC(12, 2) NOT NULL DEFAULT 2000.00,
+  pf_deduction NUMERIC(12, 2) NOT NULL DEFAULT 0.00,
+  absent_days INTEGER NOT NULL DEFAULT 0,
+  absent_deduction NUMERIC(12, 2) NOT NULL DEFAULT 0.00,
+  commission NUMERIC(12, 2) NOT NULL DEFAULT 0.00,
+  gross_pay NUMERIC(12, 2) NOT NULL DEFAULT 0.00,
+  total_deductions NUMERIC(12, 2) NOT NULL DEFAULT 0.00,
+  net_pay NUMERIC(12, 2) NOT NULL DEFAULT 0.00,
+  status VARCHAR(20) NOT NULL DEFAULT 'generated' CHECK (status IN ('generated', 'paid')),
+  generated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CONSTRAINT uq_salary_slips_employee_month UNIQUE (employee_id, month)
+);
+
+-- Ensure optional migration columns exist on previously created databases
+ALTER TABLE salary_slips ADD COLUMN IF NOT EXISTS gross_pay NUMERIC(12, 2) NOT NULL DEFAULT 0.00;
+ALTER TABLE salary_slips ADD COLUMN IF NOT EXISTS total_deductions NUMERIC(12, 2) NOT NULL DEFAULT 0.00;
+ALTER TABLE salary_slips ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
+ALTER TABLE salary_slips ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
+
+CREATE INDEX IF NOT EXISTS idx_salary_slips_month ON salary_slips(month);
+CREATE INDEX IF NOT EXISTS idx_salary_slips_employee_id ON salary_slips(employee_id);
+CREATE INDEX IF NOT EXISTS idx_salary_slips_status ON salary_slips(status);
+

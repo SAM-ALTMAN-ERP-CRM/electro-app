@@ -13,6 +13,18 @@ const SAMPLE_PRODUCTS = [
   { sku: 'SKU-0009', name: 'Power Bank 20000mAh', price: 1799 }
 ];
 
+// Pre-configured shared contract customer list for auto-lookup (ERP4-A3)
+const CUSTOMER_DIRECTORY = [
+  { id: 'CUST-0001', name: 'Aarav Mehta', gstin: '' },
+  { id: 'CUST-0002', name: 'Sunrise Electronics Pvt Ltd', gstin: '27AABCS1234F1Z5' },
+  { id: 'CUST-0003', name: 'Priya Nair', gstin: '' },
+  { id: 'CUST-0004', name: 'BrightHome Retail LLP', gstin: '27AABCB5678G1Z1' },
+  { id: 'CUST-0005', name: 'Kiran Patel', gstin: '' },
+  { id: 'CUST-0006', name: 'Metro Offices Ltd', gstin: '07AABCM9012K1Z8' },
+  { id: 'CUST-0007', name: 'Sneha Iyer', gstin: '' },
+  { id: 'CUST-0008', name: 'Gadget Hub', gstin: '29AABCG3456L1Z4' }
+];
+
 export default function OrdersListPage() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -84,6 +96,19 @@ export default function OrdersListPage() {
     }
   };
 
+  // Customer ID change handler with auto-fill (ERP4-A3)
+  const handleCustomerIdChange = (newCustId) => {
+    const match = CUSTOMER_DIRECTORY.find(
+      c => c.id.toUpperCase() === newCustId.trim().toUpperCase()
+    );
+    setFormData({
+      ...formData,
+      customer_id: newCustId,
+      customer_name: match ? match.name : formData.customer_name,
+      customer_gstin: match ? match.gstin : formData.customer_gstin
+    });
+  };
+
   // Line items management inside the form
   const handleItemChange = (index, field, value) => {
     const updated = [...formData.items];
@@ -148,8 +173,8 @@ export default function OrdersListPage() {
       setSubmitting(true);
       const payload = {
         customer_id: formData.customer_id.trim(),
-        customer_name: formData.customer_name.trim() || `Customer ${formData.customer_id.trim()}`,
-        customer_gstin: formData.customer_gstin.trim() || null,
+        customer_name: formData.customer_name.trim() || undefined,
+        customer_gstin: formData.customer_gstin.trim() || undefined,
         sales_rep_id: formData.sales_rep_id.trim(),
         quote_id: formData.quote_id.trim() || null,
         items: formData.items.map(it => ({
@@ -233,7 +258,7 @@ export default function OrdersListPage() {
       )}
 
       {/* ========================================================= */}
-      {/* "NEW ORDER" FORM (ERP4-A2)                                */}
+      {/* "NEW ORDER" FORM (ERP4-A2 / A3)                           */}
       {/* ========================================================= */}
       {showForm && (
         <div
@@ -249,7 +274,7 @@ export default function OrdersListPage() {
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.75rem' }}>
             <h3 style={{ fontSize: '1.2rem', fontWeight: 700, color: '#0f172a' }}>Create New Sales Order</h3>
-            <span style={{ fontSize: '0.8rem', color: '#64748b' }}>Fill in customer details and line items</span>
+            <span style={{ fontSize: '0.8rem', color: '#64748b' }}>Customer details auto-populated from CRM-3</span>
           </div>
 
           {formError && (
@@ -265,14 +290,15 @@ export default function OrdersListPage() {
                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#475569', marginBottom: '0.25rem' }}>
                   CUSTOMER ID *
                 </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. CUST-0001"
+                <select
                   value={formData.customer_id}
-                  onChange={(e) => setFormData({ ...formData, customer_id: e.target.value })}
+                  onChange={(e) => handleCustomerIdChange(e.target.value)}
                   style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.875rem' }}
-                />
+                >
+                  {CUSTOMER_DIRECTORY.map(c => (
+                    <option key={c.id} value={c.id}>{c.id} - {c.name}</option>
+                  ))}
+                </select>
               </div>
 
               <div>
@@ -290,14 +316,14 @@ export default function OrdersListPage() {
 
               <div>
                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#475569', marginBottom: '0.25rem' }}>
-                  CUSTOMER GSTIN (Optional)
+                  CUSTOMER GSTIN (Auto-filled)
                 </label>
                 <input
                   type="text"
                   placeholder="15-character GSTIN"
                   value={formData.customer_gstin}
                   onChange={(e) => setFormData({ ...formData, customer_gstin: e.target.value })}
-                  style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.875rem' }}
+                  style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.875rem', backgroundColor: formData.customer_gstin ? '#eff6ff' : '#ffffff' }}
                 />
               </div>
 

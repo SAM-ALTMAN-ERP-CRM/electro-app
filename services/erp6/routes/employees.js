@@ -130,9 +130,69 @@ router.get('/employees/:id', async (req, res) => {
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Employee not found' });
     }
-    return res.json({ data: result.rows[0] });
+
+    const employee = result.rows[0];
+
+    // Fetch direct reports (employees where manager_id = this employee's id)
+    const reportsQuery = `
+      SELECT
+        e.id,
+        e.name,
+        e.email,
+        e.phone,
+        e.role_title,
+        d.name AS department_name,
+        e.active,
+        to_char(e.join_date, 'YYYY-MM-DD') AS join_date
+      FROM employees e
+      LEFT JOIN departments d ON d.id = e.department_id
+      WHERE e.manager_id = $1
+      ORDER BY e.id ASC
+    `;
+    const reportsResult = await pool.query(reportsQuery, [req.params.id]);
+    employee.direct_reports = reportsResult.rows;
+
+    return res.json({ data: employee });
   } catch (error) {
     return handleDbError(res, error, 'GET /employees/:id');
+  }
+});
+
+/**
+ * PATCH /employees/:id/deactivate
+ * Deactivates an employee (sets active = false).
+ */
+router.patch('/employees/:id/deactivate', async (req, res) => {
+  try {
+    const result = await pool.query(
+      'UPDATE employees SET active = FALSE WHERE id = $1 RETURNING id, name, active',
+      [req.params.id]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Employee not found' });
+    }
+    return res.json({ data: result.rows[0], message: 'Employee deactivated successfully' });
+  } catch (error) {
+    return handleDbError(res, error, 'PATCH /employees/:id/deactivate');
+  }
+});
+
+/**
+ * PATCH /employees/:id/activate
+ * Activates an employee (sets active = true).
+ */
+router.patch('/employees/:id/activate', async (req, res) => {
+  try {
+    const result = await pool.query(
+      'UPDATE employees SET active = TRUE WHERE id = $1 RETURNING id, name, active',
+      [req.params.id]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Employee not found' });
+    }
+    return res.json({ data: result.rows[0], message: 'Employee activated successfully' });
+  } catch (error) {
+    return handleDbError(res, error, 'PATCH /employees/:id/activate');
   }
 });
 

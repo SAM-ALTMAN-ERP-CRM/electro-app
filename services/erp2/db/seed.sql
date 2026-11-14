@@ -1,9 +1,12 @@
 -- ==============================================================================
--- ERP-2 Seed Data: 6 Suppliers (SUP-0001 to SUP-0006) and Supplier Ratings
+-- ERP-2 Seed Data: erp2_db
 -- Conforms to Section 5 Shared Seed Contract
 -- Issues:
 --   - [ERP2-A1] Suppliers table and API (#74)
 --   - [ERP2-A3] Supplier rating (#76)
+--   - [ERP2-B1] Purchase Requests Subsystem
+--   - [ERP2-C1] Purchase Orders & PO Items
+--   - [ERP2-D1] Goods Receipts & GRN Items
 -- ==============================================================================
 
 -- 1. Suppliers Master
@@ -27,7 +30,7 @@ ON CONFLICT (id) DO UPDATE SET
     active = EXCLUDED.active;
 
 -- Advance suppliers sequence
-SELECT setval('suppliers_seq', 6, true);
+SELECT setval('suppliers_seq', GREATEST((SELECT last_value FROM suppliers_seq), COALESCE((SELECT max(substring(id FROM '^SUP-([0-9]+)$')::bigint) FROM suppliers), 1)));
 
 -- 2. Supplier Ratings [ERP2-A3]
 INSERT INTO supplier_ratings (id, supplier_id, delivery_score, quality_score, comment, created_at)
@@ -45,9 +48,9 @@ ON CONFLICT (id) DO UPDATE SET
     comment = EXCLUDED.comment;
 
 -- Advance ratings sequence
-SELECT setval('supplier_ratings_seq', 6, true);
+SELECT setval('supplier_ratings_seq', GREATEST((SELECT last_value FROM supplier_ratings_seq), COALESCE((SELECT max(substring(id FROM '^RAT-([0-9]+)$')::bigint) FROM supplier_ratings), 1)));
 
--- Database seed for ERP2
+-- 3. Purchase Orders & PO Items [ERP2-C1]
 INSERT INTO purchase_orders (id, supplier_id, status, expected_date, total_amount, sent_at) VALUES
   ('PO-0001', 'SUP-0001', 'sent', '2026-11-20', 30000.00, '2026-11-01'),
   ('PO-0002', 'SUP-0002', 'partially_received', '2026-11-18', 20000.00, '2026-11-02'),
@@ -63,23 +66,39 @@ INSERT INTO po_items (id, po_id, sku, product_name, quantity, unit_cost, receive
   ('POI-0005', 'PO-0004', 'SKU-0105', 'Packaging box', 10, 200.00, 0)
 ON CONFLICT (id) DO NOTHING;
 
--- 3. Goods Receipts [ERP2-D1]
+-- Keep generated IDs above the seed IDs on repeated runs.
+SELECT setval('purchase_order_id_seq', GREATEST((SELECT last_value FROM purchase_order_id_seq), COALESCE((SELECT max(substring(id FROM '^PO-([0-9]+)$')::bigint) FROM purchase_orders), 1)));
+SELECT setval('po_item_id_seq', GREATEST((SELECT last_value FROM po_item_id_seq), COALESCE((SELECT max(substring(id FROM '^POI-([0-9]+)$')::bigint) FROM po_items), 1)));
+
+-- 4. Goods Receipts Subsystem [ERP2-D1]
 INSERT INTO goods_receipts (id, po_id, received_by, received_on, notes) VALUES
   ('GRN-0001', 'PO-0003', 'EMP-0005', '2026-11-05', 'First batch of power supplies arrived in good condition'),
   ('GRN-0002', 'PO-0003', 'EMP-0005', '2026-11-09', 'Final delivery of remaining 4 units, PO complete'),
   ('GRN-0003', 'PO-0002', 'EMP-0006', '2026-11-12', 'Partial delivery of 4 mainboards, awaiting remaining 6')
 ON CONFLICT (id) DO NOTHING;
 
--- 4. Goods Receipt Items [ERP2-D1]
 INSERT INTO grn_items (id, grn_id, sku, received_qty) VALUES
   ('GRNI-0001', 'GRN-0001', 'SKU-0103', 6),
   ('GRNI-0002', 'GRN-0002', 'SKU-0103', 4),
   ('GRNI-0003', 'GRN-0003', 'SKU-0102', 4)
 ON CONFLICT (id) DO NOTHING;
 
--- Keep generated IDs above the seed IDs on repeated runs.
-SELECT setval('purchase_order_id_seq', GREATEST((SELECT last_value FROM purchase_order_id_seq), COALESCE((SELECT max(substring(id FROM '^PO-([0-9]+)$')::bigint) FROM purchase_orders), 1)));
-SELECT setval('po_item_id_seq', GREATEST((SELECT last_value FROM po_item_id_seq), COALESCE((SELECT max(substring(id FROM '^POI-([0-9]+)$')::bigint) FROM po_items), 1)));
 SELECT setval('goods_receipt_id_seq', GREATEST((SELECT last_value FROM goods_receipt_id_seq), COALESCE((SELECT max(substring(id FROM '^GRN-([0-9]+)$')::bigint) FROM goods_receipts), 1)));
 SELECT setval('grn_item_id_seq', GREATEST((SELECT last_value FROM grn_item_id_seq), COALESCE((SELECT max(substring(id FROM '^GRNI-([0-9]+)$')::bigint) FROM grn_items), 1)));
 
+-- 5. Purchase Requests Subsystem [ERP2-B1]
+INSERT INTO purchase_requests (
+  id, sku, product_name, quantity, requested_by, reason, status, created_at
+) VALUES
+  ('PR-0001', 'SKU-0001', '55-inch 4K Smart TV', 50, 'ERP-1', 'Low stock alert threshold reached (5 units left)', 'pending', NOW() - INTERVAL '3 days'),
+  ('PR-0002', 'SKU-0002', '43-inch Full HD TV', 30, 'ERP-1', 'Reorder level breached in WH-01', 'approved', NOW() - INTERVAL '2 days'),
+  ('PR-0003', 'SKU-0101', 'Display Panel 55 inch', 100, 'ERP-3', 'Short components for manufacturing line 2', 'pending', NOW() - INTERVAL '1 day'),
+  ('PR-0004', 'SKU-0004', 'Soundbar 2.1', 25, 'EMP-0001', 'Customer pre-orders surge for festive promotion', 'rejected', NOW() - INTERVAL '12 hours'),
+  ('PR-0005', 'SKU-0102', 'Power Supply Unit 12V', 200, 'ERP-3', 'Short components for TV assembly batch #44', 'converted', NOW() - INTERVAL '4 hours')
+ON CONFLICT (id) DO NOTHING;
+
+-- Synchronize purchase requests sequence
+SELECT setval(
+  'purchase_request_seq',
+  GREATEST((SELECT last_value FROM purchase_request_seq), COALESCE((SELECT max(substring(id FROM '^PR-([0-9]+)$')::bigint) FROM purchase_requests), 1))
+);

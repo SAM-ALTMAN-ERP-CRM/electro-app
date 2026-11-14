@@ -1,0 +1,94 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 600" width="960" height="600" font-family="system-ui, -apple-system, sans-serif">
+  <!-- Background Canvas -->
+  <rect width="960" height="600" fill="#f8fafc"/>
+
+  <!-- Left Sidebar (Width 190) -->
+  <rect x="0" y="0" width="190" height="600" fill="#0f172a"/>
+  <text x="20" y="34" fill="#ffffff" font-size="15" font-weight="700">⚡ Electro App</text>
+  <text x="20" y="52" fill="#94a3b8" font-size="11">ERP-6 HR &amp; Workforce</text>
+
+  <!-- Navigation Items -->
+  <text x="24" y="90" fill="#cbd5e1" font-size="12">Employees</text>
+  <text x="24" y="122" fill="#cbd5e1" font-size="12">Departments</text>
+  <text x="24" y="152" fill="#cbd5e1" font-size="12">Attendance</text>
+  <text x="24" y="182" fill="#cbd5e1" font-size="12">Leaves</text>
+  <text x="24" y="212" fill="#cbd5e1" font-size="12">Payroll</text>
+  <rect x="12" y="224" width="166" height="30" rx="6" fill="#334155"/>
+  <text x="24" y="244" fill="#38bdf8" font-size="12" font-weight="600">Commissions</text>
+  <text x="24" y="272" fill="#cbd5e1" font-size="12">Leaderboard</text>
+
+  <text x="20" y="575" fill="#64748b" font-size="10">Print hides .sidebar &amp; .top-bar</text>
+
+  <!-- Top Bar -->
+  <rect x="190" y="0" width="770" height="48" fill="#ffffff" stroke="#e2e8f0"/>
+  <text x="214" y="29" fill="#0f172a" font-size="13" font-weight="600">/erp6/commissions — Sales Commission Sync</text>
+  <rect x="850" y="12" width="90" height="24" rx="12" fill="#dcfce7"/>
+  <text x="866" y="28" fill="#15803d" font-size="11" font-weight="600">Dev · Admin</text>
+
+  <!-- Page Header -->
+  <text x="214" y="78" fill="#0f172a" font-size="20" font-weight="700">Sales Commissions</text>
+  <rect x="420" y="62" width="70" height="20" rx="10" fill="#dbeafe"/>
+  <text x="434" y="76" fill="#1d4ed8" font-size="10" font-weight="600">ERP-6 HR</text>
+  <text x="214" y="96" fill="#64748b" font-size="12">Sync paid invoices from ERP-5, calculate tier rates (2% vs 3%), and allocate earnings.</text>
+
+  <!-- Controls: Month & Sync Action -->
+  <rect x="680" y="62" width="120" height="34" rx="6" fill="#ffffff" stroke="#cbd5e1"/>
+  <text x="692" y="83" fill="#0f172a" font-size="12">Month: 2026-11</text>
+  <rect x="810" y="62" width="130" height="34" rx="6" fill="#2563eb"/>
+  <text x="830" y="83" fill="#ffffff" font-size="12" font-weight="600">🔄 Sync Now</text>
+
+  <!-- 3 Summary KPI Cards -->
+  <rect x="214" y="112" width="225" height="66" rx="8" fill="#ffffff" stroke="#e2e8f0"/>
+  <text x="228" y="130" fill="#64748b" font-size="10" font-weight="500">Total Invoiced Sales</text>
+  <text x="228" y="152" fill="#0f172a" font-size="17" font-weight="700">₹18,45,000.00</text>
+  <text x="228" y="168" fill="#9ca3af" font-size="9">From ERP-5 GET /api/invoices/paid</text>
+
+  <rect x="464" y="112" width="225" height="66" rx="8" fill="#ffffff" stroke="#e2e8f0"/>
+  <text x="478" y="130" fill="#64748b" font-size="10" font-weight="500">Total Commissions</text>
+  <text x="478" y="152" fill="#15803d" font-size="17" font-weight="700">₹45,200.00</text>
+  <text x="478" y="168" fill="#9ca3af" font-size="9">Calculated statutory incentive</text>
+
+  <rect x="714" y="112" width="226" height="66" rx="8" fill="#ffffff" stroke="#e2e8f0"/>
+  <text x="728" y="130" fill="#64748b" font-size="10" font-weight="500">Active Sales Reps</text>
+  <text x="728" y="152" fill="#2563eb" font-size="17" font-weight="700">4 Reps (EMP-0001..4)</text>
+  <text x="728" y="168" fill="#9ca3af" font-size="9">Tier: 2% (&lt;=100k) or 3% (&gt;100k)</text>
+
+  <!-- Table Container Card -->
+  <rect x="214" y="190" width="726" height="370" rx="8" fill="#ffffff" stroke="#e2e8f0"/>
+
+  <!-- Table Header -->
+  <rect x="214" y="190" width="726" height="34" rx="8" fill="#f8fafc"/>
+  <text x="228" y="211" fill="#64748b" font-size="10" font-weight="600">COMM ID</text>
+  <text x="310" y="211" fill="#64748b" font-size="10" font-weight="600">SALES REP</text>
+  <text x="440" y="211" fill="#64748b" font-size="10" font-weight="600">INVOICE REF</text>
+  <text x="540" y="211" fill="#64748b" font-size="10" font-weight="600">PAID DATE</text>
+  <text x="650" y="211" fill="#64748b" font-size="10" font-weight="600" text-anchor="end">INVOICE AMT</text>
+  <text x="730" y="211" fill="#64748b" font-size="10" font-weight="600" text-anchor="end">RATE</text>
+  <text x="830" y="211" fill="#64748b" font-size="10" font-weight="600" text-anchor="end">COMMISSION</text>
+  <text x="890" y="211" fill="#64748b" font-size="10" font-weight="600">STATUS</text>
+  <line x1="214" y1="224" x2="940" y2="224" stroke="#e2e8f0"/>
+
+  <!-- Row 1: COMM-0001 (EMP-0001) -->
+  <text x="228" y="248" fill="#0f172a" font-family="monospace" font-size="11" font-weight="600">COMM-0001</text>
+  <text x="310" y="248" fill="#0f172a" font-size="11" font-weight="600">Aarav Sharma (EMP-0001)</text>
+  <text x="440" y="248" fill="#2563eb" font-size="11">INV-0001</text>
+  <text x="540" y="248" fill="#475569" font-size="11">2026-11-04</text>
+  <text x="650" y="248" fill="#0f172a" font-size="11" font-weight="600" text-anchor="end">₹3,50,000.00</text>
+  <text x="730" y="248" fill="#d97706" font-size="11" font-weight="700" text-anchor="end">3.0%</text>
+  <text x="830" y="248" fill="#15803d" font-size="11" font-weight="700" text-anchor="end">₹10,500.00</text>
+  <rect x="870" y="238" width="55" height="16" rx="8" fill="#dcfce7"/>
+  <text x="880" y="249" fill="#15803d" font-size="9" font-weight="700">APPROVED</text>
+  <line x1="214" y1="266" x2="940" y2="266" stroke="#f1f5f9"/>
+
+  <!-- Row 2: COMM-0002 (EMP-0002) -->
+  <text x="228" y="290" fill="#0f172a" font-family="monospace" font-size="11" font-weight="600">COMM-0002</text>
+  <text x="310" y="290" fill="#0f172a" font-size="11" font-weight="600">Priya Nair (EMP-0002)</text>
+  <text x="440" y="290" fill="#2563eb" font-size="11">INV-0003</text>
+  <text x="540" y="290" fill="#475569" font-size="11">2026-11-06</text>
+  <text x="650" y="290" fill="#0f172a" font-size="11" font-weight="600" text-anchor="end">₹85,000.00</text>
+  <text x="730" y="290" fill="#475569" font-size="11" text-anchor="end">2.0%</text>
+  <text x="830" y="290" fill="#15803d" font-size="11" font-weight="700" text-anchor="end">₹1,700.00</text>
+  <rect x="870" y="280" width="55" height="16" rx="8" fill="#dcfce7"/>
+  <text x="880" y="291" fill="#15803d" font-size="9" font-weight="700">APPROVED</text>
+  <line x1="214" y1="308" x2="940" y2="308" stroke="#f1f5f9"/>
+</svg>

@@ -1,29 +1,17 @@
 -- ==============================================================================
 -- ERP-2: Procurement & Suppliers Database Schema (erp2_db)
 -- Module: ERP-2 (Port 5202)
--- Issues:
---   - [ERP2-A1] Suppliers table and API (#74)
---   - [ERP2-A3] Supplier rating (#76)
+-- Features:
+--   - [ERP2-A1] Suppliers Master & [ERP2-A3] Ratings
+--   - [ERP2-B1] Purchase Requests Subsystem
+--   - [ERP2-C1] Purchase Orders & PO Items
+--   - [ERP2-D1] Goods Receipts & GRN Items
 -- ==============================================================================
 
--- Drop existing objects for idempotent initialization
-DROP TABLE IF EXISTS supplier_ratings CASCADE;
-DROP TABLE IF EXISTS grn_items CASCADE;
-DROP TABLE IF EXISTS goods_receipts CASCADE;
-DROP TABLE IF EXISTS po_items CASCADE;
-DROP TABLE IF EXISTS purchase_orders CASCADE;
-DROP TABLE IF EXISTS purchase_requests CASCADE;
-DROP TABLE IF EXISTS suppliers CASCADE;
-DROP SEQUENCE IF EXISTS suppliers_seq;
-DROP SEQUENCE IF EXISTS supplier_ratings_seq;
-DROP SEQUENCE IF EXISTS goods_receipt_id_seq;
-DROP SEQUENCE IF EXISTS grn_item_id_seq;
+-- 1. Suppliers Sequence & Master Table [ERP2-A1]
+CREATE SEQUENCE IF NOT EXISTS suppliers_seq START WITH 1;
 
--- Sequence for Supplier IDs (SUP-0001, SUP-0002, ...)
-CREATE SEQUENCE suppliers_seq START WITH 1;
-
--- 1. Suppliers Table [ERP2-A1]
-CREATE TABLE suppliers (
+CREATE TABLE IF NOT EXISTS suppliers (
     id VARCHAR(32) PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
     contact_person VARCHAR(255),
@@ -38,17 +26,15 @@ CREATE TABLE suppliers (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- Indexes for search and query performance
-CREATE INDEX idx_suppliers_city ON suppliers(city);
-CREATE INDEX idx_suppliers_active ON suppliers(active);
-CREATE INDEX idx_suppliers_name ON suppliers(name);
-CREATE INDEX idx_suppliers_rating ON suppliers(rating DESC);
+CREATE INDEX IF NOT EXISTS idx_suppliers_city ON suppliers(city);
+CREATE INDEX IF NOT EXISTS idx_suppliers_active ON suppliers(active);
+CREATE INDEX IF NOT EXISTS idx_suppliers_name ON suppliers(name);
+CREATE INDEX IF NOT EXISTS idx_suppliers_rating ON suppliers(rating DESC);
 
--- Sequence for Rating IDs (RAT-0001, RAT-0002, ...)
-CREATE SEQUENCE supplier_ratings_seq START WITH 1;
+-- 2. Supplier Ratings Sequence & Table [ERP2-A3]
+CREATE SEQUENCE IF NOT EXISTS supplier_ratings_seq START WITH 1;
 
--- 2. Supplier Ratings Table [ERP2-A3]
-CREATE TABLE supplier_ratings (
+CREATE TABLE IF NOT EXISTS supplier_ratings (
     id VARCHAR(32) PRIMARY KEY,
     supplier_id VARCHAR(32) NOT NULL REFERENCES suppliers(id) ON DELETE CASCADE,
     delivery_score NUMERIC(2, 1) NOT NULL CHECK (delivery_score >= 1.0 AND delivery_score <= 5.0),
@@ -57,12 +43,12 @@ CREATE TABLE supplier_ratings (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX idx_supplier_ratings_supplier ON supplier_ratings(supplier_id);
-CREATE INDEX idx_supplier_ratings_created ON supplier_ratings(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_supplier_ratings_supplier ON supplier_ratings(supplier_id);
+CREATE INDEX IF NOT EXISTS idx_supplier_ratings_created ON supplier_ratings(created_at DESC);
 
--- Database schema for ERP2
-CREATE SEQUENCE IF NOT EXISTS purchase_order_id_seq;
-CREATE SEQUENCE IF NOT EXISTS po_item_id_seq;
+-- 3. Purchase Orders & PO Items [ERP2-C1]
+CREATE SEQUENCE IF NOT EXISTS purchase_order_id_seq START WITH 1;
+CREATE SEQUENCE IF NOT EXISTS po_item_id_seq START WITH 1;
 
 CREATE TABLE IF NOT EXISTS purchase_orders (
   id text PRIMARY KEY DEFAULT ('PO-' || lpad(nextval('purchase_order_id_seq')::text, 4, '0')),
@@ -84,13 +70,27 @@ CREATE TABLE IF NOT EXISTS po_items (
   received_qty integer NOT NULL DEFAULT 0 CHECK (received_qty >= 0 AND received_qty <= quantity)
 );
 
--- Sequence for Goods Receipt IDs (GRN-0001, GRN-0002, ...) [ERP2-D1]
-CREATE SEQUENCE IF NOT EXISTS goods_receipt_id_seq START WITH 1;
+-- 4. Purchase Requests Subsystem [ERP2-B1]
+CREATE SEQUENCE IF NOT EXISTS purchase_request_seq START WITH 1;
 
--- Sequence for GRN Item IDs (GRNI-0001, GRNI-0002, ...) [ERP2-D1]
+CREATE TABLE IF NOT EXISTS purchase_requests (
+  id VARCHAR(20) PRIMARY KEY DEFAULT ('PR-' || LPAD(nextval('purchase_request_seq')::TEXT, 4, '0')),
+  sku VARCHAR(50) NOT NULL,
+  product_name VARCHAR(255) NOT NULL,
+  quantity INT NOT NULL CHECK (quantity > 0),
+  requested_by VARCHAR(100) NOT NULL,
+  reason TEXT,
+  status VARCHAR(20) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected', 'converted')),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_purchase_requests_status ON purchase_requests(status);
+CREATE INDEX IF NOT EXISTS idx_purchase_requests_sku ON purchase_requests(sku);
+
+-- 5. Goods Receipts Subsystem [ERP2-D1]
+CREATE SEQUENCE IF NOT EXISTS goods_receipt_id_seq START WITH 1;
 CREATE SEQUENCE IF NOT EXISTS grn_item_id_seq START WITH 1;
 
--- 5. Goods Receipts Table [ERP2-D1]
 CREATE TABLE IF NOT EXISTS goods_receipts (
   id text PRIMARY KEY DEFAULT ('GRN-' || lpad(nextval('goods_receipt_id_seq')::text, 4, '0')),
   po_id text NOT NULL REFERENCES purchase_orders(id) ON DELETE RESTRICT,
@@ -100,7 +100,6 @@ CREATE TABLE IF NOT EXISTS goods_receipts (
   created_at timestamptz NOT NULL DEFAULT now()
 );
 
--- 6. GRN Items Table [ERP2-D1]
 CREATE TABLE IF NOT EXISTS grn_items (
   id text PRIMARY KEY DEFAULT ('GRNI-' || lpad(nextval('grn_item_id_seq')::text, 4, '0')),
   grn_id text NOT NULL REFERENCES goods_receipts(id) ON DELETE CASCADE,
@@ -112,4 +111,3 @@ CREATE INDEX IF NOT EXISTS idx_goods_receipts_po ON goods_receipts(po_id);
 CREATE INDEX IF NOT EXISTS idx_goods_receipts_received_on ON goods_receipts(received_on);
 CREATE INDEX IF NOT EXISTS idx_grn_items_grn ON grn_items(grn_id);
 CREATE INDEX IF NOT EXISTS idx_grn_items_sku ON grn_items(sku);
-

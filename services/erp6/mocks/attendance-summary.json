@@ -1,0 +1,46 @@
+[
+  {
+    "employee_id": "EMP-0001",
+    "name": "Rohan Kulkarni",
+    "department_id": "DEP-01",
+    "department_name": "Sales",
+    "present_days": 2,
+    "half_days": 1,
+    "absent_days": 1,
+    "leave_days": 0,
+    "total_days": 4
+  },
+  {
+    "employee_id": "EMP-0002",
+    "name": "Neha Sharma",
+    "department_id": "DEP-01",
+    "department_name": "Sales",
+    "present_days": 2,
+    "half_days": 0,
+    "absent_days": 0,
+    "leave_days": 0,
+    "total_days": 2
+  },
+  {
+    "employee_id": "EMP-0003",
+    "name": "Amit Varma",
+    "department_id": "DEP-01",
+    "department_name": "Sales",
+    "present_days": 2,
+    "half_days": 0,
+    "absent_days": 0,
+    "leave_days": 0,
+    "total_days": 2
+  },
+  {
+    "employee_id": "EMP-0004",
+    "name": "Pooja Mehta",
+    "department_id": "DEP-01",
+    "department_name": "Sales",
+    "present_days": 2,
+    "half_days": 0,
+    "absent_days": 0,
+    "leave_days": 0,
+    "total_days": 2
+  }
+]

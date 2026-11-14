@@ -1,0 +1,10 @@
+{
+  "id": "PR-0001",
+  "sku": "SKU-0003",
+  "product_name": "65-inch OLED TV",
+  "quantity": 17,
+  "requested_by": "ERP-1 low stock",
+  "reason": "Automated low-stock replenishment",
+  "status": "pending",
+  "created_at": "2026-11-09T12:00:00.000Z"
+}

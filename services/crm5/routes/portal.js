@@ -255,10 +255,15 @@ router.get('/orders/:id', getOrderTracking);
 
 /**
  * Shared handler to fetch a customer's full portal overview:
- * - Customer contact and GST details
- * - Order history (My Orders)
- * - Service desk tickets (My Tickets)
- * - Billing records (My Invoices)
+ * - Customer contact and GST details (CRM-3 /api/customers/:id)
+ * - Order history (ERP-4 /api/sales-orders?customer_id=)
+ * - Service desk tickets (CRM-2 /api/tickets?customer_id=)
+ * - Billing records (ERP-5 /api/invoices?customer_id=)
+ *
+ * Each part is fetched independently. If one team is down:
+ * - with USE_MOCKS=true, falls back to realistic mock rows
+ * - with USE_MOCKS=false, returns that part as [] with unavailable: true and lists failed teams.
+ * Every call logs a row in portal_visits.
  */
 async function getCustomerOverview(req, res) {
   try {
@@ -269,74 +274,201 @@ async function getCustomerOverview(req, res) {
 
     const customerId = rawId.trim().toUpperCase();
 
-    // 1. Fetch customer details
-    let customers = [];
+    // Telemetry: Every call logs a row in portal_visits [CRM5-A1]
+    await recordVisit(customerId);
+
+    const useMocks = process.env.USE_MOCKS !== 'false';
+    const failedTeams = [];
+
+    // 1. Fetch customer from CRM-3 (with CRM-5 portal-customers mock fallback)
+    let customer = null;
+    let customerUnavailable = false;
     try {
-      customers = await callService('crm5', '/api/portal/customers', { mock: 'portal-customers' });
-    } catch {
-      customers = loadMock('portal-customers');
+      const crm3Res = await callService('crm3', `/api/customers/${customerId}`, { mock: 'portal-customers' });
+      const cData = crm3Res?.data || crm3Res;
+      if (Array.isArray(cData)) {
+        customer = cData.find(c => c.id === customerId);
+      } else if (cData && (cData.id === customerId || cData.customer?.id === customerId)) {
+        customer = cData.customer || cData;
+      }
+    } catch (err) {
+      try {
+        const crm5Res = await callService('crm5', `/api/portal/customers/${customerId}`, { mock: 'portal-customers' });
+        const cData = crm5Res?.data || crm5Res;
+        customer = Array.isArray(cData) ? cData.find(c => c.id === customerId) : cData;
+      } catch (err2) {
+        if (useMocks) {
+          const localCustomers = loadMock('portal-customers');
+          customer = localCustomers.find(c => c.id === customerId);
+        } else {
+          customerUnavailable = true;
+          failedTeams.push('CRM-3 (customers)');
+        }
+      }
     }
 
-    const customer = (customers || []).find(c => c.id === customerId);
+    if (!customer && useMocks) {
+      const localCustomers = loadMock('portal-customers');
+      customer = localCustomers.find(c => c.id === customerId);
+    }
 
-    // If customer not found, return clean 404 with friendly message
-    if (!customer) {
+    // If customer not found in records and CRM-3 didn't fail
+    if (!customer && !customerUnavailable) {
       return res.status(404).json({
         error: `Customer ID '${customerId}' was not found in our records. Please verify the ID (e.g., CUST-0001 to CUST-0008) and try again.`
       });
     }
 
-    // 2. Fetch orders
-    let allOrders = [];
+    // 2. Fetch orders independently from ERP-4
+    let customerOrders = [];
+    let ordersUnavailable = false;
     try {
-      allOrders = await callService('crm5', '/api/orders', { mock: 'portal-orders' });
-    } catch {
-      allOrders = loadMock('portal-orders');
+      const erp4Res = await callService('erp4', `/api/sales-orders?customer_id=${customerId}`, { mock: 'sales-orders' });
+      const ordersList = erp4Res?.data || erp4Res;
+      if (Array.isArray(ordersList)) {
+        customerOrders = ordersList.filter(o => o.customer_id === customerId);
+      }
+    } catch (err) {
+      try {
+        const crm5Res = await callService('crm5', `/api/orders?customer_id=${customerId}`, { mock: 'sales-orders' });
+        const ordersList = crm5Res?.data || crm5Res;
+        if (Array.isArray(ordersList)) {
+          customerOrders = ordersList.filter(o => o.customer_id === customerId);
+        }
+      } catch (err2) {
+        if (useMocks) {
+          const localOrders = loadMock('portal-orders');
+          customerOrders = localOrders.filter(o => o.customer_id === customerId);
+        } else {
+          ordersUnavailable = true;
+          failedTeams.push('ERP-4 (sales-orders)');
+        }
+      }
     }
-    const customerOrders = (allOrders || []).filter(o => o.customer_id === customerId);
 
-    // 3. Fetch tickets
-    let allTickets = [];
-    try {
-      allTickets = await callService('crm5', '/api/tickets', { mock: 'portal-tickets' });
-    } catch {
-      allTickets = loadMock('portal-tickets');
+    if (customerOrders.length === 0 && useMocks) {
+      const localOrders = loadMock('portal-orders');
+      const matches = localOrders.filter(o => o.customer_id === customerId);
+      if (matches.length > 0) customerOrders = matches;
     }
-    const customerTickets = (allTickets || []).filter(t => t.customer_id === customerId);
 
-    // 4. Fetch invoices
-    let allInvoices = [];
-    try {
-      allInvoices = await callService('crm5', '/api/invoices', { mock: 'portal-invoices' });
-    } catch {
-      allInvoices = loadMock('portal-invoices');
+    if (ordersUnavailable) {
+      customerOrders = [];
+      customerOrders.unavailable = true;
     }
-    const customerInvoices = (allInvoices || []).filter(i => i.customer_id === customerId);
+
+    // 3. Fetch tickets independently from CRM-2
+    let customerTickets = [];
+    let ticketsUnavailable = false;
+    try {
+      const crm2Res = await callService('crm2', `/api/tickets?customer_id=${customerId}`, { mock: 'tickets' });
+      const ticketsList = crm2Res?.data || crm2Res;
+      if (Array.isArray(ticketsList)) {
+        customerTickets = ticketsList.filter(t => t.customer_id === customerId);
+      }
+    } catch (err) {
+      try {
+        const crm5Res = await callService('crm5', `/api/tickets?customer_id=${customerId}`, { mock: 'tickets' });
+        const ticketsList = crm5Res?.data || crm5Res;
+        if (Array.isArray(ticketsList)) {
+          customerTickets = ticketsList.filter(t => t.customer_id === customerId);
+        }
+      } catch (err2) {
+        if (useMocks) {
+          const localTickets = loadMock('portal-tickets');
+          customerTickets = localTickets.filter(t => t.customer_id === customerId);
+        } else {
+          ticketsUnavailable = true;
+          failedTeams.push('CRM-2 (tickets)');
+        }
+      }
+    }
+
+    if (customerTickets.length === 0 && useMocks) {
+      const localTickets = loadMock('portal-tickets');
+      const matches = localTickets.filter(t => t.customer_id === customerId);
+      if (matches.length > 0) customerTickets = matches;
+    }
+
+    if (ticketsUnavailable) {
+      customerTickets = [];
+      customerTickets.unavailable = true;
+    }
+
+    // 4. Fetch invoices independently from ERP-5
+    let customerInvoices = [];
+    let invoicesUnavailable = false;
+    try {
+      const erp5Res = await callService('erp5', `/api/invoices?customer_id=${customerId}`, { mock: 'invoices' });
+      const invoicesList = erp5Res?.data || erp5Res;
+      if (Array.isArray(invoicesList)) {
+        customerInvoices = invoicesList.filter(i => i.customer_id === customerId);
+      }
+    } catch (err) {
+      try {
+        const crm5Res = await callService('crm5', `/api/invoices?customer_id=${customerId}`, { mock: 'invoices' });
+        const invoicesList = crm5Res?.data || crm5Res;
+        if (Array.isArray(invoicesList)) {
+          customerInvoices = invoicesList.filter(i => i.customer_id === customerId);
+        }
+      } catch (err2) {
+        if (useMocks) {
+          const localInvoices = loadMock('portal-invoices');
+          customerInvoices = localInvoices.filter(i => i.customer_id === customerId);
+        } else {
+          invoicesUnavailable = true;
+          failedTeams.push('ERP-5 (invoices)');
+        }
+      }
+    }
+
+    if (customerInvoices.length === 0 && useMocks) {
+      const localInvoices = loadMock('portal-invoices');
+      const matches = localInvoices.filter(i => i.customer_id === customerId);
+      if (matches.length > 0) customerInvoices = matches;
+    }
+
+    if (invoicesUnavailable) {
+      customerInvoices = [];
+      customerInvoices.unavailable = true;
+    }
 
     // Compute key statistics
     const totalSpent = customerOrders.reduce((acc, o) => acc + Number(o.total_amount || 0), 0);
     const pendingInvoices = customerInvoices.filter(i => i.status !== 'paid');
     const openTickets = customerTickets.filter(t => t.status !== 'resolved' && t.status !== 'closed');
 
-    // Telemetry: record visit
-    await recordVisit(customerId);
-
-    return res.json({
-      data: {
-        customer,
-        orders: customerOrders,
-        tickets: customerTickets,
-        invoices: customerInvoices,
-        stats: {
-          total_orders: customerOrders.length,
-          total_spent: Math.round(totalSpent * 100) / 100,
-          total_tickets: customerTickets.length,
-          open_tickets: openTickets.length,
-          total_invoices: customerInvoices.length,
-          pending_invoices: pendingInvoices.length
-        }
+    const responsePayload = {
+      customer: customer || (customerUnavailable ? { id: customerId, unavailable: true } : null),
+      orders: customerOrders,
+      tickets: customerTickets,
+      invoices: customerInvoices,
+      stats: {
+        total_orders: customerOrders.length,
+        total_spent: Math.round(totalSpent * 100) / 100,
+        total_tickets: customerTickets.length,
+        open_tickets: openTickets.length,
+        total_invoices: customerInvoices.length,
+        pending_invoices: pendingInvoices.length
       }
-    });
+    };
+
+    if (ordersUnavailable) responsePayload.orders_unavailable = true;
+    if (ticketsUnavailable) responsePayload.tickets_unavailable = true;
+    if (invoicesUnavailable) responsePayload.invoices_unavailable = true;
+
+    if (failedTeams.length > 0) {
+      responsePayload.failed_teams = failedTeams;
+      responsePayload.unavailable = {
+        ...(customerUnavailable && { customer: true }),
+        ...(ordersUnavailable && { orders: true }),
+        ...(ticketsUnavailable && { tickets: true }),
+        ...(invoicesUnavailable && { invoices: true })
+      };
+      responsePayload.message = `Some upstream services unavailable: ${failedTeams.join(', ')}`;
+    }
+
+    return res.json({ data: responsePayload });
   } catch (err) {
     console.error('[crm5] getCustomerOverview error:', err.message);
     return res.status(500).json({ error: 'Internal server error processing customer portal overview.' });
