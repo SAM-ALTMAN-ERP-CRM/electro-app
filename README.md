@@ -10,7 +10,12 @@ Built by 11 collaborative teams:
 
 ## Setup on Windows and Mac
 
-### 1. Install PostgreSQL
+### 1. Prerequisites
+- **Node.js**: Version 18+ (tested on Node 20)
+- **npm**: Version 9+
+- **PostgreSQL**: Version 14+ / 16+
+
+### 2. Install PostgreSQL
 - **macOS (Homebrew)**:
   ```bash
   brew install postgresql@16
@@ -21,7 +26,7 @@ Built by 11 collaborative teams:
   - Download and run the official installer from [postgresql.org](https://www.postgresql.org/download/windows/).
   - Ensure the PostgreSQL service is running in Windows Services (`services.msc`).
 
-### 2. Create the `postgres` Role & Password
+### 3. Create the `postgres` Role & Password
 The app connects to local PostgreSQL with user `postgres` and password `postgres`:
 - **macOS**:
   ```bash
@@ -32,37 +37,63 @@ The app connects to local PostgreSQL with user `postgres` and password `postgres
   - Open `SQL Shell (psql)` from the Start menu and log in as superuser.
   - Set password: `ALTER USER postgres WITH PASSWORD 'postgres';`
 
-### 3. Clone & Install Dependencies
+### 4. Clone & Install Dependencies
 ```bash
 git clone https://github.com/SAM-ALTMAN-ERP-CRM/electro-app.git
 cd electro-app
 npm install
 ```
 
-### 4. Configure Environment
-Copy the development environment template:
+### 5. Environment Configuration
+Copy `.env.example` to `.env`:
 ```bash
 cp .env.example .env
 ```
 *(On Windows Command Prompt: `copy .env.example .env`)*
 
-### 5. Initialize Databases
+#### Live Integration & Authentication Settings
+In your `.env` file:
+- **`USE_MOCKS=false`**: By default, `.env.example` sets `USE_MOCKS=true` to let services return mock fixtures when a downstream service is unavailable. **For the demo use USE_MOCKS=false** to demonstrate real cross-service communication via `callService()`.
+- **`AUTH_REQUIRED=false`**: When set to `false` (default for local development), API routes allow requests without JWT authentication and automatically authenticate as demo admin. When set to `true`, all protected routes enforce valid JWT bearer tokens issued by the auth service.
+
+### 6. Initialize Databases
 Automatically provision all 11 databases and execute schemas and seeds in dependency order:
 ```bash
 npm run db:setup
 ```
-*(To completely reset and recreate all databases from scratch, run `npm run reset`).*
+- **Safe Mode**: If a team database already has tables, `npm run db:setup` skips it and prints `already set up (run npm run reset to reload)`.
+- **Reset Mode**: To completely drop, recreate, and re-seed all 11 databases from scratch:
+  ```bash
+  npm run reset
+  ```
+  *(Note: `--reset` is automatically blocked if `NODE_ENV=production`).*
 
-### 6. Start the Application
-Starts all 11 microservices and the Vite React frontend shell:
+### 7. Start Development Server
+Starts all 11 backends and the unified React frontend:
 ```bash
 npm run dev
 ```
-Open `http://localhost:3000` in your browser.
+
+The frontend will be running at: **`http://localhost:3000`**
 
 ---
 
-### Troubleshooting Common Setup Issues
+## Demo Accounts
+
+All 6 demo accounts use password **`demo123`** (seeded in `erp5_db`):
+
+| Email | Role | Module Access / Notes |
+| :--- | :--- | :--- |
+| `admin@demo.com` | `admin` | Full system access across all 11 CRM and ERP modules |
+| `sales@demo.com` | `sales` | CRM-1, CRM-3, ERP-1, ERP-4 (linked to employee `EMP-0001`) |
+| `support@demo.com` | `support` | CRM-2 ticketing and RMA warranty claims |
+| `warehouse@demo.com` | `warehouse` | ERP-1, ERP-2, ERP-3, ERP-4 inventory and fulfillment |
+| `finance@demo.com` | `finance` | ERP-2, ERP-5 invoicing, credit notes, ledger |
+| `hr@demo.com` | `hr` | ERP-6 workforce, payroll, and department administration |
+
+---
+
+## Troubleshooting Common Setup Issues
 
 1. **`ECONNREFUSED 127.0.0.1:5432`**:
    - **Cause**: PostgreSQL server is not running locally.
@@ -75,7 +106,6 @@ Open `http://localhost:3000` in your browser.
    - **Fix**: Run `npm run db:setup` to automatically create all 11 databases and apply initial schema tables.
 
 ---
-
 
 ## Service Architecture & Ports
 

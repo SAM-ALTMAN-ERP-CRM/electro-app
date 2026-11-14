@@ -2,30 +2,27 @@
 
 /**
  * scripts/db-setup.js
- * Database initialization & reset automation (ERP5-C4)
- * 
- * Sets up the 11 databases (crm1_db .. erp6_db) and runs schema.sql + seed.sql
- * in project dependency order: erp6 -> crm3 -> erp1 -> then the remaining teams.
- * 
- * Usage:
- *   npm run db:setup       (Safe to run multiple times; creates missing DBs, applies schema + seed)
- *   npm run reset          (db-setup.js --reset: drops and recreates each DB; blocked in production)
+ *
+ * Automated PostgreSQL database initialization and seeding script for all 11 teams.
+ * Supports:
+ *   - Safe setup (idempotent, skips existing tables): npm run db:setup
+ *   - Reset mode (drops & recreates databases): npm run reset (or node scripts/db-setup.js --reset)
+ *   - Production safeguard: Blocks --reset if NODE_ENV=production
  */
 
 const fs = require('fs');
 const path = require('path');
-const { URL } = require('url');
 
-// Dynamic resolver for 'pg' across npm workspaces
+// Locate existing 'pg' package without adding new dependencies
 let pg;
 try {
   pg = require('pg');
-} catch (e) {
+} catch (e1) {
   try {
-    pg = require('../services/erp5/node_modules/pg');
+    pg = require(path.resolve(__dirname, '../services/erp5/node_modules/pg'));
   } catch (e2) {
     try {
-      pg = require('../services/_shared/node_modules/pg');
+      pg = require(path.resolve(__dirname, '../services/_shared/node_modules/pg'));
     } catch (e3) {
       console.error('ERROR: Could not find "pg" module. Please run `npm install` first.');
       process.exit(1);
@@ -98,35 +95,32 @@ function getAdminConnectionString() {
   return `postgresql://${encodeURIComponent(user)}:${encodeURIComponent(pass)}@${host}:${port}/postgres`;
 }
 
-// Get connection URL for a team database
+// Get connection URL for a team database matching services/_shared/db.js exactly
 function getTeamDbUrl(team) {
-  const upper = team.toUpperCase();
-  const envKey = `DATABASE_URL_${upper}`;
+  const cleanName = team.toLowerCase().replace(/_db$/, '') + '_db';
+  const envKey = `DATABASE_URL_${cleanName.replace('_db', '').toUpperCase()}`;
   if (process.env[envKey]) {
     return process.env[envKey];
   }
   if (process.env.DATABASE_URL) {
-    try {
-      const u = new URL(process.env.DATABASE_URL);
-      u.pathname = `/${team.toLowerCase()}_db`;
-      return u.toString();
-    } catch (_) {}
+    return process.env.DATABASE_URL;
   }
   const user = process.env.PGUSER || 'postgres';
   const pass = process.env.PGPASSWORD || 'postgres';
   const host = process.env.PGHOST || 'localhost';
   const port = process.env.PGPORT || '5432';
-  return `postgresql://${encodeURIComponent(user)}:${encodeURIComponent(pass)}@${host}:${port}/${team.toLowerCase()}_db`;
+  return `postgresql://${encodeURIComponent(user)}:${encodeURIComponent(pass)}@${host}:${port}/${cleanName}`;
 }
 
 // Extract database name from connection URL
 function getDbName(team) {
+  const cleanName = team.toLowerCase().replace(/_db$/, '') + '_db';
   const urlStr = getTeamDbUrl(team);
   try {
     const u = new URL(urlStr);
-    return u.pathname.replace(/^\//, '');
+    return u.pathname.replace(/^\//, '') || cleanName;
   } catch (_) {
-    return `${team.toLowerCase()}_db`;
+    return cleanName;
   }
 }
 
@@ -202,7 +196,46 @@ async function run() {
     try {
       await teamClient.connect();
 
-      // Run Schema SQL
+      // Check if database already has tables in public schema
+      let existingTables = [];
+      try {
+        const tblRes = await teamClient.query(`
+          SELECT table_name 
+          FROM information_schema.tables 
+          WHERE table_schema = 'public' AND table_type = 'BASE TABLE'
+          ORDER BY table_name ASC;
+        `);
+        existingTables = tblRes.rows.map(r => r.table_name);
+      } catch (_) {}
+
+      // SAFE MODE: If not reset mode and database already has tables, do NOT run schema.sql or seed.sql
+      if (!isReset && existingTables.length > 0) {
+        schemaStatus = 'already set up';
+        seedStatus = 'already set up';
+
+        for (const tName of existingTables.slice(0, 3)) {
+          try {
+            const cRes = await teamClient.query(`SELECT COUNT(*)::int AS count FROM "${tName}"`);
+            rowCounts.push(`${tName}: ${cRes.rows[0].count}`);
+          } catch (_) {}
+        }
+
+        console.log(`[${team.toUpperCase()}] already set up (run npm run reset to reload)${rowCounts.length > 0 ? ` | Tables: ${rowCounts.join(', ')}` : ''}`);
+
+        summary.push({
+          team,
+          dbName,
+          schemaStatus,
+          seedStatus,
+          counts: rowCounts.join(', ') || 'no tables'
+        });
+
+        await teamClient.end().catch(() => {});
+        continue;
+      }
+
+      // If newly created or empty database (or --reset mode), apply schema and seed
+      // 1. Run Schema SQL
       if (fs.existsSync(schemaFile)) {
         const schemaSql = fs.readFileSync(schemaFile, 'utf8').trim();
         if (schemaSql) {
@@ -216,7 +249,7 @@ async function run() {
         }
       }
 
-      // Run Seed SQL (if schema did not fail)
+      // 2. Run Seed SQL (if schema did not fail)
       if (!schemaStatus.startsWith('FAIL') && fs.existsSync(seedFile)) {
         const seedSql = fs.readFileSync(seedFile, 'utf8').trim();
         if (seedSql) {
@@ -230,7 +263,7 @@ async function run() {
         }
       }
 
-      // Fetch row counts for up to 3 main tables
+      // 3. Fetch row counts for up to 3 main tables
       if (schemaStatus === 'OK') {
         try {
           const tblRes = await teamClient.query(`
@@ -249,9 +282,12 @@ async function run() {
         } catch (_) {}
       }
 
+      console.log(`[${team.toUpperCase()}] Schema: ${schemaStatus} | Seed: ${seedStatus} | Tables: ${rowCounts.join(', ') || 'none'}`);
+
     } catch (connErr) {
       schemaStatus = `CONN_ERR (${connErr.message})`;
       hasErrors = true;
+      console.log(`[${team.toUpperCase()}] Connection error: ${connErr.message}`);
     } finally {
       await teamClient.end().catch(() => {});
     }
@@ -263,8 +299,6 @@ async function run() {
       seedStatus,
       counts: rowCounts.join(', ') || 'none'
     });
-
-    console.log(`[${team.toUpperCase()}] Schema: ${schemaStatus} | Seed: ${seedStatus} | Tables: ${rowCounts.join(', ') || 'none'}`);
   }
 
   console.log('\n====================================================');
