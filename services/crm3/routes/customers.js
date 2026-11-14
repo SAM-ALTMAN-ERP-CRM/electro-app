@@ -452,6 +452,9 @@ router.post('/customers', async (req, res, next) => {
 router.put('/customers/:id', async (req, res, next) => {
   try {
     const { id } = req.params;
+    if (id === 'duplicates' || id === 'merge') {
+      return next();
+    }
 
     // Fetch existing customer
     let current = null;
@@ -559,6 +562,9 @@ router.put('/customers/:id', async (req, res, next) => {
 router.delete('/customers/:id', async (req, res, next) => {
   try {
     const { id } = req.params;
+    if (id === 'duplicates' || id === 'merge') {
+      return next();
+    }
     const deletePg = await safeQuery('DELETE FROM customers WHERE id = $1 RETURNING id, name', [id]);
     if (deletePg && deletePg.rows.length > 0) {
       inMemoryCustomers = inMemoryCustomers.filter(c => c.id !== id);
@@ -711,3 +717,4 @@ router._resetInMemoryCustomers = () => {
 };
 
 module.exports = router;
+module.exports.pool = pool;
