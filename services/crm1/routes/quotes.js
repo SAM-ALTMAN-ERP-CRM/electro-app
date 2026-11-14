@@ -563,8 +563,8 @@ router.patch('/quotes/:id/status', async (req, res, next) => {
     try {
       const updateRes = await safeQuery(
         `UPDATE quotes
-         SET status = $1,
-             rejection_reason = CASE WHEN $1 = 'rejected' THEN COALESCE($2, rejection_reason) ELSE rejection_reason END
+         SET status = $1::varchar,
+             rejection_reason = CASE WHEN $1::varchar = 'rejected' THEN COALESCE($2, rejection_reason) ELSE rejection_reason END
          WHERE id = $3
          RETURNING *`,
         [targetStatus, rejection_reason || null, id]

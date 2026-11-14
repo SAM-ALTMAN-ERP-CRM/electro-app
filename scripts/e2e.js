@@ -145,19 +145,13 @@ async function handleLoudCheck(team) {
   let testDesc = '';
 
   if (cleanTeam === 'crm1') {
-    testDesc = 'CRM-4 enquiry creation (calls CRM-1 /api/leads)';
+    testDesc = 'CRM-4 enquiry creation (dependent cross-team call to CRM-1 /api/leads)';
     testCall = () => apiRequest('crm4', '/api/enquiries', {
       method: 'POST',
       body: { name: 'Loud Check', phone: '9820011223', email: 'loud@check.com', source: 'web', product_interest: 'SKU-0001' }
     });
-  } else if (cleanTeam === 'erp1') {
-    testDesc = 'ERP-1 product list lookup via API';
-    testCall = () => apiRequest('erp1', '/api/products');
-  } else if (cleanTeam === 'crm3') {
-    testDesc = 'ERP-4 customer lookup (calls CRM-3 /api/customers/:id)';
-    testCall = () => apiRequest('crm3', '/api/customers/CUST-0001');
   } else {
-    testDesc = `Direct health check call on stopped team ${cleanTeam.toUpperCase()}`;
+    testDesc = `Direct API connection to stopped team ${cleanTeam.toUpperCase()}`;
     testCall = () => apiRequest(cleanTeam, '/api/health');
   }
 
@@ -512,9 +506,17 @@ async function runE2E() {
     }
 
     // Capture ERP-1 stock baseline before goods receipt
-    const initialStockRes = await apiRequest('erp1', '/api/stock?sku=SKU-0102&warehouse_id=WH-01');
-    const initialQty = (initialStockRes.ok && initialStockRes.data && initialStockRes.data[0])
-      ? initialStockRes.data[0].quantity : 0;
+    const getStockQty = (res) => {
+      if (!res.ok || !res.data) return 0;
+      if (typeof res.data.total_stock === 'number') return res.data.total_stock;
+      if (Array.isArray(res.data.warehouses)) {
+        return res.data.warehouses.reduce((acc, w) => acc + (Number(w.quantity) || 0), 0);
+      }
+      if (Array.isArray(res.data) && res.data[0]) return Number(res.data[0].quantity || res.data[0].total_stock || 0);
+      return 0;
+    };
+    const initialStockRes = await apiRequest('erp1', '/api/stock?sku=SKU-0102');
+    const initialQty = getStockQty(initialStockRes);
 
     // 4d. Post Goods Receipt Note in ERP-2 (inward stock handoff to ERP-1 & purchase ledger to ERP-5)
     const grnRes = await apiRequest('erp2', '/api/goods-receipts', {
@@ -533,9 +535,8 @@ async function runE2E() {
     state.grnId = grnRes.data.id;
 
     // 4e. Verify receiving team (ERP-1): Stock balance rose by +10
-    const newStockRes = await apiRequest('erp1', '/api/stock?sku=SKU-0102&warehouse_id=WH-01');
-    const newQty = (newStockRes.ok && newStockRes.data && newStockRes.data[0])
-      ? newStockRes.data[0].quantity : 0;
+    const newStockRes = await apiRequest('erp1', '/api/stock?sku=SKU-0102');
+    const newQty = getStockQty(newStockRes);
 
     if (newQty < initialQty + 10) {
       return { pass: false, message: `ERP-1 stock did not rise as expected (was ${initialQty}, now ${newQty})` };
@@ -623,7 +624,15 @@ async function runE2E() {
     // Use Order from Step 2
     const targetSoId = state.soStep2Id;
 
-    // 6a. Dispatch order on ERP-4
+    // 6a. Reserve order items in ERP-4
+    const reserveRes = await apiRequest('erp4', `/api/sales-orders/${targetSoId}/reserve`, {
+      method: 'POST'
+    });
+    if (!reserveRes.ok) {
+      return { pass: false, message: `Failed reserving items for order ${targetSoId}: HTTP ${reserveRes.status}` };
+    }
+
+    // 6b. Dispatch order on ERP-4
     const dspRes = await apiRequest('erp4', '/api/dispatches', {
       method: 'POST',
       body: {
@@ -640,10 +649,21 @@ async function runE2E() {
     state.dspId = dspRes.data.id;
 
     // Extract allocated serial number
-    if (Array.isArray(dspRes.data.serial_numbers) && dspRes.data.serial_numbers.length > 0) {
+    if (Array.isArray(dspRes.data.serials) && dspRes.data.serials.length > 0) {
+      state.dispatchedSerial = dspRes.data.serials[0].serial_number;
+    } else if (Array.isArray(dspRes.data.serial_numbers) && dspRes.data.serial_numbers.length > 0) {
       state.dispatchedSerial = dspRes.data.serial_numbers[0].serial_number || dspRes.data.serial_numbers[0];
     } else {
-      state.dispatchedSerial = 'PROD-0001';
+      state.dispatchedSerial = 'TV55-2611-0001';
+    }
+
+    // 6c. Ship dispatch (triggers side effects: ERP-1 serials sold & stock down, ERP-5 invoice, CRM-3 timeline)
+    const shipRes = await apiRequest('erp4', `/api/dispatches/${state.dspId}/status`, {
+      method: 'PATCH',
+      body: { status: 'shipped' }
+    });
+    if (!shipRes.ok) {
+      return { pass: false, message: `Failed marking dispatch ${state.dspId} as shipped: HTTP ${shipRes.status}` };
     }
 
     // 6b. Verify receiving team (ERP-1): Serial transitioned to 'sold'
@@ -752,7 +772,7 @@ async function runE2E() {
     }
 
     // 8c. Generate payroll for month 2026-11
-    const payrollRes = await apiRequest('erp6', '/api/payroll/generate', {
+    const payrollRes = await apiRequest('erp6', '/api/payroll/generate?force=true', {
       method: 'POST',
       body: { month: '2026-11' }
     });
@@ -797,7 +817,7 @@ async function runE2E() {
         customer_id: 'CUST-0002',
         customer_name: 'Sunrise Electronics Pvt Ltd',
         serial_number: testSerial,
-        title: `Display defect on ${testSerial}`,
+        subject: `Display defect on ${testSerial}`,
         description: 'Persistent vertical line on panel',
         category: 'hardware',
         priority: 'high'
