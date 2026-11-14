@@ -8,32 +8,74 @@ Built by 11 collaborative teams:
 
 ---
 
-## Quick Start
+## Setup on Windows and Mac
 
-### 1. Prerequisites
-- Node.js 18+ (tested on Node 20)
-- npm 9+
+### 1. Install PostgreSQL
+- **macOS (Homebrew)**:
+  ```bash
+  brew install postgresql@16
+  brew services start postgresql@16
+  ```
+  *(Or download and install [Postgres.app](https://postgresapp.com/)).*
+- **Windows**:
+  - Download and run the official installer from [postgresql.org](https://www.postgresql.org/download/windows/).
+  - Ensure the PostgreSQL service is running in Windows Services (`services.msc`).
 
-### 2. Install Dependencies
+### 2. Create the `postgres` Role & Password
+The app connects to local PostgreSQL with user `postgres` and password `postgres`:
+- **macOS**:
+  ```bash
+  psql postgres -c "CREATE ROLE postgres WITH SUPERUSER LOGIN PASSWORD 'postgres';"
+  ```
+  *(If the role already exists, update its password: `psql postgres -c "ALTER USER postgres WITH PASSWORD 'postgres';"`).*
+- **Windows**:
+  - Open `SQL Shell (psql)` from the Start menu and log in as superuser.
+  - Set password: `ALTER USER postgres WITH PASSWORD 'postgres';`
+
+### 3. Clone & Install Dependencies
 ```bash
+git clone https://github.com/SAM-ALTMAN-ERP-CRM/electro-app.git
+cd electro-app
 npm install
 ```
 
-### 3. Environment Configuration
-Copy `.env.example` to `.env`:
+### 4. Configure Environment
+Copy the development environment template:
 ```bash
 cp .env.example .env
 ```
+*(On Windows Command Prompt: `copy .env.example .env`)*
 
-### 4. Start Development Server
-Starts all 11 backends and the unified React frontend:
+### 5. Initialize Databases
+Automatically provision all 11 databases and execute schemas and seeds in dependency order:
+```bash
+npm run db:setup
+```
+*(To completely reset and recreate all databases from scratch, run `npm run reset`).*
+
+### 6. Start the Application
+Starts all 11 microservices and the Vite React frontend shell:
 ```bash
 npm run dev
 ```
-
-The frontend will be running at: `http://localhost:3000`
+Open `http://localhost:3000` in your browser.
 
 ---
+
+### Troubleshooting Common Setup Issues
+
+1. **`ECONNREFUSED 127.0.0.1:5432`**:
+   - **Cause**: PostgreSQL server is not running locally.
+   - **Fix**: Start the service via `brew services start postgresql@16` (Mac) or `net start postgresql-x64-16` / Windows Services dialog (Windows).
+2. **`password authentication failed for user "postgres"`**:
+   - **Cause**: The password in `.env` does not match your local PostgreSQL password.
+   - **Fix**: Reset the password in psql using `ALTER USER postgres WITH PASSWORD 'postgres';` or edit the connection strings in your local `.env`.
+3. **`database "crm1_db" does not exist`**:
+   - **Cause**: Microservice databases have not been initialized yet.
+   - **Fix**: Run `npm run db:setup` to automatically create all 11 databases and apply initial schema tables.
+
+---
+
 
 ## Service Architecture & Ports
 
