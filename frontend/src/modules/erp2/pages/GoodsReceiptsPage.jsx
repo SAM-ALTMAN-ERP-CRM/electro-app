@@ -170,6 +170,7 @@ export default function GoodsReceiptsPage() {
       setSuccessMessage(
         `Goods Receipt Note ${resData.id} created successfully! Purchase Order status is now "${resData.po_status}".`
       );
+      setNotes('');
 
       // Refresh list and reload selected PO
       await fetchData();

@@ -13,7 +13,7 @@ import GoodsReceiptsPage from './pages/GoodsReceiptsPage';
  * - Suppliers (ERP2-A1, ERP2-A3): /suppliers, /suppliers/:id
  * - Purchase Requests (ERP2-B1, ERP2-B2): /requests
  * - Purchase Orders (ERP2-C1, ERP2-C2): /orders, /orders/new, /orders/:id
- * - Goods Receipts (ERP2-D1): /receipts
+ * - Goods Receipts (ERP2-D1, ERP2-D2, ERP2-D3): /receipts
  */
 export default {
   id: 'erp2',
