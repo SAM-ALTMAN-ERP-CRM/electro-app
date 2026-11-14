@@ -324,9 +324,15 @@ router.post('/suppliers/:id/ratings', async (req, res) => {
       updatedAverage = inMemAvg;
     }
 
+    const ratingPayload = insertRes && insertRes.rows && insertRes.rows[0] ? {
+      ...insertRes.rows[0],
+      delivery_score: Number(insertRes.rows[0].delivery_score),
+      quality_score: Number(insertRes.rows[0].quality_score)
+    } : newRatingRecord;
+
     return res.status(201).json({
       data: {
-        ...(insertRes && insertRes.rows && insertRes.rows[0] ? insertRes.rows[0] : newRatingRecord),
+        ...ratingPayload,
         new_average_rating: updatedAverage,
         supplier: updatedSupplier
       }
