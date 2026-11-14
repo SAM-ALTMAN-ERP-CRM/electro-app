@@ -7,7 +7,8 @@ const { makePool } = require('../../_shared/db');
 const {
   validateCustomerPayload,
   checkEmailUniqueness,
-  validateCustomer
+  validateCustomer,
+  EMAIL_REGEX
 } = require('../validators/customerValidator');
 
 const pool = makePool('crm3_db');
@@ -27,6 +28,7 @@ try {
 }
 
 let mockCustIdCounter = inMemoryCustomers.length + 1;
+let mockContactIdCounter = 1;
 
 /**
  * Helper to execute a query safely without crashing if DB is offline.
@@ -128,11 +130,14 @@ router.get('/customers', async (req, res, next) => {
 
 /**
  * GET /api/customers/:id
- * Fetches a single customer by ID (including gstin).
+ * Fetches a single customer by ID (including gstin). Used by ERP-4, ERP-5, CRM-5.
  */
 router.get('/customers/:id', async (req, res, next) => {
   try {
     const { id } = req.params;
+    if (id === 'duplicates' || id === 'merge') {
+      return next();
+    }
     const pgResult = await safeQuery(
       `SELECT id, name, type, email, phone, gstin, billing_address, shipping_address, city, created_at
        FROM customers
@@ -282,18 +287,19 @@ router.post('/customers/import', async (req, res, next) => {
         continue;
       }
 
-      // 5. Generate monotonic Customer ID and insert
-      const nextId = await getNextCustomerId();
-      let insertedRow = null;
+      // 5. Generate monotonic Customer ID
+      const newId = await getNextCustomerId();
 
+      // 6. Attempt PostgreSQL insertion
+      let saved = null;
       try {
-        const insertRes = await pool.query(
+        const insertResult = await pool.query(
           `INSERT INTO customers (
             id, name, type, email, phone, gstin, billing_address, shipping_address, city
           ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
           RETURNING id, name, type, email, phone, gstin, billing_address, shipping_address, city, created_at`,
           [
-            nextId,
+            newId,
             customerData.name,
             customerData.type,
             customerData.email,
@@ -304,40 +310,44 @@ router.post('/customers/import', async (req, res, next) => {
             customerData.city
           ]
         );
-        if (insertRes && insertRes.rows && insertRes.rows.length > 0) {
-          insertedRow = insertRes.rows[0];
+        if (insertResult && insertResult.rows && insertResult.rows.length > 0) {
+          saved = insertResult.rows[0];
         }
-      } catch (dbErr) {
-        // DB offline fallback
+      } catch (insertErr) {
+        // Safe fallback if DB fails
       }
 
-      if (!insertedRow) {
-        insertedRow = {
-          id: nextId,
-          ...customerData,
+      if (!saved) {
+        saved = {
+          id: newId,
+          name: customerData.name,
+          type: customerData.type,
+          email: customerData.email,
+          phone: customerData.phone,
+          gstin: customerData.gstin,
+          billing_address: customerData.billing_address,
+          shipping_address: customerData.shipping_address,
+          city: customerData.city,
           created_at: new Date().toISOString()
         };
       }
 
-      inMemoryCustomers.push(insertedRow);
+      // Track in memory & intra-batch set
+      inMemoryCustomers.push(saved);
       seenEmailsInBatch.add(normalizedEmail);
-      insertedCustomers.push(insertedRow);
+      insertedCustomers.push(saved);
     }
-
-    const inserted = insertedCustomers.length;
-    const skipped = errors.length;
-    const total = rows.length;
 
     return res.status(200).json({
       status: 'success',
-      inserted,
-      skipped,
-      total,
+      inserted: insertedCustomers.length,
+      skipped: errors.length,
+      total: rows.length,
       errors,
       data: {
-        inserted,
-        skipped,
-        total,
+        inserted: insertedCustomers.length,
+        skipped: errors.length,
+        total: rows.length,
         errors,
         customers: insertedCustomers
       }
@@ -377,45 +387,46 @@ router.post('/customers', async (req, res, next) => {
       city
     } = validation.data;
 
-    // Check in-memory duplicates if DB is offline
-    const inMemDup = inMemoryCustomers.find(c => c.email && c.email.toLowerCase() === email.toLowerCase());
-    if (inMemDup) {
+    // Check duplicate email in in-memory fallback if DB check was not definitive
+    const inMemDup = inMemoryCustomers.find(
+      c => c.email && c.email.toLowerCase() === email.toLowerCase()
+    );
+    if (!pool && inMemDup) {
       return res.status(409).json({
         error: `Customer with email '${email}' already exists`,
         errors: { email: 'A customer with this email already exists' }
       });
     }
 
-    // Try PostgreSQL insertion
+    // Attempt to persist in PostgreSQL
     try {
-      let id;
-      try {
-        const seqResult = await pool.query("SELECT nextval('customers_seq') AS n");
-        const nextNum = seqResult.rows[0].n;
-        id = `CUST-${String(nextNum).padStart(4, '0')}`;
-      } catch (seqErr) {
-        const maxRes = await pool.query(
-          "SELECT COALESCE(MAX(CAST(SUBSTRING(id FROM 6) AS INTEGER)), 0) + 1 AS next_n FROM customers WHERE id LIKE 'CUST-%'"
-        );
-        id = `CUST-${String(maxRes.rows[0].next_n).padStart(4, '0')}`;
-      }
+      const customerId = await getNextCustomerId();
 
-      const insertResult = await pool.query(
-        `INSERT INTO customers (
-          id, name, type, email, phone, gstin, billing_address, shipping_address, city
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-        RETURNING id, name, type, email, phone, gstin, billing_address, shipping_address, city, created_at`,
-        [id, name, type, email, phone, gstin, billing_address, shipping_address, city]
+      const insertRes = await pool.query(
+        `INSERT INTO customers (id, name, type, email, phone, gstin, billing_address, shipping_address, city)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+         RETURNING id, name, type, email, phone, gstin, billing_address, shipping_address, city, created_at`,
+        [
+          customerId,
+          name,
+          type,
+          email,
+          phone,
+          gstin,
+          billing_address,
+          shipping_address,
+          city
+        ]
       );
 
-      const saved = insertResult.rows[0];
-      inMemoryCustomers.push(saved);
-      return res.status(201).json({ data: saved });
+      const created = insertRes.rows[0];
+      inMemoryCustomers.push(created);
+      return res.status(201).json({ data: created });
     } catch (dbErr) {
-      // In-memory fallback
-      const id = `CUST-${String(mockCustIdCounter++).padStart(4, '0')}`;
-      const saved = {
-        id,
+      // In-memory fallback if database sequence/insert fails
+      const customerId = `CUST-${String(mockCustIdCounter++).padStart(4, '0')}`;
+      const newCust = {
+        id: customerId,
         name,
         type,
         email,
@@ -426,8 +437,8 @@ router.post('/customers', async (req, res, next) => {
         city,
         created_at: new Date().toISOString()
       };
-      inMemoryCustomers.push(saved);
-      return res.status(201).json({ data: saved });
+      inMemoryCustomers.push(newCust);
+      return res.status(201).json({ data: newCust });
     }
   } catch (err) {
     next(err);
@@ -436,18 +447,23 @@ router.post('/customers', async (req, res, next) => {
 
 /**
  * PUT /api/customers/:id
- * Updates an existing customer with validation rules (CRM3-A3).
- * Rejects bad inputs with 400 and duplicate email with 409.
+ * Updates customer details with validation rules.
  */
 router.put('/customers/:id', async (req, res, next) => {
   try {
     const { id } = req.params;
 
-    // Check existence in DB or memory
+    // Fetch existing customer
     let current = null;
-    const currentPg = await safeQuery('SELECT * FROM customers WHERE id = $1', [id]);
-    if (currentPg && currentPg.rows.length > 0) {
-      current = currentPg.rows[0];
+    const existingPg = await safeQuery(
+      `SELECT id, name, type, email, phone, gstin, billing_address, shipping_address, city
+       FROM customers
+       WHERE id = $1`,
+      [id]
+    );
+
+    if (existingPg && existingPg.rows.length > 0) {
+      current = existingPg.rows[0];
     } else {
       current = inMemoryCustomers.find(c => c.id === id);
     }
@@ -495,7 +511,7 @@ router.put('/customers/:id', async (req, res, next) => {
     const inMemDup = inMemoryCustomers.find(
       c => c.id !== id && c.email && c.email.toLowerCase() === email.toLowerCase()
     );
-    if (inMemDup) {
+    if (!pool && inMemDup) {
       return res.status(409).json({
         error: `Customer with email '${email}' already exists`,
         errors: { email: 'A customer with this email already exists' }
@@ -574,10 +590,26 @@ router.delete('/customers/:id', async (req, res, next) => {
 
 /**
  * GET /api/customers/:id/contacts
+ * Returns all contacts associated with a customer.
+ * Verifies that the customer exists; returns 404 if not found.
  */
 router.get('/customers/:id/contacts', async (req, res, next) => {
   try {
     const { id } = req.params;
+
+    // Verify customer exists
+    const customerCheck = await safeQuery('SELECT id FROM customers WHERE id = $1', [id]);
+    if (customerCheck) {
+      if (customerCheck.rows.length === 0) {
+        return res.status(404).json({ error: `Customer with ID '${id}' not found` });
+      }
+    } else {
+      const match = inMemoryCustomers.find(c => c.id === id);
+      if (!match) {
+        return res.status(404).json({ error: `Customer with ID '${id}' not found` });
+      }
+    }
+
     const pgRes = await safeQuery(
       `SELECT id, customer_id, name, phone, email, designation, created_at
        FROM contacts
@@ -597,17 +629,37 @@ router.get('/customers/:id/contacts', async (req, res, next) => {
 
 /**
  * POST /api/customers/:id/contacts
+ * Adds a new contact under customer with auto-generated CON-xxxx ID.
+ * Verifies that customer exists; returns 404 if not found.
  */
 router.post('/customers/:id/contacts', async (req, res, next) => {
   try {
     const { id } = req.params;
     const { name, phone, email, designation } = req.body || {};
 
+    // 1. Verify customer exists
+    const customerCheck = await safeQuery('SELECT id FROM customers WHERE id = $1', [id]);
+    if (customerCheck) {
+      if (customerCheck.rows.length === 0) {
+        return res.status(404).json({ error: `Customer with ID '${id}' not found` });
+      }
+    } else {
+      const match = inMemoryCustomers.find(c => c.id === id);
+      if (!match) {
+        return res.status(404).json({ error: `Customer with ID '${id}' not found` });
+      }
+    }
+
+    // 2. Validate input
     if (!name || typeof name !== 'string' || !name.trim()) {
       return res.status(400).json({ error: 'Contact name is required' });
     }
 
     const cleanEmail = email && typeof email === 'string' && email.trim() ? email.trim() : null;
+    if (cleanEmail && (!EMAIL_REGEX || !EMAIL_REGEX.test(cleanEmail))) {
+      return res.status(400).json({ error: 'Invalid contact email format' });
+    }
+
     const cleanPhone = phone && typeof phone === 'string' && phone.trim() ? phone.trim() : null;
     const cleanDesignation = designation && typeof designation === 'string' && designation.trim()
       ? designation.trim()
@@ -627,7 +679,7 @@ router.post('/customers/:id/contacts', async (req, res, next) => {
 
       return res.status(201).json({ data: insertRes.rows[0] });
     } catch (dbErr) {
-      const contactId = 'CON-0001';
+      const contactId = `CON-${String(mockContactIdCounter++).padStart(4, '0')}`;
       return res.status(201).json({
         data: {
           id: contactId,

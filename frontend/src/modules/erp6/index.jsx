@@ -1,11 +1,27 @@
 import React from 'react';
 import EmployeesPage from './pages/EmployeesPage';
+import EmployeeDetailPage from './pages/EmployeeDetailPage';
 import DepartmentsPage from './pages/DepartmentsPage';
+import AttendancePage from './pages/AttendancePage';
+import AttendanceSummaryPage from './pages/AttendanceSummaryPage';
+import LeavesPage from './pages/LeavesPage';
 import CommissionsPage from './pages/CommissionsPage';
 import LeaderboardPage from './pages/LeaderboardPage';
 import PayrollPage from './pages/PayrollPage';
 import SalarySlipPage from './pages/SalarySlipPage';
 
+/**
+ * ERP-6 HR & Workforce Module Registration
+ * [ERP6-R3] UI Consistency & Route Registry
+ *
+ * Rules:
+ * - `id`: 'erp6' matches the team slug used in api() calls and the Vite proxy.
+ * - `title`: 'HR' displays in the global sidebar group header.
+ * - `roles`: ['admin', 'hr'] restricts sidebar visibility to authorized personnel.
+ * - Paths are relative to `/erp6/`.
+ * - No custom client router, no custom navbar: rendered within the shared App shell.
+ * - Print styles hide `.sidebar`, `.top-bar`, `.no-print`, and action buttons.
+ */
 export default {
   id: 'erp6',
   title: 'HR',
@@ -21,9 +37,32 @@ export default {
       element: <EmployeesPage />
     },
     {
+      path: 'employees/:id',
+      element: <EmployeeDetailPage />
+    },
+    {
       path: 'departments',
       label: 'Departments',
       element: <DepartmentsPage />
+    },
+    {
+      path: 'attendance',
+      label: 'Attendance',
+      element: <AttendancePage />
+    },
+    {
+      path: 'attendance/summary',
+      element: <AttendanceSummaryPage />
+    },
+    {
+      path: 'attendance-summary',
+      label: 'Summary',
+      element: <AttendanceSummaryPage />
+    },
+    {
+      path: 'leaves',
+      label: 'Leaves',
+      element: <LeavesPage />
     },
     {
       path: 'payroll',
@@ -46,5 +85,3 @@ export default {
     }
   ]
 };
-
-

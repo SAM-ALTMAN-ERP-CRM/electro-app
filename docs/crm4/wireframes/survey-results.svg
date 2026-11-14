@@ -1,0 +1,117 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="620" viewBox="0 0 960 620" role="img" aria-labelledby="title desc">
+  <title id="title">CRM-4 Survey Results &amp; NPS Scorecard Wireframe</title>
+  <desc id="desc">Wireframe layout for /crm4/surveys/:id/results (NPS Analytics, Distribution Bars &amp; Latest Comments)</desc>
+  <rect width="960" height="620" fill="#f8fafc"/>
+  <rect x="20" y="16" width="920" height="588" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5"/>
+
+  <!-- Top bar / Navigation & Header -->
+  <text x="50" y="44" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="600" fill="#2563eb">&lt; Back to Surveys</text>
+  <text x="50" y="74" font-family="system-ui, -apple-system, sans-serif" font-size="20" font-weight="700" fill="#0f172a">NPS Survey Analytics: Annual Product Experience</text>
+  <rect x="525" y="56" width="70" height="22" rx="11" fill="#dbeafe"/>
+  <text x="540" y="71" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#1d4ed8">SRV-0001</text>
+  <rect x="605" y="56" width="50" height="22" rx="11" fill="#dbeafe"/>
+  <text x="620" y="71" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#1d4ed8">NPS</text>
+
+  <!-- Print Button (Hidden in Print) -->
+  <rect x="800" y="52" width="110" height="30" rx="4" fill="#f1f5f9" stroke="#cbd5e1"/>
+  <text x="818" y="71" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#334155">🖨️ Print Report</text>
+
+  <text x="50" y="98" font-family="system-ui, -apple-system, sans-serif" font-size="13" fill="#64748b">Real-time Net Promoter Score, promoter/passive/detractor distributions &amp; verified customer comments</text>
+  <line x1="50" y1="112" x2="910" y2="112" stroke="#e2e8f0" stroke-width="1"/>
+
+  <!-- KPI Score Cards (3 Cards) -->
+  <rect x="50" y="125" width="270" height="68" rx="6" fill="#f0fdf4" stroke="#bbf7d0"/>
+  <text x="65" y="148" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="700" fill="#166534">NET PROMOTER SCORE (NPS)</text>
+  <text x="65" y="178" font-family="system-ui, -apple-system, sans-serif" font-size="26" font-weight="800" fill="#15803d">+40</text>
+  <rect x="135" y="158" width="120" height="22" rx="11" fill="#dcfce7"/>
+  <text x="146" y="173" font-family="system-ui, -apple-system, sans-serif" font-size="10" font-weight="600" fill="#15803d">Positive / Strong</text>
+
+  <rect x="345" y="125" width="270" height="68" rx="6" fill="#f8fafc" stroke="#e2e8f0"/>
+  <text x="360" y="148" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="700" fill="#64748b">TOTAL RESPONSES</text>
+  <text x="360" y="178" font-family="system-ui, -apple-system, sans-serif" font-size="26" font-weight="800" fill="#0f172a">10</text>
+  <text x="400" y="175" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#64748b">Verified Customers</text>
+
+  <rect x="640" y="125" width="270" height="68" rx="6" fill="#f8fafc" stroke="#e2e8f0"/>
+  <text x="655" y="148" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="700" fill="#64748b">AVERAGE RATING</text>
+  <text x="655" y="178" font-family="system-ui, -apple-system, sans-serif" font-size="26" font-weight="800" fill="#2563eb">8.2 <tspan font-size="15" font-weight="500" fill="#64748b">/ 10</tspan></text>
+
+  <!-- NPS Segment Distribution Breakdown Card (CRM4-D3) -->
+  <rect x="50" y="206" width="860" height="152" rx="6" fill="#ffffff" stroke="#e2e8f0"/>
+  <rect x="50" y="206" width="860" height="32" rx="6" fill="#f8fafc"/>
+  <text x="65" y="227" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="700" fill="#0f172a">NPS SCORE BREAKDOWN &amp; DISTRIBUTION</text>
+  <text x="650" y="227" font-family="system-ui, -apple-system, sans-serif" font-size="10" fill="#64748b">NPS Formula: % Promoters - % Detractors</text>
+  <line x1="50" y1="238" x2="910" y2="238" stroke="#e2e8f0"/>
+
+  <!-- Promoters Bar -->
+  <text x="65" y="260" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#15803d">Promoters (Scores 9-10):</text>
+  <text x="235" y="260" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="700" fill="#0f172a">6 responses (60.0%)</text>
+  <rect x="375" y="248" width="450" height="15" rx="3" fill="#f1f5f9"/>
+  <rect x="375" y="248" width="270" height="15" rx="3" fill="#16a34a"/>
+  <text x="835" y="260" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#15803d">60%</text>
+
+  <!-- Passives Bar -->
+  <text x="65" y="288" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#b45309">Passives (Scores 7-8):</text>
+  <text x="235" y="288" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="700" fill="#0f172a">2 responses (20.0%)</text>
+  <rect x="375" y="276" width="450" height="15" rx="3" fill="#f1f5f9"/>
+  <rect x="375" y="276" width="90" height="15" rx="3" fill="#d97706"/>
+  <text x="835" y="288" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#b45309">20%</text>
+
+  <!-- Detractors Bar -->
+  <text x="65" y="316" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#b91c1c">Detractors (Scores 0-6):</text>
+  <text x="235" y="316" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="700" fill="#0f172a">2 responses (20.0%)</text>
+  <rect x="375" y="304" width="450" height="15" rx="3" fill="#f1f5f9"/>
+  <rect x="375" y="304" width="90" height="15" rx="3" fill="#dc2626"/>
+  <text x="835" y="316" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#dc2626">20%</text>
+
+  <!-- Footer calculation formula -->
+  <rect x="65" y="328" width="830" height="22" rx="4" fill="#f8fafc"/>
+  <text x="75" y="343" font-family="system-ui, -apple-system, sans-serif" font-size="10" fill="#475569">Formula Result: % Promoters (60.0%) minus % Detractors (20.0%) = Net Promoter Score of +40</text>
+
+  <!-- Latest Feedback Comments Card -->
+  <rect x="50" y="370" width="860" height="220" rx="6" fill="#ffffff" stroke="#e2e8f0"/>
+  <rect x="50" y="370" width="860" height="30" rx="6" fill="#f8fafc"/>
+  <text x="65" y="390" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="700" fill="#0f172a">LATEST 5 FEEDBACK COMMENTS</text>
+  <line x1="50" y1="400" x2="910" y2="400" stroke="#e2e8f0"/>
+
+  <!-- Comment 1 -->
+  <text x="65" y="422" font-family="monospace" font-size="11" font-weight="600" fill="#0f172a">CUST-0001</text>
+  <rect x="145" y="410" width="60" height="16" rx="8" fill="#dcfce7"/>
+  <text x="154" y="422" font-family="system-ui, -apple-system, sans-serif" font-size="9" font-weight="700" fill="#15803d">10 ★ Prom</text>
+  <text x="215" y="422" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#0f172a">"Exceptional TV clarity and the technician calibrated the wall mount perfectly!"</text>
+  <text x="835" y="422" font-family="system-ui, -apple-system, sans-serif" font-size="10" fill="#64748b">2026-10-12</text>
+  <line x1="50" y1="432" x2="910" y2="432" stroke="#f1f5f9"/>
+
+  <!-- Comment 2 -->
+  <text x="65" y="454" font-family="monospace" font-size="11" font-weight="600" fill="#0f172a">CUST-0002</text>
+  <rect x="145" y="442" width="60" height="16" rx="8" fill="#dcfce7"/>
+  <text x="158" y="454" font-family="system-ui, -apple-system, sans-serif" font-size="9" font-weight="700" fill="#15803d">9 ★ Prom</text>
+  <text x="215" y="454" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#0f172a">"Commercial displays for our conference rooms have been reliable for 6 months."</text>
+  <text x="835" y="454" font-family="system-ui, -apple-system, sans-serif" font-size="10" fill="#64748b">2026-10-14</text>
+  <line x1="50" y1="464" x2="910" y2="464" stroke="#f1f5f9"/>
+
+  <!-- Comment 3 -->
+  <text x="65" y="486" font-family="monospace" font-size="11" font-weight="600" fill="#0f172a">CUST-0004</text>
+  <rect x="145" y="474" width="60" height="16" rx="8" fill="#fef3c7"/>
+  <text x="157" y="486" font-family="system-ui, -apple-system, sans-serif" font-size="9" font-weight="700" fill="#b45309">8 ★ Pass</text>
+  <text x="215" y="486" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#0f172a">"Product is good but dealer delivery took 2 days longer than scheduled."</text>
+  <text x="835" y="486" font-family="system-ui, -apple-system, sans-serif" font-size="10" fill="#64748b">2026-10-20</text>
+  <line x1="50" y1="496" x2="910" y2="496" stroke="#f1f5f9"/>
+
+  <!-- Comment 4 -->
+  <text x="65" y="518" font-family="monospace" font-size="11" font-weight="600" fill="#0f172a">CUST-0006</text>
+  <rect x="145" y="506" width="60" height="16" rx="8" fill="#fee2e2"/>
+  <text x="158" y="518" font-family="system-ui, -apple-system, sans-serif" font-size="9" font-weight="700" fill="#b91c1c">5 ★ Detr</text>
+  <text x="215" y="518" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#0f172a">"Remote controller stopped pairing after 3 weeks. Awaiting warranty replacement."</text>
+  <text x="835" y="518" font-family="system-ui, -apple-system, sans-serif" font-size="10" fill="#64748b">2026-10-22</text>
+  <line x1="50" y1="528" x2="910" y2="528" stroke="#f1f5f9"/>
+
+  <!-- Comment 5 -->
+  <text x="65" y="550" font-family="monospace" font-size="11" font-weight="600" fill="#0f172a">CUST-0008</text>
+  <rect x="145" y="538" width="60" height="16" rx="8" fill="#dcfce7"/>
+  <text x="154" y="550" font-family="system-ui, -apple-system, sans-serif" font-size="9" font-weight="700" fill="#15803d">10 ★ Prom</text>
+  <text x="215" y="550" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#0f172a">"Flawless soundbar integration with our home theatre setup. Highly recommended!"</text>
+  <text x="835" y="550" font-family="system-ui, -apple-system, sans-serif" font-size="10" fill="#64748b">2026-10-25</text>
+
+  <!-- Print Notice -->
+  <text x="65" y="580" font-family="system-ui, -apple-system, sans-serif" font-size="10" fill="#64748b">📄 Printable View: Hides navigation shell and buttons, formatting cleanly into a 1-page executive summary.</text>
+</svg>

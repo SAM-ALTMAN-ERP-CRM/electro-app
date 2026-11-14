@@ -272,10 +272,11 @@ export default function PayrollPage() {
   /**
    * "Generate payroll" action:
    * Triggers generation for the chosen month.
-   * If backend is live, calls POST /api/payroll/generate { month }.
-   * If backend is awaiting ERP6-C1, computes client-side slips for all active employees.
+   * [ERP6-C3] Safeguards:
+   * - Blocks duplicate generation (409 Conflict) unless force=true.
+   * - Side effect: Posts total payroll cost to ERP-5 General Ledger.
    */
-  async function handleGeneratePayroll() {
+  async function handleGeneratePayroll(force = false) {
     if (!selectedMonth) {
       setError('Please choose a valid payroll month (YYYY-MM).');
       return;
@@ -288,10 +289,11 @@ export default function PayrollPage() {
 
       let newSlips = [];
       let totalCost = 0;
+      const url = force ? `/api/payroll/generate?force=true` : `/api/payroll/generate`;
 
       // 1. Try calling backend API
       try {
-        const result = await api('erp6', '/api/payroll/generate', {
+        const result = await api('erp6', url, {
           method: 'POST',
           body: { month: selectedMonth }
         });
@@ -304,6 +306,15 @@ export default function PayrollPage() {
           newSlips = data;
         }
       } catch (backendErr) {
+        // [ERP6-C3] Duplicate safeguard: Surface 409 conflict if already generated
+        if (backendErr.message && (
+          backendErr.message.includes('409') ||
+          backendErr.message.toLowerCase().includes('already generated')
+        )) {
+          setError(backendErr.message);
+          setGenerating(false);
+          return;
+        }
         console.warn('[erp6] Backend payroll generation not available, computing locally:', backendErr.message);
       }
 
@@ -667,7 +678,30 @@ export default function PayrollPage() {
           marginBottom: '1.25rem',
           fontSize: '0.9rem'
         }}>
-          <strong>Error:</strong> {error}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+            <div>
+              <strong>Safeguard Alert:</strong> {error}
+            </div>
+            {(error.includes('409') || error.toLowerCase().includes('already generated')) && (
+              <button
+                type="button"
+                onClick={() => handleGeneratePayroll(true)}
+                disabled={generating}
+                style={{
+                  backgroundColor: '#dc2626',
+                  color: '#ffffff',
+                  border: 'none',
+                  padding: '0.35rem 0.85rem',
+                  borderRadius: '5px',
+                  fontWeight: 600,
+                  fontSize: '0.8rem',
+                  cursor: 'pointer'
+                }}
+              >
+                ⚡ Force Regenerate ({selectedMonth})
+              </button>
+            )}
+          </div>
         </div>
       )}
 

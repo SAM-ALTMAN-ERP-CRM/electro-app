@@ -1,0 +1,23 @@
+[
+  {
+    "customer_type": "Enterprise Corporate",
+    "customer_count": 3,
+    "sample_customer_id": "CUST-0001",
+    "active_orders": 6,
+    "total_spend_inr": 485000.00
+  },
+  {
+    "customer_type": "Retail Commercial",
+    "customer_count": 3,
+    "sample_customer_id": "CUST-0002",
+    "active_orders": 4,
+    "total_spend_inr": 230000.00
+  },
+  {
+    "customer_type": "Individual Consumer",
+    "customer_count": 2,
+    "sample_customer_id": "CUST-0003",
+    "active_orders": 2,
+    "total_spend_inr": 95000.00
+  }
+]

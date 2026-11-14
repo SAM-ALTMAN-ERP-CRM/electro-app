@@ -1,0 +1,112 @@
+[
+  {
+    "id": "ATT-0001",
+    "employee_id": "EMP-0001",
+    "employee_name": "Rohan Kulkarni",
+    "department_id": "DEP-01",
+    "role_title": "Sales Rep",
+    "date": "2026-11-02",
+    "status": "present",
+    "check_in": "09:00:00",
+    "check_out": "18:00:00"
+  },
+  {
+    "id": "ATT-0002",
+    "employee_id": "EMP-0001",
+    "employee_name": "Rohan Kulkarni",
+    "department_id": "DEP-01",
+    "role_title": "Sales Rep",
+    "date": "2026-11-03",
+    "status": "present",
+    "check_in": "09:15:00",
+    "check_out": "18:00:00"
+  },
+  {
+    "id": "ATT-0003",
+    "employee_id": "EMP-0001",
+    "employee_name": "Rohan Kulkarni",
+    "department_id": "DEP-01",
+    "role_title": "Sales Rep",
+    "date": "2026-11-04",
+    "status": "half_day",
+    "check_in": "09:00:00",
+    "check_out": "13:30:00"
+  },
+  {
+    "id": "ATT-0004",
+    "employee_id": "EMP-0001",
+    "employee_name": "Rohan Kulkarni",
+    "department_id": "DEP-01",
+    "role_title": "Sales Rep",
+    "date": "2026-11-05",
+    "status": "absent",
+    "check_in": null,
+    "check_out": null
+  },
+  {
+    "id": "ATT-0005",
+    "employee_id": "EMP-0002",
+    "employee_name": "Neha Sharma",
+    "department_id": "DEP-01",
+    "role_title": "Sales Rep",
+    "date": "2026-11-02",
+    "status": "present",
+    "check_in": "09:05:00",
+    "check_out": "18:10:00"
+  },
+  {
+    "id": "ATT-0006",
+    "employee_id": "EMP-0002",
+    "employee_name": "Neha Sharma",
+    "department_id": "DEP-01",
+    "role_title": "Sales Rep",
+    "date": "2026-11-03",
+    "status": "present",
+    "check_in": "08:55:00",
+    "check_out": "18:00:00"
+  },
+  {
+    "id": "ATT-0007",
+    "employee_id": "EMP-0003",
+    "employee_name": "Vikram Singh",
+    "department_id": "DEP-01",
+    "role_title": "Sales Rep",
+    "date": "2026-11-02",
+    "status": "present",
+    "check_in": "09:00:00",
+    "check_out": "17:45:00"
+  },
+  {
+    "id": "ATT-0008",
+    "employee_id": "EMP-0003",
+    "employee_name": "Vikram Singh",
+    "department_id": "DEP-01",
+    "role_title": "Sales Rep",
+    "date": "2026-11-03",
+    "status": "leave",
+    "check_in": null,
+    "check_out": null
+  },
+  {
+    "id": "ATT-0009",
+    "employee_id": "EMP-0004",
+    "employee_name": "Anjali Rao",
+    "department_id": "DEP-01",
+    "role_title": "Sales Rep",
+    "date": "2026-11-02",
+    "status": "present",
+    "check_in": "09:30:00",
+    "check_out": "18:30:00"
+  },
+  {
+    "id": "ATT-0010",
+    "employee_id": "EMP-0004",
+    "employee_name": "Anjali Rao",
+    "department_id": "DEP-01",
+    "role_title": "Sales Rep",
+    "date": "2026-11-03",
+    "status": "present",
+    "check_in": "09:00:00",
+    "check_out": "18:00:00"
+  }
+]

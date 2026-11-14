@@ -9,6 +9,14 @@ const STATUS_BADGE_MAP = {
   returned: 'badge badge-blue'
 };
 
+// Allowed forward move for each status matching ERP-1 lifecycle rules
+const NEXT_STATUS_ACTION = {
+  in_stock: { next: 'reserved', label: 'Reserve' },
+  reserved: { next: 'sold', label: 'Mark Sold' },
+  sold: { next: 'returned', label: 'Mark Returned' },
+  returned: { next: 'in_stock', label: 'Restock' }
+};
+
 // Section 5 shared seed fallback used only when ERP1-C1 endpoints are not merged yet (404)
 const MOCK_SEED_SERIALS = [
   { serial_number: 'TV55-2611-0001', sku: 'SKU-0001', batch_no: 'BATCH-2611-01', warehouse_id: 'WH-01', status: 'sold', created_at: '2026-11-01T00:00:00.000Z' },
@@ -80,6 +88,12 @@ export default function SerialsPage() {
   const [count, setCount] = useState('5');
   const [prefix, setPrefix] = useState('TV55-2611-');
   const [generating, setGenerating] = useState(false);
+
+  // Allocate serials form state
+  const [allocSku, setAllocSku] = useState('SKU-0001');
+  const [allocQty, setAllocQty] = useState('2');
+  const [allocating, setAllocating] = useState(false);
+  const [updatingSerial, setUpdatingSerial] = useState(null);
 
   // Load SKU dropdown options from ERP-1 products API
   useEffect(() => {
@@ -212,6 +226,63 @@ export default function SerialsPage() {
       }
     } finally {
       setGenerating(false);
+    }
+  };
+
+  // Submit handler for allocating serials
+  const handleAllocate = async (e) => {
+    e.preventDefault();
+    setError('');
+    setFeedback('');
+
+    const parsedQty = parseInt(allocQty, 10);
+    if (!allocSku.trim()) {
+      setError('Please select an SKU for allocation.');
+      return;
+    }
+    if (isNaN(parsedQty) || parsedQty <= 0) {
+      setError('Allocation quantity must be a positive integer.');
+      return;
+    }
+
+    try {
+      setAllocating(true);
+      const res = await api('erp1', '/api/serials/allocate', {
+        method: 'POST',
+        body: {
+          sku: allocSku.trim(),
+          qty: parsedQty
+        }
+      });
+
+      const list = res?.allocated_serials || [];
+      setFeedback(`Allocated ${list.length} serial(s) as reserved: ${list.join(', ')}`);
+      await fetchSerialsAndBatches();
+    } catch (err) {
+      setError(err.message || 'Failed to allocate serials');
+    } finally {
+      setAllocating(false);
+    }
+  };
+
+  // Handler for lifecycle status moves (in_stock -> reserved -> sold -> returned -> in_stock)
+  const handleStatusTransition = async (serialNumber, nextStatus) => {
+    try {
+      setUpdatingSerial(serialNumber);
+      setError('');
+      setFeedback('');
+
+      const res = await api('erp1', `/api/serials/${encodeURIComponent(serialNumber)}/status`, {
+        method: 'PATCH',
+        body: { status: nextStatus }
+      });
+
+      setFeedback(`Serial ${serialNumber} status updated to '${res?.status || nextStatus}'.`);
+      await fetchSerialsAndBatches();
+    } catch (err) {
+      setError(err.message || `Failed to update status for ${serialNumber}`);
+    } finally {
+      setUpdatingSerial(null);
     }
   };
 
@@ -367,6 +438,57 @@ export default function SerialsPage() {
         </div>
       </form>
 
+      {/* Allocate Serials Form */}
+      <form
+        onSubmit={handleAllocate}
+        style={{
+          backgroundColor: '#ffffff',
+          border: '1px solid #e2e8f0',
+          borderRadius: '8px',
+          padding: '1.25rem',
+          marginBottom: '1.5rem'
+        }}
+      >
+        <h3 style={{ margin: '0 0 1rem 0', fontSize: '1rem', color: '#0f172a' }}>Allocate Serials (Reserve for Order)</h3>
+        <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'flex-end' }}>
+          <div style={{ minWidth: '210px', flex: '1' }}>
+            <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#475569', marginBottom: '0.25rem' }}>
+              SKU
+            </label>
+            <select
+              value={allocSku}
+              onChange={(e) => setAllocSku(e.target.value)}
+              style={{ width: '100%', padding: '0.45rem 0.75rem', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.875rem', backgroundColor: '#ffffff' }}
+            >
+              {products.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.id} — {p.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div style={{ width: '120px' }}>
+            <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#475569', marginBottom: '0.25rem' }}>
+              Quantity
+            </label>
+            <input
+              type="number"
+              min="1"
+              max="500"
+              value={allocQty}
+              onChange={(e) => setAllocQty(e.target.value)}
+              required
+              style={{ width: '100%', padding: '0.45rem 0.75rem', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.875rem' }}
+            />
+          </div>
+
+          <button type="submit" disabled={allocating}>
+            {allocating ? 'Allocating...' : 'Allocate Serials'}
+          </button>
+        </div>
+      </form>
+
       {/* Filter & Search Toolbar */}
       <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
         <input
@@ -433,25 +555,51 @@ export default function SerialsPage() {
                 <th>Warehouse</th>
                 <th>Status</th>
                 <th>Created Date</th>
+                <th style={{ textAlign: 'right' }}>Allowed Transition</th>
               </tr>
             </thead>
             <tbody>
-              {visibleSerials.map((item) => (
-                <tr key={item.serial_number}>
-                  <td style={{ fontFamily: 'monospace', fontWeight: 600 }}>{item.serial_number}</td>
-                  <td>{item.sku}</td>
-                  <td>{item.batch_no || '—'}</td>
-                  <td>{item.warehouse_id || '—'}</td>
-                  <td>
-                    <span className={STATUS_BADGE_MAP[item.status] || 'badge'}>
-                      {item.status || 'unknown'}
-                    </span>
-                  </td>
-                  <td style={{ color: '#64748b', fontSize: '0.8125rem' }}>
-                    {formatDate(item.created_at)}
-                  </td>
-                </tr>
-              ))}
+              {visibleSerials.map((item) => {
+                const action = NEXT_STATUS_ACTION[item.status];
+                const isUpdating = updatingSerial === item.serial_number;
+
+                return (
+                  <tr key={item.serial_number}>
+                    <td style={{ fontFamily: 'monospace', fontWeight: 600 }}>{item.serial_number}</td>
+                    <td>{item.sku}</td>
+                    <td>{item.batch_no || '—'}</td>
+                    <td>{item.warehouse_id || '—'}</td>
+                    <td>
+                      <span className={STATUS_BADGE_MAP[item.status] || 'badge'}>
+                        {item.status || 'unknown'}
+                      </span>
+                    </td>
+                    <td style={{ color: '#64748b', fontSize: '0.8125rem' }}>
+                      {formatDate(item.created_at)}
+                    </td>
+                    <td style={{ textAlign: 'right' }}>
+                      {action ? (
+                        <button
+                          type="button"
+                          disabled={isUpdating}
+                          onClick={() => handleStatusTransition(item.serial_number, action.next)}
+                          style={{
+                            padding: '0.3rem 0.65rem',
+                            backgroundColor: isUpdating ? '#94a3b8' : '#f1f5f9',
+                            color: isUpdating ? '#ffffff' : '#334155',
+                            border: '1px solid #cbd5e1',
+                            fontSize: '0.8125rem'
+                          }}
+                        >
+                          {isUpdating ? 'Updating...' : action.label}
+                        </button>
+                      ) : (
+                        '—'
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

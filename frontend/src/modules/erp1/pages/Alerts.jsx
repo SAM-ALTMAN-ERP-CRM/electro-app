@@ -4,9 +4,12 @@ import { api } from '../../../api';
 export default function Alerts() {
   const [alerts, setAlerts] = useState([]);
   const [lowStockMap, setLowStockMap] = useState({});
+  const [summary, setSummary] = useState({ total_skus: 0, low_stock_count: 0, out_of_stock_count: 0 });
   const [loading, setLoading] = useState(true);
   const [scanning, setScanning] = useState(false);
   const [ackingId, setAckingId] = useState(null);
+  const [requestingSku, setRequestingSku] = useState(null);
+  const [requestedMap, setRequestedMap] = useState({});
   const [error, setError] = useState(null);
   const [feedback, setFeedback] = useState(null);
 
@@ -15,14 +18,16 @@ export default function Alerts() {
       setLoading(true);
       setError(null);
 
-      // Fetch open alerts and detailed low-stock calculations in parallel
-      const [alertsRes, lowStockRes] = await Promise.all([
+      // Fetch open alerts, low-stock details, and inventory KPI summary in parallel
+      const [alertsRes, lowStockRes, summaryRes] = await Promise.all([
         api('erp1', '/api/alerts?acknowledged=false'),
-        api('erp1', '/api/alerts/low-stock')
+        api('erp1', '/api/alerts/low-stock'),
+        api('erp1', '/api/inventory/summary')
       ]);
 
       const alertsList = Array.isArray(alertsRes) ? alertsRes : (alertsRes?.data || []);
       const lowStockList = Array.isArray(lowStockRes) ? lowStockRes : (lowStockRes?.data || []);
+      const summaryData = summaryRes?.data || summaryRes || { total_skus: 0, low_stock_count: 0, out_of_stock_count: 0 };
 
       const map = {};
       lowStockList.forEach(item => {
@@ -31,6 +36,7 @@ export default function Alerts() {
 
       setAlerts(alertsList);
       setLowStockMap(map);
+      setSummary(summaryData);
     } catch (err) {
       setError(err.message || 'Failed to load inventory alerts');
     } finally {
@@ -81,6 +87,31 @@ export default function Alerts() {
     }
   };
 
+  const handleCreatePurchaseRequest = async (sku, productName, suggestedQty) => {
+    try {
+      setRequestingSku(sku);
+      setError(null);
+
+      const res = await api('erp1', '/api/alerts/purchase-request', {
+        method: 'POST',
+        body: {
+          sku,
+          product_name: productName,
+          quantity: suggestedQty,
+          reason: `Low-stock replenishment trigger for ${sku}`
+        }
+      });
+
+      const reqId = res?.id || res?.data?.id || 'PR-SUCCESS';
+      setRequestedMap(prev => ({ ...prev, [sku]: reqId }));
+      setFeedback(`Purchase Request created in ERP-2 for ${sku} (Order Qty: ${suggestedQty} units). Request ID: ${reqId}`);
+    } catch (err) {
+      setError(err.message || `Failed to create purchase request for ${sku}`);
+    } finally {
+      setRequestingSku(null);
+    }
+  };
+
   return (
     <div style={{ padding: '1.5rem', maxWidth: '1100px', margin: '0 auto' }}>
       {/* Page Header */}
@@ -121,6 +152,33 @@ export default function Alerts() {
         >
           {scanning ? 'Scanning...' : '⚡ Run Scan'}
         </button>
+      </div>
+
+      {/* 3 KPI Summary Cards */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem', marginBottom: '1.25rem' }}>
+        <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '1rem', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+          <div style={{ fontSize: '0.8125rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 600 }}>Total SKUs</div>
+          <div style={{ fontSize: '1.75rem', fontWeight: 700, color: '#0f172a', marginTop: '0.25rem' }}>
+            {summary.total_skus ?? 0}
+          </div>
+          <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '0.25rem' }}>Active catalog products</div>
+        </div>
+
+        <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '1rem', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+          <div style={{ fontSize: '0.8125rem', color: '#b45309', textTransform: 'uppercase', fontWeight: 600 }}>Low-Stock Items</div>
+          <div style={{ fontSize: '1.75rem', fontWeight: 700, color: '#d97706', marginTop: '0.25rem' }}>
+            {summary.low_stock_count ?? 0}
+          </div>
+          <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '0.25rem' }}>Stock ≤ Reorder level</div>
+        </div>
+
+        <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '1rem', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+          <div style={{ fontSize: '0.8125rem', color: '#b91c1c', textTransform: 'uppercase', fontWeight: 600 }}>Out of Stock</div>
+          <div style={{ fontSize: '1.75rem', fontWeight: 700, color: '#dc2626', marginTop: '0.25rem' }}>
+            {summary.out_of_stock_count ?? 0}
+          </div>
+          <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '0.25rem' }}>Zero warehouse inventory</div>
+        </div>
       </div>
 
       {/* Red Alert Banner when open alerts exist */}
@@ -216,18 +274,22 @@ export default function Alerts() {
                 <th style={{ padding: '0.75rem 1rem' }}>Current Stock</th>
                 <th style={{ padding: '0.75rem 1rem' }}>Reorder Level</th>
                 <th style={{ padding: '0.75rem 1rem' }}>Shortfall</th>
-                <th style={{ padding: '0.75rem 1rem' }}>Created At</th>
+                <th style={{ padding: '0.75rem 1rem' }}>Suggested Order</th>
                 <th style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
               {alerts.map(alert => {
                 const item = lowStockMap[alert.sku] || {};
-                const stock = item.current_stock ?? '—';
-                const reorder = item.reorder_level ?? '10';
-                const shortfall = item.shortfall ?? (typeof stock === 'number' ? Math.max(0, reorder - stock) : '—');
+                const stock = item.current_stock ?? 0;
+                const reorder = item.reorder_level ?? 10;
+                const shortfall = item.shortfall ?? Math.max(0, reorder - stock);
+                // Suggested order quantity = (reorder_level * 2) - current_stock
+                const suggestedQty = item.suggested_order_qty ?? Math.max(1, (reorder * 2) - stock);
                 const name = item.name || alert.message || alert.sku;
                 const isAcking = ackingId === alert.id;
+                const isRequesting = requestingSku === alert.sku;
+                const hasRequested = requestedMap[alert.sku];
 
                 return (
                   <tr key={alert.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
@@ -257,28 +319,47 @@ export default function Alerts() {
                       {reorder} units
                     </td>
                     <td style={{ padding: '0.75rem 1rem', color: '#dc2626', fontWeight: 600 }}>
-                      {shortfall > 0 ? `-${shortfall} units` : '0 units'}
+                      -{shortfall} units
                     </td>
-                    <td style={{ padding: '0.75rem 1rem', color: '#64748b', fontSize: '0.8125rem' }}>
-                      {alert.created_at ? new Date(alert.created_at).toLocaleDateString() : '—'}
+                    <td style={{ padding: '0.75rem 1rem', color: '#15803d', fontWeight: 600 }}>
+                      {suggestedQty} units
                     </td>
                     <td style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>
-                      <button
-                        onClick={() => handleAcknowledge(alert.id, alert.sku)}
-                        disabled={isAcking}
-                        style={{
-                          padding: '0.35rem 0.75rem',
-                          backgroundColor: isAcking ? '#94a3b8' : '#f1f5f9',
-                          color: isAcking ? '#ffffff' : '#334155',
-                          border: '1px solid #cbd5e1',
-                          borderRadius: '4px',
-                          cursor: isAcking ? 'not-allowed' : 'pointer',
-                          fontSize: '0.8125rem',
-                          fontWeight: 500
-                        }}
-                      >
-                        {isAcking ? 'Saving...' : 'Acknowledge'}
-                      </button>
+                      <div style={{ display: 'inline-flex', gap: '0.5rem', alignItems: 'center' }}>
+                        <button
+                          onClick={() => handleCreatePurchaseRequest(alert.sku, name, suggestedQty)}
+                          disabled={isRequesting || !!hasRequested}
+                          style={{
+                            padding: '0.35rem 0.75rem',
+                            backgroundColor: hasRequested ? '#dcfce7' : isRequesting ? '#94a3b8' : '#2563eb',
+                            color: hasRequested ? '#15803d' : '#ffffff',
+                            border: `1px solid ${hasRequested ? '#86efac' : '#2563eb'}`,
+                            borderRadius: '4px',
+                            cursor: (isRequesting || hasRequested) ? 'default' : 'pointer',
+                            fontSize: '0.8125rem',
+                            fontWeight: 500
+                          }}
+                        >
+                          {hasRequested ? `Requested (${hasRequested}) ✓` : isRequesting ? 'Ordering...' : `Reorder (${suggestedQty})`}
+                        </button>
+
+                        <button
+                          onClick={() => handleAcknowledge(alert.id, alert.sku)}
+                          disabled={isAcking}
+                          style={{
+                            padding: '0.35rem 0.75rem',
+                            backgroundColor: isAcking ? '#94a3b8' : '#f1f5f9',
+                            color: isAcking ? '#ffffff' : '#334155',
+                            border: '1px solid #cbd5e1',
+                            borderRadius: '4px',
+                            cursor: isAcking ? 'not-allowed' : 'pointer',
+                            fontSize: '0.8125rem',
+                            fontWeight: 500
+                          }}
+                        >
+                          {isAcking ? 'Saving...' : 'Acknowledge'}
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );

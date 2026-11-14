@@ -192,6 +192,30 @@ describe('CRM-5 Forecasts & Weighted Pipeline Routes', () => {
     assert.ok(res.body.data.length >= 5);
   });
 
+  it('GET /forecasts/:id returns a single target by id or month', async () => {
+    const res = await dispatch(forecastsRouter, {
+      method: 'GET',
+      url: '/forecasts/FCST-0001',
+      params: { id: 'FCST-0001' }
+    });
+
+    assert.equal(res.status, 200);
+    assert.ok(res.body.data);
+    assert.equal(res.body.data.id, 'FCST-0001');
+    assert.equal(typeof res.body.data.target_amount, 'number');
+  });
+
+  it('GET /forecasts/:id returns 404 for non-existent id', async () => {
+    const res = await dispatch(forecastsRouter, {
+      method: 'GET',
+      url: '/forecasts/FCST-9999',
+      params: { id: 'FCST-9999' }
+    });
+
+    assert.equal(res.status, 404);
+    assert.ok(res.body.error);
+  });
+
   it('POST /forecasts sets a target and returns 201', async () => {
     const res = await dispatch(forecastsRouter, {
       method: 'POST',
@@ -209,6 +233,30 @@ describe('CRM-5 Forecasts & Weighted Pipeline Routes', () => {
     assert.equal(res.body.data.target_amount, 220000.00);
   });
 
+  it('POST /forecasts validates month format and target amount', async () => {
+    const invalidMonthRes = await dispatch(forecastsRouter, {
+      method: 'POST',
+      url: '/forecasts',
+      body: {
+        month: '2027-13',
+        target_amount: 100000.00
+      }
+    });
+    assert.equal(invalidMonthRes.status, 400);
+    assert.ok(invalidMonthRes.body.error);
+
+    const negativeAmountRes = await dispatch(forecastsRouter, {
+      method: 'POST',
+      url: '/forecasts',
+      body: {
+        month: '2027-02',
+        target_amount: -500.00
+      }
+    });
+    assert.equal(negativeAmountRes.status, 400);
+    assert.ok(negativeAmountRes.body.error);
+  });
+
   it('PUT /forecasts/:id updates an existing target', async () => {
     const res = await dispatch(forecastsRouter, {
       method: 'PUT',
@@ -223,5 +271,36 @@ describe('CRM-5 Forecasts & Weighted Pipeline Routes', () => {
     assert.equal(res.status, 200);
     assert.ok(res.body.data);
     assert.equal(res.body.data.target_amount, 135000.00);
+  });
+
+  it('DELETE /forecasts/:id removes a forecast target', async () => {
+    // Delete target created earlier
+    const res = await dispatch(forecastsRouter, {
+      method: 'DELETE',
+      url: '/forecasts/2027-01',
+      params: { id: '2027-01' }
+    });
+
+    assert.equal(res.status, 200);
+    assert.ok(res.body.data && res.body.data.message);
+
+    // Verify deletion returns 404
+    const getRes = await dispatch(forecastsRouter, {
+      method: 'GET',
+      url: '/forecasts/2027-01',
+      params: { id: '2027-01' }
+    });
+    assert.equal(getRes.status, 404);
+  });
+
+  it('DELETE /forecasts/:id returns 404 for non-existent target', async () => {
+    const res = await dispatch(forecastsRouter, {
+      method: 'DELETE',
+      url: '/forecasts/FCST-9999',
+      params: { id: 'FCST-9999' }
+    });
+
+    assert.equal(res.status, 404);
+    assert.ok(res.body.error);
   });
 });

@@ -4,6 +4,8 @@ const fs = require('fs');
 const path = require('path');
 const { requireAuth } = require('../../_shared/auth');
 const { makePool } = require('../../_shared/db');
+const { callService } = require('../../_shared/callService');
+const store = require('../store');
 
 // Connect to ERP-4 PostgreSQL database
 const pool = makePool('erp4_db');
@@ -12,17 +14,9 @@ const pool = makePool('erp4_db');
 router.use(requireAuth);
 
 // In-memory fallback cache so the API functions in offline/dev environments
-let inMemoryOrders = [];
-try {
-  const mockPath = path.resolve(__dirname, '../mocks/sales-orders.json');
-  if (fs.existsSync(mockPath)) {
-    inMemoryOrders = JSON.parse(fs.readFileSync(mockPath, 'utf-8'));
-  }
-} catch (err) {
-  console.warn('[erp4] Could not load mock sales orders:', err.message);
-}
+const inMemoryOrders = store.inMemoryOrders;
 
-let orderCounter = 6;
+let orderCounter = inMemoryOrders.length + 1;
 
 /**
  * Execute query safely; returns null if PostgreSQL database is offline.
@@ -40,6 +34,7 @@ async function safeQuery(text, params) {
  * Creates a new sales order with line items.
  * Called by CRM-1 when a quote is accepted.
  * A repeated quote_id returns HTTP 409 Conflict.
+ * Automatically looks up customer details from CRM-3 (ERP4-A3).
  */
 router.post('/sales-orders', async (req, res, next) => {
   try {
@@ -81,11 +76,28 @@ router.post('/sales-orders', async (req, res, next) => {
     }
     totalAmount = Math.round(totalAmount * 100) / 100;
 
-    const resolvedCustomerName = customer_name || `Customer ${customer_id}`;
-    const resolvedGstin = customer_gstin || null;
+    // 3. Customer lookup from CRM-3 (ERP4-A3)
+    let fetchedCustomer = null;
+    try {
+      fetchedCustomer = await callService('crm3', `/api/customers/${customer_id}`, { mock: 'customer' });
+    } catch (lookupErr) {
+      // Fall back to local mock customer list if CRM-3 is offline
+      try {
+        const custMockPath = path.resolve(__dirname, '../mocks/customer.json');
+        if (fs.existsSync(custMockPath)) {
+          const allMocks = JSON.parse(fs.readFileSync(custMockPath, 'utf-8'));
+          fetchedCustomer = allMocks.find(c => c.id === customer_id);
+        }
+      } catch (mErr) {
+        // ignore
+      }
+    }
+
+    const resolvedCustomerName = customer_name || fetchedCustomer?.name || `Customer ${customer_id}`;
+    const resolvedGstin = customer_gstin || fetchedCustomer?.gstin || null;
     const resolvedQuoteId = quote_id ? String(quote_id).trim() : null;
 
-    // 3. Duplicate quote check (HTTP 409 Conflict)
+    // 4. Duplicate quote check (HTTP 409 Conflict)
     if (resolvedQuoteId) {
       const checkDb = await safeQuery(
         'SELECT id FROM sales_orders WHERE quote_id = $1 LIMIT 1',
@@ -105,7 +117,7 @@ router.post('/sales-orders', async (req, res, next) => {
       }
     }
 
-    // 4. Insert into PostgreSQL if connected
+    // 5. Insert into PostgreSQL if connected
     let client = null;
     try {
       client = await pool.connect();
@@ -177,7 +189,7 @@ router.post('/sales-orders', async (req, res, next) => {
       }
     }
 
-    // 5. In-memory fallback
+    // 6. In-memory fallback
     const newId = `SO-${String(orderCounter++).padStart(4, '0')}`;
     const newOrder = {
       id: newId,
@@ -320,6 +332,126 @@ router.get('/sales-orders/:id', async (req, res, next) => {
     }
 
     return res.json({ data: found });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * PATCH /api/sales-orders/:id/confirm
+ * Transitions an order status from 'created' to 'confirmed'.
+ * Illegal moves (from any status other than 'created') return HTTP 400.
+ */
+router.patch('/sales-orders/:id/confirm', async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    // 1. Database execution
+    const dbCheck = await safeQuery('SELECT * FROM sales_orders WHERE id = $1', [id]);
+    if (dbCheck) {
+      if (dbCheck.rows.length === 0) {
+        return res.status(404).json({ error: `Sales order ${id} not found` });
+      }
+      const existing = dbCheck.rows[0];
+      if (existing.status !== 'created') {
+        return res.status(400).json({
+          error: `Cannot confirm order ${id} in status '${existing.status}'. Orders can only be confirmed from 'created' status.`
+        });
+      }
+
+      const updateRes = await safeQuery(
+        `UPDATE sales_orders SET status = 'confirmed' WHERE id = $1 RETURNING *`,
+        [id]
+      );
+      const itemsRes = await safeQuery('SELECT * FROM so_items WHERE so_id = $1', [id]);
+      const updated = updateRes.rows[0];
+      return res.json({
+        data: {
+          ...updated,
+          total_amount: parseFloat(updated.total_amount),
+          items: (itemsRes?.rows || []).map(i => ({
+            ...i,
+            quantity: parseInt(i.quantity, 10),
+            unit_price: parseFloat(i.unit_price)
+          }))
+        }
+      });
+    }
+
+    // 2. In-memory fallback
+    const orderIndex = inMemoryOrders.findIndex(o => o.id === id);
+    if (orderIndex === -1) {
+      return res.status(404).json({ error: `Sales order ${id} not found` });
+    }
+    const order = inMemoryOrders[orderIndex];
+    if (order.status !== 'created') {
+      return res.status(400).json({
+        error: `Cannot confirm order ${id} in status '${order.status}'. Orders can only be confirmed from 'created' status.`
+      });
+    }
+
+    order.status = 'confirmed';
+    return res.json({ data: order });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * PATCH /api/sales-orders/:id/cancel
+ * Cancels an order. Allowed ONLY before dispatch (status 'created' or 'confirmed').
+ * Cancelling an already dispatched, delivered, or cancelled order returns HTTP 400.
+ */
+router.patch('/sales-orders/:id/cancel', async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    // 1. Database execution
+    const dbCheck = await safeQuery('SELECT * FROM sales_orders WHERE id = $1', [id]);
+    if (dbCheck) {
+      if (dbCheck.rows.length === 0) {
+        return res.status(404).json({ error: `Sales order ${id} not found` });
+      }
+      const existing = dbCheck.rows[0];
+      if (existing.status !== 'created' && existing.status !== 'confirmed') {
+        return res.status(400).json({
+          error: `Cannot cancel order ${id} in status '${existing.status}'. Orders can only be cancelled before dispatch.`
+        });
+      }
+
+      const updateRes = await safeQuery(
+        `UPDATE sales_orders SET status = 'cancelled' WHERE id = $1 RETURNING *`,
+        [id]
+      );
+      const itemsRes = await safeQuery('SELECT * FROM so_items WHERE so_id = $1', [id]);
+      const updated = updateRes.rows[0];
+      return res.json({
+        data: {
+          ...updated,
+          total_amount: parseFloat(updated.total_amount),
+          items: (itemsRes?.rows || []).map(i => ({
+            ...i,
+            quantity: parseInt(i.quantity, 10),
+            unit_price: parseFloat(i.unit_price)
+          }))
+        }
+      });
+    }
+
+    // 2. In-memory fallback
+    const orderIndex = inMemoryOrders.findIndex(o => o.id === id);
+    if (orderIndex === -1) {
+      return res.status(404).json({ error: `Sales order ${id} not found` });
+    }
+    const order = inMemoryOrders[orderIndex];
+    if (order.status !== 'created' && order.status !== 'confirmed') {
+      return res.status(400).json({
+        error: `Cannot cancel order ${id} in status '${order.status}'. Orders can only be cancelled before dispatch.`
+      });
+    }
+
+    order.status = 'cancelled';
+    return res.json({ data: order });
   } catch (error) {
     next(error);
   }
