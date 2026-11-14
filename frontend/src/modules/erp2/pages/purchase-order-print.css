@@ -1,0 +1,41 @@
+/* frontend/src/modules/erp2/pages/purchase-order-print.css */
+
+/* Hide interactive UI elements when printing to PDF / paper */
+@media print {
+  /* Hide the global App navigation sidebar and top header */
+  body:has(.erp2-print-order) .sidebar,
+  body:has(.erp2-print-order) .top-bar,
+  .erp2-print-order .erp2-no-print {
+    display: none !important;
+  }
+
+  /* Expand main content container to 100% page width */
+  body:has(.erp2-print-order) .main-content,
+  body:has(.erp2-print-order) .page-container {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+  }
+
+  .erp2-print-order {
+    color: #000000;
+    font-size: 11pt;
+  }
+
+  .erp2-print-order table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1rem;
+  }
+
+  .erp2-print-order th,
+  .erp2-print-order td {
+    border: 1px solid #94a3b8;
+    padding: 8px;
+    text-align: left;
+  }
+
+  .erp2-print-order th {
+    background-color: #f1f5f9;
+  }
+}
