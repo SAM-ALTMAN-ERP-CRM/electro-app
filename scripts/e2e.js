@@ -629,6 +629,7 @@ async function runE2E() {
   await runStep(6, 'Dispatch order: ERP-1 serials sold, ERP-5 invoice (GSTIN) & ledger, CRM-3 timeline', async () => {
     // Use Order from Step 2
     const targetSoId = state.soStep2Id;
+    state.dispatchedSoId = targetSoId;
 
     // 6a. Reserve order items in ERP-4
     const reserveRes = await apiRequest('erp4', `/api/sales-orders/${targetSoId}/reserve`, {
@@ -857,18 +858,32 @@ async function runE2E() {
       return { pass: false, message: `Failed approving RMA ${state.rmaId}` };
     }
 
-    // 9f. Verify receiving team (ERP-4): Return record exists
+    // 9f. Verify receiving team (ERP-4): Return record exists matching this run's RMA strictly
     const returnsRes = await apiRequest('erp4', '/api/returns');
     let matchedReturn = null;
     if (returnsRes.ok && Array.isArray(returnsRes.data)) {
-      matchedReturn = returnsRes.data.find(r => r.rma_id === state.rmaId) ||
-                       returnsRes.data.find(r => r.serial_number === testSerial);
+      matchedReturn = returnsRes.data.find(r => r.rma_id === state.rmaId);
     }
     if (!matchedReturn) {
-      return { pass: false, message: `ERP-4 return record not found for RMA ${state.rmaId} (serial ${testSerial})` };
+      return { pass: false, message: `ERP-4 return record not found for RMA ${state.rmaId}` };
     }
     state.retId = matchedReturn.id;
     const returnSoId = matchedReturn.so_id;
+    const dispatchedSoId = state.dispatchedSoId || state.soStep2Id;
+
+    // Assert that the return's so_id equals the order dispatched in step 6 of this run
+    if (returnSoId !== dispatchedSoId) {
+      return {
+        pass: false,
+        message: `Return ${state.retId} resolved to order ${returnSoId}, but expected dispatched order ${dispatchedSoId}`
+      };
+    }
+
+    // Snapshot existing credit-note IDs from ERP-5 before restocking
+    const preCnRes = await apiRequest('erp5', '/api/creditnotes');
+    const existingCnIds = new Set(
+      preCnRes.ok && Array.isArray(preCnRes.data) ? preCnRes.data.map(c => c.id) : []
+    );
 
     // 9g. Mark Return as 'restocked' in ERP-4 (triggers ERP-1 serial restock & ERP-5 credit note)
     const restockRes = await apiRequest('erp4', `/api/returns/${state.retId}/status`, {
@@ -886,21 +901,23 @@ async function runE2E() {
     }
 
     // 9i. Verify receiving team (ERP-5): Credit Note exists
-    // Match by the return created in this run (so_id of the order that this return was created against)
+    // Require a credit note whose id was NOT in the snapshot and whose so_id equals the so_id of the return created in this run
     const cnRes = await apiRequest('erp5', '/api/creditnotes');
     let creditNote = null;
     if (cnRes.ok && Array.isArray(cnRes.data)) {
-      creditNote = cnRes.data.find(c => c.so_id === returnSoId && (c.return_id === state.retId || c.rma_id === state.rmaId)) ||
-                   cnRes.data.find(c => c.so_id === returnSoId);
+      creditNote = cnRes.data.find(c => !existingCnIds.has(c.id) && c.so_id === returnSoId);
     }
     if (!creditNote) {
-      return { pass: false, message: `ERP-5 credit note not found for order ${returnSoId} (return ${state.retId})` };
+      return {
+        pass: false,
+        message: `New ERP-5 credit note not found for order ${returnSoId} (return ${state.retId}); no new credit note generated after restocking`
+      };
     }
     state.cnId = creditNote.id;
 
     return {
       pass: true,
-      message: `TKT ${state.tktId}, RMA ${state.rmaId} -> RET ${state.retId} (Order: ${returnSoId}, Restocked) -> ERP-1 Serial ${testSerial} (in_stock) & Credit Note ${state.cnId}`
+      message: `TKT ${state.tktId}, RMA ${state.rmaId} -> RET ${state.retId} (Return SO: ${returnSoId}, Dispatched SO: ${dispatchedSoId}, Restocked) -> ERP-1 Serial ${testSerial} (in_stock) & Credit Note ${state.cnId}`
     };
   });
 

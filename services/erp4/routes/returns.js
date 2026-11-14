@@ -61,6 +61,7 @@ async function findOrderForDispatchedSerial(serialNumber) {
      FROM dispatch_serials ds
      JOIN dispatches d ON ds.dispatch_id = d.id
      WHERE ds.serial_number = $1
+     ORDER BY ds.id DESC
      LIMIT 1`,
     [serialNumber]
   );
