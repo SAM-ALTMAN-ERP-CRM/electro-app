@@ -23,7 +23,7 @@ INSERT INTO quote_items (
   ('QI-0007', 'QUO-0004', 'SKU-0001', '55-inch 4K Smart TV', 2, 42990.00)
 ON CONFLICT (id) DO NOTHING;
 
-SELECT setval('quote_seq', GREATEST(4, (SELECT COALESCE(MAX(CAST(SUBSTRING(id FROM 5) AS INTEGER)), 0) FROM quotes WHERE id LIKE 'QUO-%')));
+SELECT setval('quote_seq', GREATEST(7, (SELECT COALESCE(MAX(CAST(SUBSTRING(id FROM 5) AS INTEGER)), 0) FROM quotes WHERE id LIKE 'QUO-%')));
 SELECT setval('quote_items_seq', GREATEST(7, (SELECT COALESCE(MAX(CAST(SUBSTRING(id FROM 4) AS INTEGER)), 0) FROM quote_items WHERE id LIKE 'QI-%')));
 
 -- Build Issue: [CRM1-D1] Seed dealers (DLR-0001 to DLR-0005)
