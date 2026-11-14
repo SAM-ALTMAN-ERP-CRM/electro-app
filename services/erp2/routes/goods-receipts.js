@@ -19,10 +19,10 @@ function isValidDateString(val) {
 }
 
 /**
- * GET /api/goods-receipts
+ * GET /api/goods-receipts & /api/receipts
  * List all Goods Receipt Notes, optionally filtered by po_id.
  */
-router.get('/goods-receipts', async (req, res, next) => {
+router.get(['/goods-receipts', '/receipts'], async (req, res, next) => {
   try {
     const { po_id } = req.query;
     const query = `
@@ -60,10 +60,60 @@ router.get('/goods-receipts', async (req, res, next) => {
 });
 
 /**
- * GET /api/goods-receipts/:id
+ * GET /api/receipts/pending & /api/goods-receipts/pending
+ * [ERP2-D3] List sent and partially_received Purchase Orders awaiting delivery.
+ * Flags POs whose expected_date has passed as "Late" (is_late: true, days_late: X).
+ */
+router.get(['/receipts/pending', '/goods-receipts/pending'], async (req, res, next) => {
+  try {
+    const query = `
+      SELECT po.id, po.supplier_id, s.name AS supplier_name, s.contact_person AS supplier_contact,
+             s.phone AS supplier_phone, po.status,
+             to_char(po.expected_date, 'YYYY-MM-DD') AS expected_date,
+             po.total_amount, po.sent_at, po.created_at,
+             (po.expected_date IS NOT NULL AND po.expected_date < CURRENT_DATE) AS is_late,
+             CASE
+               WHEN po.expected_date IS NOT NULL AND po.expected_date < CURRENT_DATE
+               THEN (CURRENT_DATE - po.expected_date)::integer
+               ELSE 0
+             END AS days_late
+      FROM purchase_orders po
+      LEFT JOIN suppliers s ON s.id = po.supplier_id
+      WHERE po.status IN ('sent', 'partially_received')
+      ORDER BY is_late DESC, po.expected_date ASC NULLS LAST, po.id ASC
+    `;
+    const result = await pool.query(query);
+
+    // Attach pending items for each PO (items where received_qty < quantity)
+    const pendingWithItems = await Promise.all(
+      result.rows.map(async (po) => {
+        const itemsRes = await pool.query(
+          `SELECT pi.id, pi.po_id, pi.sku, pi.product_name, pi.quantity AS ordered_qty,
+                  pi.received_qty, (pi.quantity - pi.received_qty) AS remaining_qty,
+                  pi.unit_cost
+           FROM po_items pi
+           WHERE pi.po_id = $1 AND pi.received_qty < pi.quantity
+           ORDER BY pi.id ASC`,
+          [po.id]
+        );
+        return {
+          ...po,
+          items: itemsRes.rows
+        };
+      })
+    );
+
+    res.json({ data: pendingWithItems });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * GET /api/goods-receipts/:id & /api/receipts/:id
  * Retrieve a single Goods Receipt Note with item details and purchase order info.
  */
-router.get('/goods-receipts/:id', async (req, res, next) => {
+router.get(['/goods-receipts/:id', '/receipts/:id'], async (req, res, next) => {
   try {
     const { id } = req.params;
     const grnRes = await pool.query(
@@ -101,11 +151,11 @@ router.get('/goods-receipts/:id', async (req, res, next) => {
 });
 
 /**
- * POST /api/goods-receipts
+ * POST /api/goods-receipts & /api/receipts
  * Creates a Goods Receipt Note (GRN), updates PO item quantities and PO status,
  * triggers ERP-1 stock adjustment and ERP-5 purchase ledger entry.
  */
-router.post('/goods-receipts', async (req, res, next) => {
+router.post(['/goods-receipts', '/receipts'], async (req, res, next) => {
   const { po_id, received_by, received_on, notes, items } = req.body || {};
 
   // 1. Validate primary fields

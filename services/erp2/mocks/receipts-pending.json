@@ -1,0 +1,80 @@
+[
+  {
+    "id": "PO-0002",
+    "supplier_id": "SUP-0002",
+    "supplier_name": "Bharat Electronics Ltd",
+    "supplier_contact": "Suresh Patel",
+    "supplier_phone": "+91 98765 43211",
+    "status": "partially_received",
+    "expected_date": "2026-11-20",
+    "total_amount": "20000.00",
+    "sent_at": "2026-11-02T10:00:00.000Z",
+    "created_at": "2026-11-01T09:00:00.000Z",
+    "is_late": false,
+    "days_late": 0,
+    "items": [
+      {
+        "id": "POI-0002",
+        "po_id": "PO-0002",
+        "sku": "SKU-0102",
+        "product_name": "Mainboard",
+        "ordered_qty": 10,
+        "received_qty": 4,
+        "remaining_qty": 6,
+        "unit_cost": "2000.00"
+      }
+    ]
+  },
+  {
+    "id": "PO-0005",
+    "supplier_id": "SUP-0005",
+    "supplier_name": "Zenith Connectors",
+    "supplier_contact": "Vikram Mehta",
+    "supplier_phone": "+91 98765 43214",
+    "status": "sent",
+    "expected_date": "2026-11-05",
+    "total_amount": "3000.00",
+    "sent_at": "2026-11-01T12:00:00.000Z",
+    "created_at": "2026-11-01T11:00:00.000Z",
+    "is_late": true,
+    "days_late": 9,
+    "items": [
+      {
+        "id": "POI-0006",
+        "po_id": "PO-0005",
+        "sku": "SKU-0105",
+        "product_name": "Display panel",
+        "ordered_qty": 5,
+        "received_qty": 0,
+        "remaining_qty": 5,
+        "unit_cost": "600.00"
+      }
+    ]
+  },
+  {
+    "id": "PO-0004",
+    "supplier_id": "SUP-0004",
+    "supplier_name": "Apex Micro Devices",
+    "supplier_contact": "Pooja Hegde",
+    "supplier_phone": "+91 98765 43213",
+    "status": "sent",
+    "expected_date": "2026-11-08",
+    "total_amount": "12000.00",
+    "sent_at": "2026-11-02T15:00:00.000Z",
+    "created_at": "2026-11-02T14:30:00.000Z",
+    "is_late": true,
+    "days_late": 6,
+    "items": [
+      {
+        "id": "POI-0004",
+        "po_id": "PO-0004",
+        "sku": "SKU-0104",
+        "product_name": "Passive components kit",
+        "ordered_qty": 15,
+        "received_qty": 0,
+        "remaining_qty": 15,
+        "unit_cost": "800.00"
+      }
+    ]
+  }
+]
