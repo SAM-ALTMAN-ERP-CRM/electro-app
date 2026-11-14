@@ -150,6 +150,12 @@ async function handleLoudCheck(team) {
       method: 'POST',
       body: { name: 'Loud Check', phone: '9820011223', email: 'loud@check.com', source: 'web', product_interest: 'SKU-0001' }
     });
+  } else if (cleanTeam === 'erp1') {
+    testDesc = 'ERP-4 stock reservation (dependent call to ERP-1 /api/stock/check)';
+    testCall = () => apiRequest('erp4', '/api/sales-orders/SO-0006/reserve', { method: 'POST' });
+  } else if (cleanTeam === 'crm3') {
+    testDesc = 'ERP-4 customer lookup (dependent call to CRM-3 /api/customers/:id)';
+    testCall = () => apiRequest('crm3', '/api/customers/CUST-0001');
   } else {
     testDesc = `Direct API connection to stopped team ${cleanTeam.toUpperCase()}`;
     testCall = () => apiRequest(cleanTeam, '/api/health');
