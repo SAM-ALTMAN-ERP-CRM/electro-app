@@ -75,6 +75,8 @@ export default function QuotesListPage() {
   const [error, setError] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [expandedQuoteId, setExpandedQuoteId] = useState(null);
+  const [actionLoading, setActionLoading] = useState({});
+  const [rowErrors, setRowErrors] = useState({});
 
   // Fetch quotes list from backend API
   const fetchQuotes = useCallback(async () => {
@@ -125,6 +127,22 @@ export default function QuotesListPage() {
 
   const toggleExpand = (id) => {
     setExpandedQuoteId(prev => (prev === id ? null : id));
+  };
+
+  const handleStatusChange = async (id, targetStatus) => {
+    setActionLoading(prev => ({ ...prev, [id]: true }));
+    setRowErrors(prev => ({ ...prev, [id]: '' }));
+    try {
+      await api('crm1', `/api/quotes/${id}/status`, {
+        method: 'PATCH',
+        body: { status: targetStatus }
+      });
+      await fetchQuotes();
+    } catch (err) {
+      setRowErrors(prev => ({ ...prev, [id]: err.message || `Failed to update status to ${targetStatus}` }));
+    } finally {
+      setActionLoading(prev => ({ ...prev, [id]: false }));
+    }
   };
 
   return (
@@ -220,6 +238,7 @@ export default function QuotesListPage() {
                 <th style={{ padding: '0.75rem 1rem', fontSize: '0.75rem', textTransform: 'uppercase', color: '#64748b' }}>Discount</th>
                 <th style={{ padding: '0.75rem 1rem', fontSize: '0.75rem', textTransform: 'uppercase', color: '#64748b', textAlign: 'right' }}>Total (₹)</th>
                 <th style={{ padding: '0.75rem 1rem', fontSize: '0.75rem', textTransform: 'uppercase', color: '#64748b', textAlign: 'center' }}>Details</th>
+                <th style={{ padding: '0.75rem 1rem', fontSize: '0.75rem', textTransform: 'uppercase', color: '#64748b' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -273,12 +292,63 @@ export default function QuotesListPage() {
                           {isExpanded ? 'Hide Items ▲' : `${itemsCount} Items ▼`}
                         </button>
                       </td>
+                      <td style={{ padding: '0.85rem 1rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                          {q.status === 'draft' && (
+                            <button
+                              type="button"
+                              className="btn"
+                              disabled={actionLoading[q.id]}
+                              onClick={() => handleStatusChange(q.id, 'sent')}
+                              style={{
+                                background: '#2563eb',
+                                color: '#ffffff',
+                                border: 'none',
+                                padding: '0.35rem 0.75rem',
+                                fontSize: '0.75rem',
+                                fontWeight: 600,
+                                borderRadius: '4px',
+                                cursor: actionLoading[q.id] ? 'not-allowed' : 'pointer',
+                                opacity: actionLoading[q.id] ? 0.6 : 1
+                              }}
+                            >
+                              Send to client
+                            </button>
+                          )}
+                          {q.status === 'sent' && (
+                            <button
+                              type="button"
+                              className="btn"
+                              disabled={actionLoading[q.id]}
+                              onClick={() => handleStatusChange(q.id, 'accepted')}
+                              style={{
+                                background: '#16a34a',
+                                color: '#ffffff',
+                                border: 'none',
+                                padding: '0.35rem 0.75rem',
+                                fontSize: '0.75rem',
+                                fontWeight: 600,
+                                borderRadius: '4px',
+                                cursor: actionLoading[q.id] ? 'not-allowed' : 'pointer',
+                                opacity: actionLoading[q.id] ? 0.6 : 1
+                              }}
+                            >
+                              Accept quote
+                            </button>
+                          )}
+                          {rowErrors[q.id] && (
+                            <span style={{ color: '#b91c1c', fontSize: '0.75rem', display: 'block' }}>
+                              {rowErrors[q.id]}
+                            </span>
+                          )}
+                        </div>
+                      </td>
                     </tr>
 
                     {/* Expandable Line Items Details */}
                     {isExpanded && (
                       <tr style={{ background: '#f8fafc', borderBottom: '1px solid #cbd5e1' }}>
-                        <td colSpan={8} style={{ padding: '1rem 1.5rem' }}>
+                        <td colSpan={9} style={{ padding: '1rem 1.5rem' }}>
                           <div style={{ background: '#ffffff', borderRadius: '6px', border: '1px solid #e2e8f0', padding: '1rem' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
                               <h4 style={{ fontSize: '0.875rem', fontWeight: 700, color: '#0f172a' }}>

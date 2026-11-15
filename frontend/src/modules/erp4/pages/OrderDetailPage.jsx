@@ -201,7 +201,7 @@ export default function OrderDetailPage() {
   if (error && !order) {
     return (
       <div style={{ padding: '2rem' }}>
-        <Link to="/orders" style={{ display: 'inline-block', marginBottom: '1rem', color: '#2563eb' }}>
+        <Link to="/erp4/orders" style={{ display: 'inline-block', marginBottom: '1rem', color: '#2563eb' }}>
           ← Back to Orders
         </Link>
         <div style={{ background: '#fee2e2', border: '1px solid #ef4444', color: '#b91c1c', padding: '1rem', borderRadius: '8px' }}>
@@ -233,7 +233,7 @@ export default function OrderDetailPage() {
     <div style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
       {/* Top Navigation */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-        <Link to="/orders" style={{ textDecoration: 'none', color: '#2563eb', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+        <Link to="/erp4/orders" style={{ textDecoration: 'none', color: '#2563eb', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
           ← Back to Orders
         </Link>
 
