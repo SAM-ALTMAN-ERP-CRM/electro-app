@@ -29,6 +29,64 @@ function verifyPassword(password, stored) {
   );
 }
 
+/*
+ * Hash a password using PBKDF2 with a random 16-byte salt.
+ * Matches the format generated in routes/users.js.
+ */
+function hashPassword(password) {
+  const salt = crypto.randomBytes(16).toString('hex');
+  const hash = crypto.pbkdf2Sync(password, salt, 310000, 32, 'sha256').toString('hex');
+  return `pbkdf2:${salt}:${hash}`;
+}
+
+/* POST /api/auth/register — public self-registration */
+router.post('/auth/register', async (req, res) => {
+  const { name, email, password } = req.body || {};
+
+  // 1. Validate name
+  if (!name || typeof name !== 'string' || name.trim() === '') {
+    return res.status(400).json({ error: 'name is required' });
+  }
+
+  // 2. Validate email format
+  if (!email || typeof email !== 'string' || email.trim() === '') {
+    return res.status(400).json({ error: 'email is required' });
+  }
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email.trim())) {
+    return res.status(400).json({ error: 'invalid email format' });
+  }
+
+  // 3. Validate password (min 8 characters)
+  if (!password || typeof password !== 'string' || password.length < 8) {
+    return res.status(400).json({ error: 'password must be at least 8 characters long' });
+  }
+
+  try {
+    const seqRes = await pool.query("SELECT nextval('users_seq') AS n");
+    const id = 'USR-' + String(seqRes.rows[0].n).padStart(4, '0');
+    const passwordHash = hashPassword(password);
+
+    // Any role in req.body is ignored; new accounts default to role='support' and active=false
+    await pool.query(
+      `INSERT INTO users (id, name, email, password_hash, role, employee_id, active)
+       VALUES ($1, $2, $3, $4, 'support', null, false)`,
+      [id, name.trim(), email.trim(), passwordHash]
+    );
+
+    return res.status(201).json({
+      data: {
+        message: 'Account created. An administrator must approve it before you can sign in.'
+      }
+    });
+  } catch (err) {
+    if (err.code === '23505') {
+      return res.status(409).json({ error: 'email already exists' });
+    }
+    return res.status(500).json({ error: err.message });
+  }
+});
+
 /* POST /api/auth/login — validates credentials and returns an 8-hour JWT */
 router.post('/auth/login', async (req, res) => {
   const { email, password } = req.body || {};

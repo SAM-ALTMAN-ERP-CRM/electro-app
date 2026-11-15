@@ -61,4 +61,22 @@ router.post('/users', requireRole('admin'), async (req, res) => {
   }
 });
 
+/* PATCH /api/users/:id/activate — activate an inactive user (admin only) */
+router.patch('/users/:id/activate', requireRole('admin'), async (req, res) => {
+  try {
+    const r = await pool.query(
+      `UPDATE users
+       SET active = true
+       WHERE id = $1
+       RETURNING id, name, email, role, employee_id, active, created_at`,
+      [req.params.id]
+    );
+    if (r.rows.length === 0)
+      return res.status(404).json({ error: 'User not found' });
+    return res.json({ data: r.rows[0] });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;

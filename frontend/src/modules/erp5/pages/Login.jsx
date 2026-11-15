@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { api } from '../../../api';
 
 /*
@@ -112,6 +112,13 @@ export default function Login() {
           <button type="submit" style={styles.button} disabled={loading}>
             {loading ? 'Signing in…' : 'Sign In'}
           </button>
+
+          <div style={styles.registerWrap}>
+            <span style={styles.registerText}>Don't have an account? </span>
+            <Link to="/register" style={styles.registerLink}>
+              Create account
+            </Link>
+          </div>
         </form>
       </div>
     </div>
@@ -238,5 +245,18 @@ const styles = {
     fontWeight: 600,
     cursor: 'pointer',
     marginTop: '0.25rem',
+  },
+  registerWrap: {
+    textAlign: 'center',
+    marginTop: '0.5rem',
+    fontSize: '0.875rem',
+  },
+  registerText: {
+    color: '#64748b',
+  },
+  registerLink: {
+    color: '#2563eb',
+    fontWeight: 600,
+    textDecoration: 'none',
   },
 };

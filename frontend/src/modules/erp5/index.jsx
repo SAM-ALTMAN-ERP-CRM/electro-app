@@ -1,5 +1,6 @@
 import React from 'react';
 import Login from './pages/Login';
+import Register from './pages/Register';
 import Users from './pages/Users';
 import InvoicesPage from './pages/InvoicesPage';
 import InvoiceDetailPage from './pages/InvoiceDetailPage';
@@ -26,6 +27,9 @@ export default {
   routes: [
     // Login page: visible to everyone (no roles restriction), hidden from sidebar (no label)
     { path: 'login', element: <Login /> },
+
+    // Self-registration page: visible to everyone (no roles restriction), hidden from sidebar (no label)
+    { path: 'register', element: <Register /> },
 
     // Users page: admin only
     { path: 'users', label: 'Users', element: <Users />, roles: ['admin'] },
