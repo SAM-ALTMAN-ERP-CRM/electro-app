@@ -19,9 +19,9 @@ export function AuthProvider({ children }) {
 
   const checkAuth = useCallback(async () => {
     const token = localStorage.getItem('token');
-    // If on /login and no token is present, we are unauthenticated and skip /api/auth/me
+    // If on /login or /register and no token is present, we are unauthenticated and skip /api/auth/me
     // to avoid an infinite reload loop when AUTH_REQUIRED=true (since api() 401 handler redirects to /login).
-    if (location.pathname === '/login' && !token) {
+    if ((location.pathname === '/login' || location.pathname === '/register') && !token) {
       setUser(null);
       setLoading(false);
       return;

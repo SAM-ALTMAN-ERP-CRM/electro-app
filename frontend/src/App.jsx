@@ -2,6 +2,7 @@ import React from 'react';
 import { Routes, Route, NavLink, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './AuthContext';
 import Login from './modules/erp5/pages/Login';
+import Register from './modules/erp5/pages/Register';
 
 // Eagerly discover all team modules using Vite's import.meta.glob
 const moduleFiles = import.meta.glob('./modules/*/index.jsx', { eager: true });
@@ -68,11 +69,12 @@ function AppShell() {
     );
   }
 
-  // If not logged in, render the login page for /login or redirect other paths to /login
+  // If not logged in, render the login or register page, or redirect other paths to /login
   if (!user) {
     return (
       <Routes>
         <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     );
@@ -164,6 +166,7 @@ function AppShell() {
         <main className="page-container">
           <Routes>
             <Route path="/login" element={<Navigate to="/" replace />} />
+            <Route path="/register" element={<Navigate to="/" replace />} />
             <Route path="/" element={<Navigate to={homeRedirect} replace />} />
             {modules.flatMap(mod =>
               (mod.routes || []).map((r, rIdx) => {

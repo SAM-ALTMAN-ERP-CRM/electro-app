@@ -53,6 +53,19 @@ export default function Users() {
     }
   };
 
+  /* Activate inactive user */
+  const activate = async (userId) => {
+    setMsg('');
+    setError('');
+    try {
+      await api('erp5', `/api/users/${userId}/activate`, { method: 'PATCH' });
+      setMsg(`User ${userId} activated successfully.`);
+      load();
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
   const field = (key, value) =>
     setForm(f => ({ ...f, [key]: value }));
 
@@ -99,6 +112,15 @@ export default function Users() {
                     <span className={`badge badge-${u.active ? 'green' : 'red'}`}>
                       {u.active ? 'active' : 'inactive'}
                     </span>
+                    {!u.active && (
+                      <button
+                        type="button"
+                        onClick={() => activate(u.id)}
+                        style={styles.activateBtn}
+                      >
+                        Activate
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -223,5 +245,10 @@ const styles = {
     padding: '0.6rem 1.5rem', background: '#2563eb', color: '#fff',
     border: 'none', borderRadius: '6px', fontSize: '0.95rem',
     fontWeight: 600, cursor: 'pointer', alignSelf: 'flex-start',
+  },
+  activateBtn: {
+    marginLeft: '0.6rem', padding: '0.25rem 0.55rem', background: '#16a34a',
+    color: '#fff', border: 'none', borderRadius: '4px',
+    fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer',
   },
 };
