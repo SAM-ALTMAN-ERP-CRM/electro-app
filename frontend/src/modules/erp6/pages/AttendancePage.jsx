@@ -6,6 +6,19 @@ export default function AttendancePage() {
   const [activeTab, setActiveTab] = useState('daily');
   const getTodayStr = () => new Date().toISOString().split('T')[0];
   const [selectedDate, setSelectedDate] = useState(getTodayStr());
+
+  // Quick date change handlers
+  const handlePrevDay = () => {
+    const [y, m, d] = selectedDate.split('-').map(Number);
+    const prev = new Date(Date.UTC(y, m - 1, d - 1));
+    setSelectedDate(prev.toISOString().split('T')[0]);
+  };
+
+  const handleNextDay = () => {
+    const [y, m, d] = selectedDate.split('-').map(Number);
+    const next = new Date(Date.UTC(y, m - 1, d + 1));
+    setSelectedDate(next.toISOString().split('T')[0]);
+  };
   const [employees, setEmployees] = useState([]);
   const [attendanceMap, setAttendanceMap] = useState({}); // employee_id -> { status, check_in, check_out }
   const [loading, setLoading] = useState(true);
@@ -192,7 +205,7 @@ export default function AttendancePage() {
           gap: '12px'
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <label htmlFor="att-date" style={{ fontSize: '14px', fontWeight: '600', color: '#334155' }}>
             📅 Select Date:
           </label>
@@ -202,13 +215,34 @@ export default function AttendancePage() {
             value={selectedDate}
             onChange={(e) => setSelectedDate(e.target.value)}
             style={{
-              padding: '8px 12px',
+              padding: '6px 12px',
               borderRadius: '6px',
               border: '1px solid #cbd5e1',
               fontSize: '14px',
-              backgroundColor: '#ffffff'
+              backgroundColor: '#ffffff',
+              color: '#1e293b'
             }}
           />
+          <button
+            type="button"
+            onClick={handlePrevDay}
+            style={{
+              padding: '6px 12px',
+              borderRadius: '6px',
+              border: '1px solid #cbd5e1',
+              backgroundColor: '#ffffff',
+              color: '#334155',
+              fontSize: '13px',
+              fontWeight: '600',
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '4px'
+            }}
+            title="Previous Day"
+          >
+            ◀ Prev
+          </button>
           <button
             type="button"
             onClick={() => setSelectedDate(getTodayStr())}
@@ -217,11 +251,34 @@ export default function AttendancePage() {
               borderRadius: '6px',
               border: '1px solid #cbd5e1',
               backgroundColor: '#ffffff',
+              color: '#334155',
               fontSize: '13px',
+              fontWeight: '600',
               cursor: 'pointer'
             }}
+            title="Jump to Today"
           >
             Today
+          </button>
+          <button
+            type="button"
+            onClick={handleNextDay}
+            style={{
+              padding: '6px 12px',
+              borderRadius: '6px',
+              border: '1px solid #cbd5e1',
+              backgroundColor: '#ffffff',
+              color: '#334155',
+              fontSize: '13px',
+              fontWeight: '600',
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '4px'
+            }}
+            title="Next Day"
+          >
+            Next ▶
           </button>
         </div>
 

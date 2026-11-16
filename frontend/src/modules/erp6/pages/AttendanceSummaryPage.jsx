@@ -158,23 +158,29 @@ export default function AttendanceSummaryPage() {
               borderRadius: '6px',
               border: '1px solid #cbd5e1',
               fontSize: '14px',
-              backgroundColor: '#ffffff'
+              backgroundColor: '#ffffff',
+              color: '#1e293b'
             }}
           />
           <button
             type="button"
             onClick={handlePrevMonth}
             style={{
-              padding: '6px 10px',
+              padding: '6px 12px',
               borderRadius: '6px',
               border: '1px solid #cbd5e1',
               backgroundColor: '#ffffff',
+              color: '#334155',
               fontSize: '13px',
-              cursor: 'pointer'
+              fontWeight: '600',
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '4px'
             }}
             title="Previous Month"
           >
-            ◀
+            ◀ Prev
           </button>
           <button
             type="button"
@@ -184,9 +190,12 @@ export default function AttendanceSummaryPage() {
               borderRadius: '6px',
               border: '1px solid #cbd5e1',
               backgroundColor: '#ffffff',
+              color: '#334155',
               fontSize: '13px',
+              fontWeight: '600',
               cursor: 'pointer'
             }}
+            title="Jump to Current Month"
           >
             Current Month
           </button>
@@ -194,16 +203,21 @@ export default function AttendanceSummaryPage() {
             type="button"
             onClick={handleNextMonth}
             style={{
-              padding: '6px 10px',
+              padding: '6px 12px',
               borderRadius: '6px',
               border: '1px solid #cbd5e1',
               backgroundColor: '#ffffff',
+              color: '#334155',
               fontSize: '13px',
-              cursor: 'pointer'
+              fontWeight: '600',
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '4px'
             }}
             title="Next Month"
           >
-            ▶
+            Next ▶
           </button>
         </div>
 
