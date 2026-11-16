@@ -133,6 +133,254 @@ async function fetchReportsCatalog() {
   return SEEDED_REPORTS;
 }
 
+/**
+ * Helper: check if provider or mock rows are already summarised.
+ * When mock JSON is returned, the first row already has lead_count, ticket_count, or customer_count.
+ */
+function isAlreadySummarised(rows, countKey) {
+  return Array.isArray(rows) && rows.length > 0 && rows[0] && rows[0][countKey] !== undefined;
+}
+
+/**
+ * Helper: find the most frequent string ID in an array (e.g. employee ID).
+ * If there is a tie, it picks the lowest alphabetical ID (e.g. EMP-0001 over EMP-0002).
+ * Returns '-' if no valid IDs exist.
+ */
+function getMostFrequentId(ids) {
+  const counts = {};
+  for (const id of ids) {
+    if (id && String(id).trim() !== '' && id !== '-') {
+      const cleanId = String(id).trim();
+      counts[cleanId] = (counts[cleanId] || 0) + 1;
+    }
+  }
+
+  const uniqueIds = Object.keys(counts);
+  if (uniqueIds.length === 0) return '-';
+
+  uniqueIds.sort((a, b) => {
+    if (counts[b] !== counts[a]) {
+      return counts[b] - counts[a];
+    }
+    return a.localeCompare(b);
+  });
+
+  return uniqueIds[0];
+}
+
+/**
+ * Helper: summarise CRM-1 leads into RPT-0001 (Leads by Source) rows.
+ * Always returns all three rows: Dealer, Web, Walk-in.
+ */
+function summariseLeadsBySource(rawLeads, rawOpportunities) {
+  if (isAlreadySummarised(rawLeads, 'lead_count')) {
+    return rawLeads;
+  }
+
+  const leads = Array.isArray(rawLeads) ? rawLeads : [];
+  const opportunities = Array.isArray(rawOpportunities) ? rawOpportunities : [];
+
+  // Set of lead IDs that have at least one opportunity in stage 'won'
+  const wonLeadIds = new Set(
+    opportunities
+      .filter(opp => String(opp.stage || '').trim().toLowerCase() === 'won' && opp.lead_id)
+      .map(opp => String(opp.lead_id).trim())
+  );
+
+  // Open pipeline stages for active opportunities
+  const OPEN_STAGES = new Set(['prospect', 'proposal', 'negotiation']);
+
+  // Always return all three rows: Dealer, Web, Walk-in
+  const SOURCE_CONFIG = [
+    { key: 'dealer', label: 'Dealer' },
+    { key: 'web', label: 'Web' },
+    { key: 'walk-in', label: 'Walk-in' }
+  ];
+
+  return SOURCE_CONFIG.map(cfg => {
+    // Filter leads matching this source channel
+    const groupLeads = leads.filter(l => {
+      const s = String(l.source || '').trim().toLowerCase();
+      if (cfg.key === 'walk-in') {
+        return s === 'walk-in' || s === 'walk_in' || s === 'walk in';
+      }
+      return s === cfg.key;
+    });
+
+    const leadIdsInGroup = new Set(groupLeads.map(l => String(l.id).trim()));
+
+    // lead_count: total inquiry count
+    const lead_count = groupLeads.length;
+
+    // converted_count: number of leads with at least one 'won' opportunity
+    const converted_count = groupLeads.filter(l => wonLeadIds.has(String(l.id).trim())).length;
+
+    // assigned_rep: most frequent sales_rep_id in group (ties: lowest id)
+    const assigned_rep = getMostFrequentId(groupLeads.map(l => l.sales_rep_id));
+
+    // total_pipeline_inr: sum of expected_value of open opportunities tied to these leads
+    let pipelineTotal = 0;
+    for (const opp of opportunities) {
+      const stage = String(opp.stage || '').trim().toLowerCase();
+      const oppLeadId = opp.lead_id ? String(opp.lead_id).trim() : '';
+      if (OPEN_STAGES.has(stage) && oppLeadId && leadIdsInGroup.has(oppLeadId)) {
+        pipelineTotal += Number(opp.expected_value) || 0;
+      }
+    }
+
+    return {
+      source: cfg.label,
+      lead_count,
+      converted_count,
+      assigned_rep,
+      total_pipeline_inr: Number(pipelineTotal.toFixed(2))
+    };
+  });
+}
+
+/**
+ * Helper: summarise CRM-2 tickets into RPT-0002 (Tickets by Status) rows.
+ * Always returns all four statuses: open, in_progress, resolved, closed.
+ */
+function summariseTicketsByStatus(rawTickets) {
+  if (isAlreadySummarised(rawTickets, 'ticket_count')) {
+    return rawTickets;
+  }
+
+  const tickets = Array.isArray(rawTickets) ? rawTickets : [];
+
+  // Always return all four statuses: open, in_progress, resolved, closed
+  const STATUS_CONFIG = [
+    { key: 'open', label: 'open' },
+    { key: 'in_progress', label: 'in_progress' },
+    { key: 'resolved', label: 'resolved' },
+    { key: 'closed', label: 'closed' }
+  ];
+
+  return STATUS_CONFIG.map(cfg => {
+    // Filter tickets matching this status
+    const groupTickets = tickets.filter(t => {
+      const s = String(t.status || '').trim().toLowerCase().replace(/-/g, '_');
+      return s === cfg.key;
+    });
+
+    // ticket_count: total tickets with this status
+    const ticket_count = groupTickets.length;
+
+    // high_priority_count: tickets with priority 'high'
+    const high_priority_count = groupTickets.filter(
+      t => String(t.priority || '').trim().toLowerCase() === 'high'
+    ).length;
+
+    // assigned_engineer: most frequent assigned_to (ties: lowest id)
+    const assigned_engineer = getMostFrequentId(groupTickets.map(t => t.assigned_to));
+
+    // avg_resolution_hrs: average (resolved_at - created_at) in hours for resolved/closed
+    let totalHours = 0;
+    let resolvedCount = 0;
+    for (const t of groupTickets) {
+      if (t.resolved_at && t.created_at) {
+        const createdMs = new Date(t.created_at).getTime();
+        const resolvedMs = new Date(t.resolved_at).getTime();
+        if (!isNaN(createdMs) && !isNaN(resolvedMs) && resolvedMs >= createdMs) {
+          totalHours += (resolvedMs - createdMs) / (1000 * 60 * 60);
+          resolvedCount++;
+        }
+      }
+    }
+
+    const avg_resolution_hrs = resolvedCount > 0
+      ? Number((totalHours / resolvedCount).toFixed(1))
+      : 0;
+
+    return {
+      status: cfg.label,
+      ticket_count,
+      high_priority_count,
+      assigned_engineer,
+      avg_resolution_hrs
+    };
+  });
+}
+
+/**
+ * Helper: summarise CRM-3 customers into RPT-0003 (Customers by Type) rows.
+ * Always returns all three customer types: retail, corporate, dealer.
+ * Cross-references ERP-4 sales orders for active orders and total spend.
+ */
+function summariseCustomersByType(rawCustomers, rawSalesOrders) {
+  if (isAlreadySummarised(rawCustomers, 'customer_count')) {
+    return rawCustomers;
+  }
+
+  const customers = Array.isArray(rawCustomers) ? rawCustomers : [];
+  const salesOrders = Array.isArray(rawSalesOrders) ? rawSalesOrders : [];
+
+  // Map customer_id -> type for order aggregation
+  const customerTypeMap = {};
+  for (const c of customers) {
+    if (c.id && c.type) {
+      customerTypeMap[String(c.id).trim()] = String(c.type).trim().toLowerCase();
+    }
+  }
+
+  // Always return all three customer types: retail, corporate, dealer
+  const TYPE_CONFIG = [
+    { key: 'retail', label: 'Retail Commercial' },
+    { key: 'corporate', label: 'Enterprise Corporate' },
+    { key: 'dealer', label: 'Dealer' }
+  ];
+
+  return TYPE_CONFIG.map(cfg => {
+    // Filter customers in this segment
+    const groupCustomers = customers.filter(
+      c => String(c.type || '').trim().toLowerCase() === cfg.key
+    );
+
+    // customer_count: total customer count in this segment
+    const customer_count = groupCustomers.length;
+
+    // sample_customer_id: alphabetically lowest customer ID in the group
+    let sample_customer_id = '-';
+    if (groupCustomers.length > 0) {
+      const sortedIds = groupCustomers
+        .map(c => String(c.id || '').trim())
+        .filter(Boolean)
+        .sort((a, b) => a.localeCompare(b));
+      if (sortedIds.length > 0) {
+        sample_customer_id = sortedIds[0];
+      }
+    }
+
+    // active_orders: orders not delivered and not cancelled
+    // total_spend_inr: sum of total_amount of non-cancelled orders
+    let active_orders = 0;
+    let totalSpend = 0;
+
+    for (const order of salesOrders) {
+      const custId = order.customer_id ? String(order.customer_id).trim() : '';
+      const orderType = customerTypeMap[custId];
+      if (orderType === cfg.key) {
+        const orderStatus = String(order.status || '').trim().toLowerCase();
+        if (orderStatus !== 'cancelled') {
+          totalSpend += Number(order.total_amount) || 0;
+          if (orderStatus !== 'delivered') {
+            active_orders++;
+          }
+        }
+      }
+    }
+
+    return {
+      customer_type: cfg.label,
+      customer_count,
+      sample_customer_id,
+      active_orders,
+      total_spend_inr: Number(totalSpend.toFixed(2))
+    };
+  });
+}
+
 // All report endpoints require authentication
 router.use(requireAuth);
 
@@ -277,61 +525,97 @@ router.get('/reports/:id/run', async (req, res) => {
     const sourceTeam = (report.source || '').toUpperCase();
 
     if (sourceTeam === 'CRM-1' || report.id === 'RPT-0001') {
-      // Leads by Source from CRM-1
+      // 1. Leads by Source from CRM-1
+      let rawLeads = [];
       try {
         const crm1Data = await callService('crm1', '/api/leads', {
           method: 'GET',
           mock: 'leads-by-source'
         });
-        rows = Array.isArray(crm1Data) ? crm1Data : (crm1Data?.data || crm1Data?.rows || []);
+        rawLeads = Array.isArray(crm1Data) ? crm1Data : (crm1Data?.data || crm1Data?.rows || []);
       } catch (err) {
-        try {
-          const mockData = await callService('crm5', '/api/reports/leads-by-source', {
-            method: 'GET',
-            mock: 'leads-by-source'
-          });
-          rows = Array.isArray(mockData) ? mockData : (mockData?.data || mockData?.rows || []);
-        } catch (mockErr) {
-          rows = loadLocalMock('leads-by-source');
+        if (process.env.USE_MOCKS === 'false') {
+          throw err;
         }
+        rawLeads = loadLocalMock('leads-by-source');
+      }
+
+      if (isAlreadySummarised(rawLeads, 'lead_count')) {
+        rows = rawLeads;
+      } else {
+        // Fetch opportunities for conversion and pipeline totals
+        let rawOpps = [];
+        try {
+          const oppsData = await callService('crm1', '/api/opportunities', {
+            method: 'GET',
+            mock: 'opportunities'
+          });
+          rawOpps = Array.isArray(oppsData) ? oppsData : (oppsData?.data || oppsData?.rows || []);
+        } catch (err) {
+          if (process.env.USE_MOCKS === 'false') {
+            throw err;
+          }
+          rawOpps = loadLocalMock('opportunities');
+        }
+
+        rows = summariseLeadsBySource(rawLeads, rawOpps);
       }
     } else if (sourceTeam === 'CRM-2' || report.id === 'RPT-0002') {
-      // Tickets by Status from CRM-2
+      // 2. Tickets by Status from CRM-2
+      let rawTickets = [];
       try {
         const crm2Data = await callService('crm2', '/api/tickets', {
           method: 'GET',
           mock: 'tickets-by-status'
         });
-        rows = Array.isArray(crm2Data) ? crm2Data : (crm2Data?.data || crm2Data?.rows || []);
+        rawTickets = Array.isArray(crm2Data) ? crm2Data : (crm2Data?.data || crm2Data?.rows || []);
       } catch (err) {
-        try {
-          const mockData = await callService('crm5', '/api/reports/tickets-by-status', {
-            method: 'GET',
-            mock: 'tickets-by-status'
-          });
-          rows = Array.isArray(mockData) ? mockData : (mockData?.data || mockData?.rows || []);
-        } catch (mockErr) {
-          rows = loadLocalMock('tickets-by-status');
+        if (process.env.USE_MOCKS === 'false') {
+          throw err;
         }
+        rawTickets = loadLocalMock('tickets-by-status');
+      }
+
+      if (isAlreadySummarised(rawTickets, 'ticket_count')) {
+        rows = rawTickets;
+      } else {
+        rows = summariseTicketsByStatus(rawTickets);
       }
     } else if (sourceTeam === 'CRM-3' || report.id === 'RPT-0003') {
-      // Customers by Type from CRM-3
+      // 3. Customers by Type from CRM-3
+      let rawCustomers = [];
       try {
         const crm3Data = await callService('crm3', '/api/customers', {
           method: 'GET',
           mock: 'customers-by-type'
         });
-        rows = Array.isArray(crm3Data) ? crm3Data : (crm3Data?.data || crm3Data?.rows || []);
+        rawCustomers = Array.isArray(crm3Data) ? crm3Data : (crm3Data?.data || crm3Data?.rows || []);
       } catch (err) {
-        try {
-          const mockData = await callService('crm5', '/api/reports/customers-by-type', {
-            method: 'GET',
-            mock: 'customers-by-type'
-          });
-          rows = Array.isArray(mockData) ? mockData : (mockData?.data || mockData?.rows || []);
-        } catch (mockErr) {
-          rows = loadLocalMock('customers-by-type');
+        if (process.env.USE_MOCKS === 'false') {
+          throw err;
         }
+        rawCustomers = loadLocalMock('customers-by-type');
+      }
+
+      if (isAlreadySummarised(rawCustomers, 'customer_count')) {
+        rows = rawCustomers;
+      } else {
+        // Fetch sales orders from ERP-4 for active orders and spend
+        let rawOrders = [];
+        try {
+          const erp4Data = await callService('erp4', '/api/sales-orders', {
+            method: 'GET',
+            mock: 'sales-orders'
+          });
+          rawOrders = Array.isArray(erp4Data) ? erp4Data : (erp4Data?.data || erp4Data?.rows || []);
+        } catch (err) {
+          if (process.env.USE_MOCKS === 'false') {
+            throw err;
+          }
+          rawOrders = loadLocalMock('sales-orders');
+        }
+
+        rows = summariseCustomersByType(rawCustomers, rawOrders);
       }
     }
 
@@ -353,7 +637,8 @@ router.get('/reports/:id/run', async (req, res) => {
     });
   } catch (error) {
     console.error('[crm5] Error running report:', error.message);
-    return res.status(500).json({ error: 'Failed to run report' });
+    const status = (error.status && error.status >= 400 && error.status < 600) ? error.status : 502;
+    return res.status(status).json({ error: error.message || 'Failed to run report' });
   }
 });
 
