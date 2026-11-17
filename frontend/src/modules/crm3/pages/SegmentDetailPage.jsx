@@ -21,14 +21,19 @@ export default function SegmentDetailPage() {
     setLoading(true);
     setError(null);
     try {
-      const res = await api('crm3', `/api/segments/${id}/customers`);
+      // 1. Fetch segment metadata
+      const segRes = await api('crm3', `/api/segments/${id}`);
+      const segObj = segRes?.data || segRes;
+      setSegment(segObj);
 
-      if (res) {
-        setSegment(res.segment || null);
-        const list = res.data || res.customers || [];
-        setCustomers(list);
-        setCount(res.count !== undefined ? res.count : list.length);
-      }
+      // 2. Fetch matching customers for this cohort
+      const custRes = await api('crm3', `/api/segments/${id}/customers`);
+      const list = Array.isArray(custRes)
+        ? custRes
+        : (custRes?.customers || custRes?.data || []);
+      
+      setCustomers(list);
+      setCount(custRes?.count !== undefined ? custRes.count : list.length);
     } catch (err) {
       setError(err.message || `Failed to fetch matching customers for segment ${id}`);
     } finally {
